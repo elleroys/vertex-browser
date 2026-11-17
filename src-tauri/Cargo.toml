@@ -1,0 +1,66 @@
+[package]
+name = "vortex-browser"
+version = "1.0.0"
+description = "Vortex Browser — швидкий та приватний браузер для Windows 11 на базі WebView2"
+authors = ["Vortex Browser Team"]
+edition = "2021"
+
+[lib]
+name = "vortex_browser_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["unstable"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls", "gzip", "brotli"] }
+futures-util = "0.3"
+url = "2"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+csv = "1.3"
+
+# Локальна БД SQLite із вбудованим двигуном
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Повноцінний двигун AdBlock з підтримкою EasyList / EasyPrivacy
+adblock = { version = "0.13", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
+
+# Криптографія менеджера паролів (Argon2id + XChaCha20-Poly1305)
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+rand = "0.8"
+base64 = "0.22"
+zeroize = { version = "1.8", features = ["derive"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+webview2-com = "0.39"
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_System_Com",
+  "Win32_System_ProcessStatus",
+  "Win32_System_Threading",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = 3
+strip = true

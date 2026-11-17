@@ -1,0 +1,6 @@
+{
+  "name": "Vortex Browser",
+  "description": "Швидкий, приватний браузер для Windows 11 на базі Rust, Tauri 2, WebView2 та SQLite із вбудованим AdBlock, менеджером паролів та Memory Saver.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

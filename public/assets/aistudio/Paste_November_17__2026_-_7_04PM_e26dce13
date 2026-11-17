@@ -1,0 +1,754 @@
+Windows PowerShell 5.1
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PS C:\Users\aawas\Downloads\vortex-browser> winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+Found Visual Studio BuildTools 2022 [Microsoft.VisualStudio.2022.BuildTools] Version 17.14.45
+This application is licensed to you by its owner.
+Microsoft is not responsible for, nor does it grant any licenses to, third-party packages.
+Downloading https://download.visualstudio.microsoft.com/download/pr/95995f57-8355-4ff5-8d90-a7e1669fb3b3/310c13b8238876afb4e823a91112230ee2d2c5a45c431d4062af7aadedff9c4c/vs_BuildTools.exe
+  ██████████████████████████████  4.27 MB / 4.27 MB
+Successfully verified installer hash
+Starting package install...
+Successfully installed
+PS C:\Users\aawas\Downloads\vortex-browser> winget install OpenJS.NodeJS.LTS
+Found an existing package already installed. Trying to upgrade the installed package...
+No available upgrade found.
+No newer package versions are available from the configured sources.
+PS C:\Users\aawas\Downloads\vortex-browser> node -v
+v26.13.1
+PS C:\Users\aawas\Downloads\vortex-browser> npm -v
+11.20.0
+PS C:\Users\aawas\Downloads\vortex-browser> winget install Rustlang.Rustup
+Found an existing package already installed. Trying to upgrade the installed package...
+No available upgrade found.
+No newer package versions are available from the configured sources.
+PS C:\Users\aawas\Downloads\vortex-browser> rustup default stable-x86_64-pc-windows-msvc
+info: using existing install for stable-x86_64-pc-windows-msvc
+info: default toolchain set to stable-x86_64-pc-windows-msvc
+
+  stable-x86_64-pc-windows-msvc unchanged - rustc 1.100.0 (0ef1bc386 2026-11-09)
+
+PS C:\Users\aawas\Downloads\vortex-browser> rustc -V
+rustc 1.100.0 (0ef1bc386 2026-11-09)
+PS C:\Users\aawas\Downloads\vortex-browser> cargo -V
+cargo 1.100.0 (3acc79c0c 2026-11-05)
+PS C:\Users\aawas\Downloads\vortex-browser> winget install Microsoft.EdgeWebView2Runtime
+Found Microsoft Edge WebView2 Runtime [Microsoft.EdgeWebView2Runtime] Version 157.0.4341.42
+This application is licensed to you by its owner.
+Microsoft is not responsible for, nor does it grant any licenses to, third-party packages.
+Downloading https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/0126536e-e048-416f-923b-202f7f6fa64b/MicrosoftEdgeWebView2RuntimeInstallerX64.exe
+  ██████████████████████████████   204 MB /  204 MB
+Successfully verified installer hash
+Starting package install...
+Successfully installed
+PS C:\Users\aawas\Downloads\vortex-browser> npm install --legacy-peer-deps
+
+added 179 packages, and audited 186 packages in 20s
+
+39 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm warn install-scripts 3 packages have install scripts not yet covered by allowScripts:
+npm warn install-scripts   @google/genai@2.32.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+PS C:\Users\aawas\Downloads\vortex-browser> npm install -D @tauri-apps/cli --legacy-peer-deps
+
+added 2 packages, and audited 188 packages in 2s
+
+40 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm warn install-scripts 3 packages have install scripts not yet covered by allowScripts:
+npm warn install-scripts   @google/genai@2.32.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+PS C:\Users\aawas\Downloads\vortex-browser> npm run lint
+
+> react-example@0.0.0 lint
+> tsc --noEmit
+
+PS C:\Users\aawas\Downloads\vortex-browser> npm run build
+
+> react-example@0.0.0 build
+> vite build
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:22:40). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.8 building client environment for production...
+✓ 1672 modules transformed.
+computing gzip size...
+dist/index.html                   1.53 kB │ gzip:  0.74 kB
+dist/assets/index-DSJOA8MD.css   45.53 kB │ gzip:  7.99 kB
+dist/assets/index-Ryzp2dq1.js   364.27 kB │ gzip: 99.88 kB
+
+✓ built in 516ms
+PS C:\Users\aawas\Downloads\vortex-browser> cd src-tauri
+PS C:\Users\aawas\Downloads\vortex-browser\src-tauri> cargo check
+    Updating crates.io index
+     Locking 539 packages to highest compatible versions
+      Adding argon2 v0.5.3 (available: v0.6.0)
+      Adding base64 v0.22.1 (available: v0.23.1)
+      Adding chacha20poly1305 v0.10.1 (available: v0.11.0)
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding rand v0.8.8 (available: v0.10.4)
+      Adding reqwest v0.12.28 (available: v0.13.5)
+      Adding rusqlite v0.32.1 (available: v0.43.0)
+      Adding toml v0.8.2 (available: v0.8.23)
+      Adding toml_datetime v0.6.3 (available: v0.6.11)
+      Adding toml_edit v0.20.2 (available: v0.20.7)
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+    Checking cfg-if v1.0.5
+   Compiling serde_core v1.0.229
+    Checking windows-link v0.2.1
+   Compiling parking_lot_core v0.9.12
+   Compiling siphasher v1.0.4
+   Compiling icu_normalizer_data v2.4.0
+   Compiling icu_properties_data v2.4.0
+   Compiling phf_shared v0.13.1
+   Compiling fastrand v2.5.0
+   Compiling stable_deref_trait v1.2.1
+   Compiling zmij v1.0.23
+   Compiling phf_generator v0.13.1
+   Compiling smallvec v1.16.5
+   Compiling thiserror v2.0.21
+    Checking windows-sys v0.61.2
+   Compiling getrandom v0.4.3
+   Compiling serde v1.0.229
+   Compiling version_check v0.9.5
+   Compiling memchr v2.8.3
+   Compiling time-core v0.1.9
+   Compiling syn v3.0.10
+   Compiling syn v2.0.119
+   Compiling num-conv v0.2.2
+   Compiling typeid v1.0.3
+   Compiling phf_codegen v0.13.1
+   Compiling ident_case v1.0.1
+   Compiling utf_types v1.0.0
+   Compiling litemap v0.8.3
+   Compiling itoa v1.0.19
+   Compiling strsim v0.11.1
+   Compiling writeable v0.6.4
+   Compiling utf8_iter v1.1.0
+   Compiling semver v1.0.28
+   Compiling erased-serde v0.4.11
+   Compiling autocfg v1.5.1
+   Compiling new_debug_unreachable v1.0.6
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling string_cache_codegen v0.6.1
+   Compiling serde_json v1.0.154
+   Compiling precomputed-hash v0.1.1
+   Compiling anyhow v1.0.104
+   Compiling web_atoms v0.2.6
+   Compiling parking_lot v0.12.5
+   Compiling winnow v1.0.5
+   Compiling string_cache v0.9.0
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling serde_spanned v1.1.3
+   Compiling toml_datetime v1.1.3+spec-1.1.0
+   Compiling synstructure v0.14.0
+   Compiling darling_core v0.24.1
+   Compiling bitflags v2.13.2
+   Compiling find-msvc-tools v0.1.15
+   Compiling shlex v2.0.1
+   Compiling percent-encoding v2.3.2
+   Compiling toml_writer v1.2.0+spec-1.1.0
+   Compiling log v0.4.35
+   Compiling dtoa v1.0.11
+   Compiling toml v1.2.1+spec-1.1.0
+   Compiling form_urlencoded v1.2.2
+   Compiling dtoa-short v0.3.5
+   Compiling cc v1.11.2
+   Compiling uuid v1.29.3
+   Compiling indexmap v1.9.3
+   Compiling tendril v0.5.1
+   Compiling selectors v0.38.0
+   Compiling aho-corasick v1.1.5
+   Compiling camino v1.2.6
+   Compiling regex-syntax v0.8.11
+   Compiling alloc-no-stdlib v3.0.0
+   Compiling alloc-stdlib v0.3.0
+   Compiling winapi-util v0.1.11
+   Compiling phf_macros v0.13.1
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.4
+   Compiling zerovec-derive v0.11.7
+   Compiling serde_derive v1.0.229
+   Compiling displaydoc v0.2.7
+   Compiling thiserror-impl v2.0.21
+   Compiling phf v0.13.1
+   Compiling cssparser-macros v0.7.1
+   Compiling zerofrom v0.1.8
+   Compiling derive_more-impl v2.1.1
+   Compiling yoke v0.8.4
+   Compiling darling_macro v0.24.1
+   Compiling zerovec v0.11.9
+   Compiling zerotrie v0.2.5
+   Compiling darling v0.24.1
+   Compiling markup5ever v0.39.0
+   Compiling derive_more v2.1.1
+   Compiling serde_with_macros v3.24.0
+   Compiling cssparser v0.37.0
+   Compiling regex-automata v0.4.18
+   Compiling serde_derive_internals v0.29.1
+   Compiling tinystr v0.8.5
+   Compiling potential_utf v0.1.6
+   Compiling servo_arc v0.4.3
+   Compiling icu_collections v2.4.0
+   Compiling icu_locale_core v2.4.0
+   Compiling schemars v0.8.22
+   Compiling equivalent v1.0.3
+   Compiling hashbrown v0.17.1
+    Checking bytes v1.12.1
+   Compiling deranged v0.5.9
+   Compiling rustc-hash v2.1.3
+   Compiling bit-vec v0.8.0
+   Compiling hashbrown v0.12.3
+   Compiling fnv v1.0.7
+   Compiling powerfmt v0.2.1
+   Compiling web-time v1.1.0
+   Compiling indexmap v2.14.2
+   Compiling cfb v0.14.0
+   Compiling icu_provider v2.4.0
+   Compiling time v0.3.55
+   Compiling bit-set v0.8.0
+   Compiling icu_normalizer v2.4.0
+   Compiling icu_properties v2.4.0
+   Compiling cargo-platform v0.1.9
+   Compiling jsonptr v0.7.1
+   Compiling schemars_derive v0.8.22
+   Compiling html5ever v0.39.0
+   Compiling same-file v1.0.6
+   Compiling regex v1.13.1
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling brotli-decompressor v6.3.2
+   Compiling quick-xml v0.42.0
+    Checking getrandom v0.2.17
+   Compiling url v2.5.8
+   Compiling foldhash v0.2.0
+   Compiling tauri-utils v2.10.3
+   Compiling dyn-clone v1.0.20
+    Checking pin-project-lite v0.2.17
+   Compiling dunce v1.0.5
+   Compiling base64 v0.23.1
+    Checking once_cell v1.21.4
+   Compiling urlpattern v0.6.0
+   Compiling http v1.5.0
+   Compiling brotli v9.1.3
+   Compiling plist v1.10.4
+   Compiling dom_query v0.28.0
+   Compiling cargo_metadata v0.19.2
+   Compiling serde-untagged v0.1.9
+   Compiling walkdir v2.5.0
+   Compiling json-patch v4.2.0
+   Compiling infer v0.22.0
+   Compiling serde_with v3.24.0
+   Compiling glob v0.3.4
+   Compiling ctor v1.0.14
+   Compiling libc v0.2.191
+   Compiling windows-interface v0.59.3
+   Compiling windows-implement v0.60.2
+    Checking windows-result v0.4.1
+    Checking windows-strings v0.5.1
+   Compiling tokio-macros v2.7.2
+    Checking mio v1.2.5
+    Checking socket2 v0.6.5
+    Checking windows-core v0.62.2
+   Compiling generic-array v0.14.7
+    Checking tokio v1.54.1
+    Checking rand_core v0.6.4
+   Compiling heck v0.5.0
+    Checking typenum v1.20.1
+    Checking tracing-core v0.1.36
+    Checking windows-threading v0.2.1
+   Compiling simd-adler32 v0.3.10
+    Checking windows-future v0.3.2
+    Checking windows-collections v0.3.2
+    Checking windows-numerics v0.3.1
+   Compiling tracing-attributes v0.1.31
+   Compiling zeroize_derive v1.5.0
+   Compiling time-macros v0.2.32
+    Checking futures-core v0.3.34
+   Compiling adler2 v2.0.1
+   Compiling crc32fast v1.5.5
+    Checking raw-window-handle v0.6.2
+    Checking subtle v2.6.1
+    Checking tracing v0.1.44
+   Compiling hybrid-array v0.4.15
+    Checking zeroize v1.9.2
+    Checking windows v0.62.2
+   Compiling webview2-com-sys v0.39.1
+   Compiling crossbeam-utils v0.8.23
+   Compiling miniz_oxide v0.9.1
+    Checking crypto-common v0.1.7
+    Checking dpi v0.1.2
+   Compiling rustc_version v0.4.1
+   Compiling cookie v0.18.2
+   Compiling zerocopy v0.8.63
+   Compiling flate2 v1.1.11
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling miniz_oxide v0.8.9
+   Compiling fdeflate v0.3.7
+   Compiling vswhom-sys v0.1.3
+   Compiling ring v0.17.14
+   Compiling webview2-com-macros v0.8.1
+   Compiling tauri-plugin v2.7.3
+    Checking windows-version v0.1.7
+   Compiling const-oid v0.10.3
+   Compiling png v0.18.1
+   Compiling digest v0.11.3
+    Checking crossbeam-channel v0.5.17
+   Compiling cpufeatures v0.3.1
+   Compiling tauri-runtime v2.12.3
+   Compiling wry v0.57.2
+   Compiling byteorder v1.5.0
+   Compiling ico v0.6.0
+   Compiling sha2 v0.11.1
+    Checking rustls-pki-types v1.16.0
+    Checking http-body v1.1.0
+   Compiling futures-macro v0.3.34
+   Compiling httparse v1.10.1
+   Compiling getrandom v0.3.4
+    Checking slab v0.4.12
+   Compiling rustversion v1.0.23
+    Checking futures-task v0.3.34
+    Checking option-ext v0.2.0
+   Compiling muda v0.20.0
+    Checking untrusted v0.9.0
+    Checking unicode-segmentation v1.13.3
+   Compiling tauri-runtime-wry v2.12.4
+    Checking futures-util v0.3.34
+    Checking dirs-sys v0.5.0
+   Compiling tauri-codegen v2.7.5
+   Compiling vswhom v0.1.0
+    Checking softbuffer v0.4.8
+    Checking keyboard-types v0.8.3
+   Compiling serialize-to-javascript-impl v0.1.2
+   Compiling winreg v0.56.0
+   Compiling ahash v0.8.12
+    Checking tower-service v0.3.3
+   Compiling windows_x86_64_msvc v0.53.1
+   Compiling rustls v0.23.46
+    Checking try-lock v0.2.5
+    Checking want v0.3.2
+    Checking rustls-webpki v0.103.17
+   Compiling embed-resource v3.0.12
+    Checking serialize-to-javascript v0.1.2
+    Checking dirs v7.0.0
+    Checking window-vibrancy v0.8.1
+   Compiling serde_repr v0.1.21
+    Checking atomic-waker v1.1.2
+    Checking compression-core v0.4.34
+   Compiling vcpkg v0.2.15
+    Checking cpufeatures v0.2.17
+   Compiling pkg-config v0.3.34
+    Checking mime v0.3.18
+    Checking compression-codecs v0.4.47
+    Checking hyper v1.12.0
+   Compiling encoding_rs v0.8.44
+   Compiling tauri-winres v0.3.7
+   Compiling tauri v2.12.6
+   Compiling tauri-plugin-fs v2.7.1
+   Compiling tauri-macros v2.7.5
+   Compiling libsqlite3-sys v0.30.1
+   Compiling tauri-plugin-shell v2.6.0
+   Compiling tauri-plugin-dialog v2.8.4
+   Compiling flatbuffers v25.12.19
+    Checking sync_wrapper v1.0.2
+    Checking futures-channel v0.3.34
+    Checking block-buffer v0.10.4
+    Checking inout v0.1.4
+   Compiling cargo_toml v1.0.1
+   Compiling num-traits v0.2.19
+   Compiling thiserror v1.0.69
+    Checking ryu v1.0.23
+    Checking futures-sink v0.3.34
+    Checking ipnet v2.12.2
+    Checking psl-types v2.0.11
+   Compiling static_vcruntime v3.0.0
+   Compiling rfd v0.17.2
+    Checking tower-layer v0.3.3
+    Checking hyper-util v0.1.21
+    Checking tokio-rustls v0.26.6
+    Checking psl v2.1.256
+    Checking tower v0.5.3
+    Checking tokio-util v0.7.20
+   Compiling tauri-build v2.7.5
+    Checking cipher v0.4.4
+    Checking digest v0.10.7
+    Checking windows-targets v0.53.5
+    Checking hashbrown v0.14.5
+    Checking async-compression v0.4.52
+    Checking ppv-lite86 v0.2.21
+    Checking webpki-roots v1.0.12
+    Checking http-body-util v0.1.5
+    Checking universal-hash v0.5.1
+   Compiling thiserror-impl v1.0.69
+    Checking lazy_static v1.5.1
+    Checking base64 v0.22.1
+    Checking base64ct v1.8.3
+    Checking opaque-debug v0.3.1
+   Compiling multiversion_no_op v1.0.0
+    Checking either v1.19.0
+    Checking simdutf8 v0.1.5
+    Checking core_detect v1.0.0
+    Checking password-hash v0.5.0
+    Checking itertools v0.14.0
+   Compiling vortex-browser v1.0.0 (C:\Users\aawas\Downloads\vortex-browser\src-tauri)
+    Checking poly1305 v0.8.0
+    Checking tower-http v0.6.11
+    Checking addr v0.15.6
+    Checking sharded-slab v0.1.7
+    Checking hyper-rustls v0.27.10
+    Checking rand_chacha v0.3.1
+    Checking hashlink v0.9.1
+    Checking blake2 v0.10.6
+    Checking windows-sys v0.60.2
+    Checking chacha20 v0.9.1
+    Checking serde_urlencoded v0.7.1
+    Checking open v5.4.5
+    Checking aead v0.5.2
+    Checking matchers v0.2.0
+    Checking tracing-log v0.2.0
+    Checking shared_child v1.1.2
+    Checking nu-ansi-term v0.50.3
+    Checking os_pipe v1.2.3
+    Checking csv-core v0.1.13
+    Checking thread_local v1.1.10
+    Checking fallible-streaming-iterator v0.1.9
+    Checking arrayvec v0.7.8
+    Checking seahash v4.1.0
+    Checking fallible-iterator v0.3.0
+    Checking csv v1.4.0
+    Checking tracing-subscriber v0.3.23
+    Checking chrono v0.4.45
+    Checking reqwest v0.12.28
+    Checking adblock v0.13.5
+    Checking chacha20poly1305 v0.10.1
+    Checking rusqlite v0.32.1
+    Checking argon2 v0.5.3
+    Checking rand v0.8.8
+    Checking tao v0.37.2
+    Checking webview2-com v0.39.1
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 51s
+PS C:\Users\aawas\Downloads\vortex-browser\src-tauri> cd ..
+PS C:\Users\aawas\Downloads\vortex-browser> npx tauri dev
+     Running BeforeDevCommand (`npm run dev`)
+
+> react-example@0.0.0 dev
+> tsx server.ts
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:22:40). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Vortex Browser server listening on http://0.0.0.0:3000
+     Running DevCommand (`cargo  run --no-default-features --color always --`)
+        Info Watching C:\Users\aawas\Downloads\vortex-browser\src-tauri for changes...
+   Compiling cfg-if v1.0.5
+   Compiling windows-link v0.2.1
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.19
+   Compiling litemap v0.8.3
+   Compiling writeable v0.6.4
+   Compiling zerofrom v0.1.8
+   Compiling utf_types v1.0.0
+   Compiling siphasher v1.0.4
+   Compiling scopeguard v1.2.0
+   Compiling serde_core v1.0.229
+   Compiling utf8_iter v1.1.0
+   Compiling lock_api v0.4.14
+   Compiling icu_properties_data v2.4.0
+   Compiling icu_normalizer_data v2.4.0
+   Compiling phf_shared v0.13.1
+   Compiling bytes v1.12.1
+   Compiling yoke v0.8.4
+   Compiling zmij v1.0.23
+   Compiling windows-sys v0.61.2
+   Compiling thiserror v2.0.21
+   Compiling phf_generator v0.13.1
+   Compiling zerovec v0.11.9
+   Compiling aho-corasick v1.1.5
+   Compiling regex-syntax v0.8.11
+   Compiling phf_macros v0.13.1
+   Compiling alloc-no-stdlib v3.0.0
+   Compiling http v1.5.0
+   Compiling alloc-stdlib v0.3.0
+   Compiling getrandom v0.4.3
+   Compiling time-core v0.1.9
+   Compiling num-conv v0.2.2
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\phf_macros\4ebf3d86b4e143c5\out\phf_macros-4ebf3d86b4e143c5.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\phf_macros\4ebf3d86b4e143c5\out\phf_macros-4ebf3d86b4e143c5.pdb'
+   Compiling brotli-decompressor v6.3.2
+   Compiling tinystr v0.8.5
+   Compiling phf_codegen v0.13.1
+   Compiling deranged v0.5.9
+   Compiling powerfmt v0.2.1
+   Compiling smallvec v1.16.5
+   Compiling winnow v1.0.5
+   Compiling icu_locale_core v2.4.0
+   Compiling potential_utf v0.1.6
+   Compiling zerotrie v0.2.5
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling toml_writer v1.2.0+spec-1.1.0
+   Compiling base64 v0.23.1
+   Compiling icu_provider v2.4.0
+   Compiling icu_collections v2.4.0
+   Compiling typeid v1.0.3
+   Compiling fnv v1.0.7
+   Compiling web-time v1.1.0
+   Compiling phf v0.13.1
+   Compiling string_cache_codegen v0.6.1
+   Compiling parking_lot_core v0.9.12
+   Compiling equivalent v1.0.3
+   Compiling stable_deref_trait v1.2.1
+   Compiling dunce v1.0.5
+   Compiling hashbrown v0.17.1
+   Compiling parking_lot v0.12.5
+   Compiling icu_normalizer v2.4.0
+   Compiling web_atoms v0.2.6
+   Compiling icu_properties v2.4.0
+   Compiling quick-xml v0.42.0
+   Compiling indexmap v2.14.2
+   Compiling string_cache v0.9.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\web_atoms\2e4ec2338a6340d6\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\web_atoms\2e4ec2338a6340d6\out\build_script_build.pdb'
+   Compiling serde_json v1.0.154
+   Compiling serde v1.0.229
+   Compiling idna_adapter v1.2.2
+   Compiling toml_datetime v1.1.3+spec-1.1.0
+   Compiling serde_spanned v1.1.3
+   Compiling toml v1.2.1+spec-1.1.0
+   Compiling idna v1.1.0
+   Compiling anyhow v1.0.104
+   Compiling selectors v0.38.0
+   Compiling uuid v1.29.3
+   Compiling glob v0.3.4
+   Compiling ctor v1.0.14
+   Compiling cssparser v0.37.0
+   Compiling markup5ever v0.39.0
+   Compiling url v2.5.8
+   Compiling regex-automata v0.4.18
+   Compiling html5ever v0.39.0
+   Compiling cfb v0.14.0
+   Compiling jsonptr v0.7.1
+   Compiling winapi-util v0.1.11
+   Compiling erased-serde v0.4.11
+   Compiling time v0.3.55
+   Compiling same-file v1.0.6
+   Compiling getrandom v0.2.17
+   Compiling once_cell v1.21.4
+   Compiling pin-project-lite v0.2.17
+   Compiling dom_query v0.28.0
+   Compiling schemars v0.8.22
+   Compiling cargo_metadata v0.19.2
+   Compiling serde-untagged v0.1.9
+   Compiling walkdir v2.5.0
+   Compiling regex v1.13.1
+   Compiling json-patch v4.2.0
+   Compiling urlpattern v0.6.0
+   Compiling infer v0.22.0
+   Compiling serde_with v3.24.0
+   Compiling plist v1.10.4
+   Compiling brotli v9.1.3
+   Compiling adler2 v2.0.1
+   Compiling percent-encoding v2.3.2
+   Compiling libc v0.2.191
+   Compiling windows-strings v0.5.1
+   Compiling windows-result v0.4.1
+   Compiling windows-core v0.62.2
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.5
+   Compiling form_urlencoded v1.2.2
+   Compiling rand_core v0.6.4
+   Compiling bitflags v2.13.2
+   Compiling typenum v1.20.1
+   Compiling tracing-core v0.1.36
+   Compiling tokio v1.54.1
+   Compiling tauri-utils v2.10.3
+   Compiling generic-array v0.14.7
+   Compiling windows-threading v0.2.1
+   Compiling log v0.4.35
+   Compiling windows-future v0.3.2
+   Compiling windows-numerics v0.3.1
+   Compiling windows-collections v0.3.2
+   Compiling time-macros v0.2.32
+   Compiling futures-core v0.3.34
+   Compiling subtle v2.6.1
+   Compiling option-ext v0.2.0
+   Compiling raw-window-handle v0.6.2
+   Compiling zeroize v1.9.2
+   Compiling tracing v0.1.44
+   Compiling windows v0.62.2
+   Compiling webview2-com-sys v0.39.1
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\webview2-com-sys\1010f3af04dab279\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\webview2-com-sys\1010f3af04dab279\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\time-macros\285c880308579962\out\time_macros-285c880308579962.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\time-macros\285c880308579962\out\time_macros-285c880308579962.pdb'
+   Compiling crc32fast v1.5.5
+   Compiling crypto-common v0.1.7
+   Compiling miniz_oxide v0.9.1
+   Compiling dpi v0.1.2
+   Compiling flate2 v1.1.11
+   Compiling crossbeam-utils v0.8.23
+   Compiling miniz_oxide v0.8.9
+   Compiling windows-version v0.1.7
+   Compiling png v0.18.1
+   Compiling crossbeam-channel v0.5.17
+   Compiling tauri-plugin v2.7.3
+   Compiling cookie v0.18.2
+   Compiling zerocopy v0.8.63
+   Compiling semver v1.0.28
+   Compiling sha2 v0.11.1
+   Compiling ico v0.6.0
+   Compiling vswhom-sys v0.1.3
+   Compiling rustls-pki-types v1.16.0
+   Compiling http-body v1.1.0
+   Compiling simd-adler32 v0.3.10
+   Compiling slab v0.4.12
+   Compiling futures-task v0.3.34
+   Compiling untrusted v0.9.0
+   Compiling unicode-segmentation v1.13.3
+   Compiling ring v0.17.14
+   Compiling futures-util v0.3.34
+   Compiling tauri-codegen v2.7.5
+   Compiling vswhom v0.1.0
+   Compiling softbuffer v0.4.8
+   Compiling dirs-sys v0.5.0
+   Compiling keyboard-types v0.8.3
+   Compiling winreg v0.56.0
+   Compiling try-lock v0.2.5
+   Compiling tower-service v0.3.3
+   Compiling want v0.3.2
+   Compiling serialize-to-javascript v0.1.2
+   Compiling embed-resource v3.0.12
+   Compiling dirs v7.0.0
+   Compiling muda v0.20.0
+   Compiling rustls-webpki v0.103.17
+   Compiling httparse v1.10.1
+   Compiling getrandom v0.3.4
+   Compiling window-vibrancy v0.8.1
+   Compiling mime v0.3.18
+   Compiling compression-core v0.4.34
+   Compiling atomic-waker v1.1.2
+   Compiling cpufeatures v0.2.17
+   Compiling hyper v1.12.0
+   Compiling rustls v0.23.46
+   Compiling compression-codecs v0.4.47
+   Compiling tauri-winres v0.3.7
+   Compiling ahash v0.8.12
+   Compiling windows_x86_64_msvc v0.53.1
+   Compiling sync_wrapper v1.0.2
+   Compiling futures-channel v0.3.34
+   Compiling inout v0.1.4
+   Compiling block-buffer v0.10.4
+   Compiling cargo_toml v1.0.1
+   Compiling psl-types v2.0.11
+   Compiling ipnet v2.12.2
+   Compiling tower-layer v0.3.3
+   Compiling ryu v1.0.23
+   Compiling futures-sink v0.3.34
+   Compiling hyper-util v0.1.21
+   Compiling tokio-util v0.7.20
+   Compiling tower v0.5.3
+   Compiling tauri v2.12.6
+   Compiling tauri-plugin-fs v2.7.1
+   Compiling tauri-macros v2.7.5
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri\aebdbc336de28362\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri\aebdbc336de28362\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri-plugin-fs\1405c80b7c87b5ec\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri-plugin-fs\1405c80b7c87b5ec\out\build_script_build.pdb'
+   Compiling tauri-plugin-dialog v2.8.4
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri-macros\bf281b9c7fa7bb5c\out\tauri_macros-bf281b9c7fa7bb5c.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri-macros\bf281b9c7fa7bb5c\out\tauri_macros-bf281b9c7fa7bb5c.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri-plugin-dialog\2682190a724a33ab\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri-plugin-dialog\2682190a724a33ab\out\build_script_build.pdb'
+   Compiling tauri-plugin-shell v2.6.0
+   Compiling tauri-build v2.7.5
+   Compiling tokio-rustls v0.26.6
+   Compiling psl v2.1.256
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri-plugin-shell\3d130e6ba1452407\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\tauri-plugin-shell\3d130e6ba1452407\out\build_script_build.pdb'
+   Compiling digest v0.10.7
+   Compiling cipher v0.4.4
+   Compiling hashbrown v0.14.5
+   Compiling windows-targets v0.53.5
+   Compiling async-compression v0.4.52
+   Compiling ppv-lite86 v0.2.21
+   Compiling webpki-roots v1.0.12
+   Compiling http-body-util v0.1.5
+   Compiling universal-hash v0.5.1
+   Compiling core_detect v1.0.0
+   Compiling base64 v0.22.1
+   Compiling lazy_static v1.5.1
+   Compiling either v1.19.0
+   Compiling simdutf8 v0.1.5
+   Compiling opaque-debug v0.3.1
+   Compiling base64ct v1.8.3
+   Compiling itertools v0.14.0
+   Compiling poly1305 v0.8.0
+   Compiling encoding_rs v0.8.44
+   Compiling hashlink v0.9.1
+   Compiling password-hash v0.5.0
+   Compiling sharded-slab v0.1.7
+   Compiling thiserror v1.0.69
+   Compiling rand_chacha v0.3.1
+   Compiling tower-http v0.6.11
+   Compiling addr v0.15.6
+   Compiling hyper-rustls v0.27.10
+   Compiling windows-sys v0.60.2
+   Compiling libsqlite3-sys v0.30.1
+   Compiling vortex-browser v1.0.0 (C:\Users\aawas\Downloads\vortex-browser\src-tauri)
+   Compiling flatbuffers v25.12.19
+   Compiling chacha20 v0.9.1
+   Compiling num-traits v0.2.19
+   Compiling blake2 v0.10.6
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\vortex-browser\991006e9765b5768\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\vortex-browser\991006e9765b5768\out\build_script_build.pdb'
+   Compiling rfd v0.17.2
+   Compiling serde_urlencoded v0.7.1
+   Compiling aead v0.5.2
+   Compiling matchers v0.2.0
+   Compiling tracing-log v0.2.0
+   Compiling nu-ansi-term v0.50.3
+   Compiling os_pipe v1.2.3
+   Compiling shared_child v1.1.2
+   Compiling open v5.4.5
+   Compiling csv-core v0.1.13
+   Compiling thread_local v1.1.10
+   Compiling rustc-hash v2.1.3
+   Compiling arrayvec v0.7.8
+   Compiling seahash v4.1.0
+   Compiling fallible-iterator v0.3.0
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling tracing-subscriber v0.3.23
+   Compiling adblock v0.13.5
+   Compiling csv v1.4.0
+   Compiling rusqlite v0.32.1
+   Compiling reqwest v0.12.28
+   Compiling chacha20poly1305 v0.10.1
+   Compiling chrono v0.4.45
+   Compiling argon2 v0.5.3
+   Compiling rand v0.8.8
+   Compiling tao v0.37.2
+   Compiling webview2-com v0.39.1
+   Compiling tauri-runtime v2.12.3
+   Compiling wry v0.57.2
+   Compiling tauri-runtime-wry v2.12.4
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\vortex-browser\5bf6cab96881128a\out\vortex_browser_lib.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\vortex-browser\5bf6cab96881128a\out\vortex_browser_lib.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\vortex-browser\ef443402f34f74f4\out\vortex_browser.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser\src-tauri\target\debug\build\vortex-browser\ef443402f34f74f4\out\vortex_browser.pdb'
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 23s
+     Running `target\debug\vortex-browser.exe`

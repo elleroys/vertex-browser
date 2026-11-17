@@ -1,0 +1,2284 @@
+Windows PowerShell 5.1
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PS C:\Users\aawas\Downloads\vortex-browser (2)> npm install
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 185 packages, and audited 192 packages in 51s
+
+39 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm warn install-scripts 3 packages have install scripts not yet covered by allowScripts:
+npm warn install-scripts   @google/genai@2.32.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+PS C:\Users\aawas\Downloads\vortex-browser (2)> npm install -D @tauri-apps/cli
+
+added 2 packages, removed 5 packages, and audited 189 packages in 4s
+
+40 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm warn install-scripts 3 packages have install scripts not yet covered by allowScripts:
+npm warn install-scripts   @google/genai@2.32.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+PS C:\Users\aawas\Downloads\vortex-browser (2)> npx tauri dev
+     Running BeforeDevCommand (`npm run dev`)
+
+> react-example@0.0.0 dev
+> tsx server.ts
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:22:40). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Vortex Browser server listening on http://0.0.0.0:3000
+     Running DevCommand (`cargo  run --no-default-features --color always --`)
+        Info Watching C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri for changes...
+    Updating crates.io index
+     Locking 539 packages to highest compatible versions
+      Adding argon2 v0.5.3 (available: v0.6.0)
+      Adding base64 v0.22.1 (available: v0.23.1)
+      Adding chacha20poly1305 v0.10.1 (available: v0.11.0)
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding rand v0.8.8 (available: v0.10.4)
+      Adding reqwest v0.12.28 (available: v0.13.5)
+      Adding rusqlite v0.32.1 (available: v0.43.0)
+      Adding toml v0.8.2 (available: v0.8.23)
+      Adding toml_datetime v0.6.3 (available: v0.6.11)
+      Adding toml_edit v0.20.2 (available: v0.20.7)
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling cfg-if v1.0.5
+   Compiling windows-link v0.2.1
+   Compiling serde_core v1.0.229
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.19
+   Compiling litemap v0.8.3
+   Compiling writeable v0.6.4
+   Compiling utf_types v1.0.0
+   Compiling siphasher v1.0.4
+   Compiling parking_lot_core v0.9.12
+   Compiling utf8_iter v1.1.0
+   Compiling scopeguard v1.2.0
+   Compiling phf_shared v0.13.1
+   Compiling icu_properties_data v2.4.0
+   Compiling icu_normalizer_data v2.4.0
+   Compiling lock_api v0.4.14
+   Compiling fastrand v2.5.0
+   Compiling stable_deref_trait v1.2.1
+   Compiling phf_generator v0.13.1
+   Compiling bytes v1.12.1
+   Compiling smallvec v1.16.5
+   Compiling zmij v1.0.23
+   Compiling thiserror v2.0.21
+   Compiling windows-sys v0.61.2
+   Compiling syn v3.0.10
+   Compiling syn v2.0.119
+   Compiling aho-corasick v1.1.5
+   Compiling serde v1.0.229
+   Compiling version_check v0.9.5
+   Compiling regex-syntax v0.8.11
+   Compiling getrandom v0.4.3
+   Compiling http v1.5.0
+   Compiling alloc-no-stdlib v3.0.0
+   Compiling alloc-stdlib v0.3.0
+   Compiling num-conv v0.2.2
+   Compiling time-core v0.1.9
+   Compiling brotli-decompressor v6.3.2
+   Compiling semver v1.0.28
+   Compiling phf_codegen v0.13.1
+   Compiling powerfmt v0.2.1
+   Compiling strsim v0.11.1
+   Compiling typeid v1.0.3
+   Compiling winnow v1.0.5
+   Compiling deranged v0.5.9
+   Compiling ident_case v1.0.1
+   Compiling synstructure v0.14.0
+   Compiling darling_core v0.24.1
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling autocfg v1.5.1
+   Compiling base64 v0.23.1
+   Compiling toml_writer v1.2.0+spec-1.1.0
+   Compiling erased-serde v0.4.11
+   Compiling fnv v1.0.7
+   Compiling web-time v1.1.0
+   Compiling new_debug_unreachable v1.0.6
+   Compiling string_cache_codegen v0.6.1
+   Compiling serde_json v1.0.154
+   Compiling precomputed-hash v0.1.1
+   Compiling equivalent v1.0.3
+   Compiling dunce v1.0.5
+   Compiling hashbrown v0.17.1
+   Compiling web_atoms v0.2.6
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.4
+   Compiling zerovec-derive v0.11.7
+   Compiling serde_derive v1.0.229
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\web_atoms\2e4ec2338a6340d6\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\web_atoms\2e4ec2338a6340d6\out\build_script_build.pdb'
+   Compiling displaydoc v0.2.7
+   Compiling thiserror-impl v2.0.21
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\yoke-derive\268600cba3778801\out\yoke_derive-268600cba3778801.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\yoke-derive\268600cba3778801\out\yoke_derive-268600cba3778801.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\zerovec-derive\61970066d240c478\out\zerovec_derive-61970066d240c478.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\zerovec-derive\61970066d240c478\out\zerovec_derive-61970066d240c478.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\displaydoc\5600d4d2314efc14\out\displaydoc-5600d4d2314efc14.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\displaydoc\5600d4d2314efc14\out\displaydoc-5600d4d2314efc14.pdb'
+   Compiling phf_macros v0.13.1
+   Compiling indexmap v2.14.2
+   Compiling parking_lot v0.12.5
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\zerofrom-derive\68af2272f1812379\out\zerofrom_derive-68af2272f1812379.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\zerofrom-derive\68af2272f1812379\out\zerofrom_derive-68af2272f1812379.pdb'
+   Compiling zerofrom v0.1.8
+   Compiling darling_macro v0.24.1
+   Compiling yoke v0.8.4
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\darling_macro\e6c669bfb09c130e\out\darling_macro-e6c669bfb09c130e.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\darling_macro\e6c669bfb09c130e\out\darling_macro-e6c669bfb09c130e.pdb'
+   Compiling zerovec v0.11.9
+   Compiling zerotrie v0.2.5
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\phf_macros\4ebf3d86b4e143c5\out\phf_macros-4ebf3d86b4e143c5.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\phf_macros\4ebf3d86b4e143c5\out\phf_macros-4ebf3d86b4e143c5.pdb'
+   Compiling darling v0.24.1
+   Compiling phf v0.13.1
+   Compiling serde_with_macros v3.24.0
+   Compiling quick-xml v0.42.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\thiserror-impl\2cd5dd84a7430f97\out\thiserror_impl-2cd5dd84a7430f97.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\thiserror-impl\2cd5dd84a7430f97\out\thiserror_impl-2cd5dd84a7430f97.pdb'
+   Compiling anyhow v1.0.104
+   Compiling string_cache v0.9.0
+   Compiling tinystr v0.8.5
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\anyhow\f1db72a9867168cb\out\build_script_build.exe'
+   Compiling potential_utf v0.1.6
+   Compiling icu_locale_core v2.4.0
+   Compiling icu_collections v2.4.0
+   Compiling serde_spanned v1.1.3
+   Compiling toml_datetime v1.1.3+spec-1.1.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\serde_with_macros\d1a74ed87a3bfadf\out\serde_with_macros-d1a74ed87a3bfadf.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\serde_with_macros\d1a74ed87a3bfadf\out\serde_with_macros-d1a74ed87a3bfadf.pdb'
+   Compiling percent-encoding v2.3.2
+   Compiling log v0.4.35
+   Compiling bitflags v2.13.2
+   Compiling dtoa v1.0.11
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.15
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\serde_derive\c8e1afe59abe8813\out\serde_derive-c8e1afe59abe8813.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\serde_derive\c8e1afe59abe8813\out\serde_derive-c8e1afe59abe8813.pdb'
+   Compiling icu_provider v2.4.0
+   Compiling dtoa-short v0.3.5
+   Compiling form_urlencoded v1.2.2
+   Compiling toml v1.2.1+spec-1.1.0
+   Compiling icu_properties v2.4.0
+   Compiling icu_normalizer v2.4.0
+   Compiling cc v1.11.2
+   Compiling derive_more-impl v2.1.1
+   Compiling cssparser-macros v0.7.1
+   Compiling tendril v0.5.1
+   Compiling indexmap v1.9.3
+   Compiling selectors v0.38.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\indexmap\d3102e9836da5984\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\indexmap\d3102e9836da5984\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\cssparser-macros\75e18f638f13cc63\out\cssparser_macros-75e18f638f13cc63.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\cssparser-macros\75e18f638f13cc63\out\cssparser_macros-75e18f638f13cc63.pdb'
+   Compiling uuid v1.29.3
+   Compiling glob v0.3.4
+   Compiling ctor v1.0.14
+   Compiling idna_adapter v1.2.2
+   Compiling camino v1.2.6
+   Compiling idna v1.1.0
+   Compiling derive_more v2.1.1
+   Compiling cssparser v0.37.0
+   Compiling markup5ever v0.39.0
+   Compiling url v2.5.8
+   Compiling winapi-util v0.1.11
+   Compiling serde_derive_internals v0.29.1
+   Compiling regex-automata v0.4.18
+   Compiling servo_arc v0.4.3
+   Compiling bit-vec v0.8.0
+   Compiling rustc-hash v2.1.3
+   Compiling hashbrown v0.12.3
+   Compiling schemars v0.8.22
+   Compiling bit-set v0.8.0
+   Compiling same-file v1.0.6
+   Compiling html5ever v0.39.0
+   Compiling cfb v0.14.0
+   Compiling jsonptr v0.7.1
+   Compiling schemars_derive v0.8.22
+   Compiling cargo-platform v0.1.9
+   Compiling time v0.3.55
+   Compiling getrandom v0.2.17
+   Compiling foldhash v0.2.0
+   Compiling tauri-utils v2.10.3
+   Compiling pin-project-lite v0.2.17
+   Compiling once_cell v1.21.4
+   Compiling dyn-clone v1.0.20
+   Compiling serde-untagged v0.1.9
+   Compiling regex v1.13.1
+   Compiling dom_query v0.28.0
+   Compiling infer v0.22.0
+   Compiling cargo_metadata v0.19.2
+   Compiling json-patch v4.2.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\schemars_derive\40ed0bdce6012c27\out\schemars_derive-40ed0bdce6012c27.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\schemars_derive\40ed0bdce6012c27\out\schemars_derive-40ed0bdce6012c27.pdb'
+   Compiling urlpattern v0.6.0
+   Compiling walkdir v2.5.0
+   Compiling serde_with v3.24.0
+   Compiling brotli v9.1.3
+   Compiling plist v1.10.4
+   Compiling libc v0.2.191
+   Compiling adler2 v2.0.1
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\libc\6aa3edb30a87d592\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\libc\6aa3edb30a87d592\out\build_script_build.pdb'
+   Compiling windows-interface v0.59.3
+   Compiling windows-implement v0.60.2
+   Compiling windows-result v0.4.1
+   Compiling windows-strings v0.5.1
+   Compiling tokio-macros v2.7.2
+   Compiling socket2 v0.6.5
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\windows-interface\6fcf2ac9573cc001\out\windows_interface-6fcf2ac9573cc001.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\windows-interface\6fcf2ac9573cc001\out\windows_interface-6fcf2ac9573cc001.pdb'
+   Compiling mio v1.2.5
+   Compiling generic-array v0.14.7
+   Compiling windows-core v0.62.2
+   Compiling rand_core v0.6.4
+   Compiling tokio v1.54.1
+   Compiling heck v0.5.0
+   Compiling typenum v1.20.1
+   Compiling tracing-core v0.1.36
+   Compiling windows-threading v0.2.1
+   Compiling simd-adler32 v0.3.10
+   Compiling windows-future v0.3.2
+   Compiling windows-numerics v0.3.1
+   Compiling windows-collections v0.3.2
+   Compiling zeroize_derive v1.5.0
+   Compiling tracing-attributes v0.1.31
+   Compiling time-macros v0.2.32
+   Compiling futures-core v0.3.34
+   Compiling crc32fast v1.5.5
+   Compiling option-ext v0.2.0
+   Compiling raw-window-handle v0.6.2
+   Compiling subtle v2.6.1
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tracing-attributes\b80692f2cd56d355\out\tracing_attributes-b80692f2cd56d355.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tracing-attributes\b80692f2cd56d355\out\tracing_attributes-b80692f2cd56d355.pdb'
+   Compiling zeroize v1.9.1
+   Compiling windows v0.62.2
+   Compiling tracing v0.1.44
+   Compiling webview2-com-sys v0.39.1
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\time-macros\285c880308579962\out\time_macros-285c880308579962.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\time-macros\285c880308579962\out\time_macros-285c880308579962.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\webview2-com-sys\1010f3af04dab279\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\webview2-com-sys\1010f3af04dab279\out\build_script_build.pdb'
+   Compiling hybrid-array v0.4.15
+   Compiling crossbeam-utils v0.8.23
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\crossbeam-utils\6ada838a75096fae\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\crossbeam-utils\6ada838a75096fae\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\webview2-com-sys\38df3f7f3bec2904\out\arm64\WebView2Loader.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\webview2-com-sys\38df3f7f3bec2904\out\x86\WebView2Loader.dll.lib'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\webview2-com-sys\38df3f7f3bec2904\out\x86\WebView2LoaderStatic.lib'
+   Compiling crypto-common v0.1.7
+   Compiling miniz_oxide v0.9.1
+   Compiling dpi v0.1.2
+   Compiling rustc_version v0.4.1
+   Compiling cookie v0.18.2
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\cookie\128a42fc43bed788\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\cookie\128a42fc43bed788\out\build_script_build.pdb'
+   Compiling zerocopy v0.8.63
+   Compiling flate2 v1.1.11
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\zerocopy\91e6a040d3d6cc07\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\zerocopy\91e6a040d3d6cc07\out\build_script_build.pdb'
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling miniz_oxide v0.8.9
+   Compiling fdeflate v0.3.7
+   Compiling ring v0.17.14
+   Compiling vswhom-sys v0.1.3
+   Compiling webview2-com-macros v0.8.1
+   Compiling windows-version v0.1.7
+   Compiling const-oid v0.10.3
+   Compiling digest v0.11.3
+   Compiling png v0.18.1
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\ring\f52340120e8e503d\out\d400a0202faa66d0-montgomery.o'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\ring\f52340120e8e503d\out\d400a0202faa66d0-montgomery_inv.o'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\vswhom-sys\ee7ba5a8c0b2c5c6\out\8040c35acd5ea599-vswhom.o'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\ring\f52340120e8e503d\out\ee74896e12b96507-ecp_nistz.o'
+   Compiling crossbeam-channel v0.5.17
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\ring\f52340120e8e503d\out\ee74896e12b96507-gfp_p384.o'
+   Compiling tauri-plugin v2.7.3
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\ring\f52340120e8e503d\out\7736c421cf8019b4-limbs.o'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\ring\f52340120e8e503d\out\6b51893b35673cb8-mem.o'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\ring\f52340120e8e503d\out\ee74896e12b96507-p256-nistz.o'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\ring\f52340120e8e503d\out\6b51893b35673cb8-constant_time_test.o'
+   Compiling cpufeatures v0.3.1
+   Compiling tauri-runtime v2.12.3
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-runtime\db5c82434e0e9106\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-runtime\db5c82434e0e9106\out\build_script_build.pdb'
+   Compiling byteorder v1.5.0
+   Compiling wry v0.57.2
+   Compiling ico v0.6.0
+   Compiling sha2 v0.11.1
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\crc32fast\41658e0249e4763a\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\crc32fast\41658e0249e4763a\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\wry\0659c7afa3ba309c\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\wry\0659c7afa3ba309c\out\build_script_build.pdb'
+   Compiling rustls-pki-types v1.16.0
+   Compiling futures-macro v0.3.34
+   Compiling http-body v1.1.0
+   Compiling rustversion v1.0.23
+   Compiling tauri-runtime-wry v2.12.4
+   Compiling getrandom v0.3.4
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-runtime-wry\1112e422165ae1fd\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-runtime-wry\1112e422165ae1fd\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\futures-macro\bfce7f2dabc9fe63\out\futures_macro-bfce7f2dabc9fe63.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\futures-macro\bfce7f2dabc9fe63\out\futures_macro-bfce7f2dabc9fe63.pdb'
+   Compiling muda v0.20.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\rustversion\504848d875975571\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\rustversion\504848d875975571\out\build_script_build.pdb'
+   Compiling unicode-segmentation v1.13.3
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\getrandom\197ea4058a444f0a\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\getrandom\197ea4058a444f0a\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\muda\528f46d2d1ec3b6f\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\muda\528f46d2d1ec3b6f\out\build_script_build.pdb'
+   Compiling futures-task v0.3.34
+   Compiling httparse v1.10.1
+   Compiling slab v0.4.12
+   Compiling untrusted v0.9.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\httparse\56a81b9ebd5c7e92\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\httparse\56a81b9ebd5c7e92\out\build_script_build.pdb'
+   Compiling futures-util v0.3.34
+   Compiling tauri-codegen v2.7.5
+   Compiling vswhom v0.1.0
+   Compiling softbuffer v0.4.8
+   Compiling dirs-sys v0.5.0
+   Compiling keyboard-types v0.8.3
+   Compiling winreg v0.56.0
+   Compiling serialize-to-javascript-impl v0.1.2
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\serialize-to-javascript-impl\4db0c30bdd07a9a5\out\serialize_to_javascript_impl-4db0c30bdd07a9a5.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\serialize-to-javascript-impl\4db0c30bdd07a9a5\out\serialize_to_javascript_impl-4db0c30bdd07a9a5.pdb'
+   Compiling ahash v0.8.12
+   Compiling try-lock v0.2.5
+   Compiling windows_x86_64_msvc v0.53.1
+   Compiling rustls v0.23.46
+   Compiling tower-service v0.3.3
+   Compiling serialize-to-javascript v0.1.2
+   Compiling want v0.3.2
+   Compiling embed-resource v3.0.12
+   Compiling rustls-webpki v0.103.17
+   Compiling dirs v7.0.0
+   Compiling window-vibrancy v0.8.1
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\rustversion\e6c80c2dc96e5504\out\rustversion-e6c80c2dc96e5504.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\rustversion\e6c80c2dc96e5504\out\rustversion-e6c80c2dc96e5504.pdb'
+   Compiling serde_repr v0.1.21
+   Compiling atomic-waker v1.1.2
+   Compiling pkg-config v0.3.34
+   Compiling vcpkg v0.2.15
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\serde_repr\125880c6afc17b8d\out\serde_repr-125880c6afc17b8d.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\serde_repr\125880c6afc17b8d\out\serde_repr-125880c6afc17b8d.pdb'
+   Compiling compression-core v0.4.34
+   Compiling cpufeatures v0.2.17
+   Compiling mime v0.3.18
+   Compiling compression-codecs v0.4.47
+   Compiling hyper v1.12.0
+   Compiling libsqlite3-sys v0.30.1
+   Compiling encoding_rs v0.8.44
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\libsqlite3-sys\dd3072a2f7009d91\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\libsqlite3-sys\dd3072a2f7009d91\out\build_script_build.pdb'
+   Compiling tauri-winres v0.3.7
+   Compiling flatbuffers v25.12.19
+   Compiling tauri v2.12.6
+   Compiling tauri-plugin-fs v2.7.1
+   Compiling tauri-macros v2.7.5
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri\aebdbc336de28362\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri\aebdbc336de28362\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-plugin-fs\1405c80b7c87b5ec\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-plugin-fs\1405c80b7c87b5ec\out\build_script_build.exe'
+   Compiling tauri-plugin-dialog v2.8.4
+   Compiling tauri-plugin-shell v2.6.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-plugin-dialog\2682190a724a33ab\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-plugin-dialog\2682190a724a33ab\out\build_script_build.pdb'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-macros\bf281b9c7fa7bb5c\out\tauri_macros-bf281b9c7fa7bb5c.dll'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-macros\bf281b9c7fa7bb5c\out\tauri_macros-bf281b9c7fa7bb5c.pdb'
+   Compiling futures-channel v0.3.34
+   Compiling sync_wrapper v1.0.2
+   Compiling block-buffer v0.10.4
+   Compiling inout v0.1.4
+   Compiling cargo_toml v1.0.1
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-plugin-shell\3d130e6ba1452407\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\tauri-plugin-shell\3d130e6ba1452407\out\build_script_build.pdb'
+   Compiling num-traits v0.2.19
+   Compiling ryu v1.0.23
+   Compiling ipnet v2.12.2
+   Compiling rfd v0.17.2
+   Compiling psl-types v2.0.11
+   Compiling futures-sink v0.3.34
+   Compiling tower-layer v0.3.3
+   Compiling thiserror v1.0.69
+   Compiling static_vcruntime v3.0.0
+   Compiling tower v0.5.3
+   Compiling tokio-util v0.7.20
+   Compiling hyper-util v0.1.21
+   Compiling psl v2.1.255
+   Compiling digest v0.10.7
+   Compiling cipher v0.4.4
+   Compiling tauri-build v2.7.5
+   Compiling hashbrown v0.14.5
+   Compiling windows-targets v0.53.5
+   Compiling async-compression v0.4.52
+   Compiling ppv-lite86 v0.2.21
+   Compiling tokio-rustls v0.26.6
+   Compiling http-body-util v0.1.5
+   Compiling webpki-roots v1.0.12
+   Compiling universal-hash v0.5.1
+   Compiling thiserror-impl v1.0.69
+   Compiling base64ct v1.8.3
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\libsqlite3-sys\8cf7fe10b5afdb9a\out\8017ddc1302f104c-sqlite3.o'
+   Compiling either v1.19.0
+   Compiling multiversion_no_op v1.0.0
+   Compiling base64 v0.22.1
+   Compiling simdutf8 v0.1.5
+   Compiling core_detect v1.0.0
+   Compiling lazy_static v1.5.1
+   Compiling opaque-debug v0.3.1
+   Compiling sharded-slab v0.1.7
+   Compiling poly1305 v0.8.0
+   Compiling itertools v0.14.0
+   Compiling vortex-browser v1.0.0 (C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri)
+   Compiling password-hash v0.5.0
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\vortex-browser\991006e9765b5768\out\build_script_build.exe'
+file watcher error: EBUSY: resource busy or locked, watch 'C:\Users\aawas\Downloads\vortex-browser (2)\src-tauri\target\debug\build\vortex-browser\991006e9765b5768\out\build_script_build.pdb'
+   Compiling addr v0.15.6
+   Compiling hyper-rustls v0.27.10
+   Compiling tower-http v0.6.11
+   Compiling rand_chacha v0.3.1
+   Compiling windows-sys v0.60.2
+   Compiling hashlink v0.9.1
+   Compiling chacha20 v0.9.1
+   Compiling blake2 v0.10.6
+   Compiling serde_urlencoded v0.7.1
+   Compiling aead v0.5.2
+   Compiling matchers v0.2.0
+   Compiling tracing-log v0.2.0
+   Compiling open v5.4.5
+   Compiling shared_child v1.1.2
+   Compiling nu-ansi-term v0.50.3
+   Compiling os_pipe v1.2.3
+   Compiling csv-core v0.1.13
+   Compiling thread_local v1.1.10
+   Compiling seahash v4.1.0
+   Compiling arrayvec v0.7.8
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling fallible-iterator v0.3.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling csv v1.4.0
+   Compiling adblock v0.13.5
+   Compiling chrono v0.4.45
+   Compiling rusqlite v0.32.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling reqwest v0.12.28
+   Compiling argon2 v0.5.3
+   Compiling rand v0.8.8
+   Compiling tao v0.37.2
+   Compiling webview2-com v0.39.1
+warning: unused import: `std::collections::HashMap`
+ --> src\webview_manager.rs:6:5
+  |
+6 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0609]: no field `matched` on type `BlockerResult`
+   --> src\adblock.rs:201:19
+    |
+201 |         if result.matched {
+    |                   ^^^^^^^ unknown field
+    |
+    = note: available fields are: `filter`, `exception`, `important`, `redirect`, `rewritten_url`
+
+error[E0277]: `Rc<filters::filter_data_context::FilterDataContext>` cannot be sent between threads safely
+    --> src\webview_manager.rs:414:42
+     |
+ 414 |               let _ = webview.with_webview(move |platform_wv| unsafe {
+     |  _____________________________------------_^
+     | |                             |
+     | |                             required by a bound introduced by this call
+ 415 | |                 use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL;
+ 416 | |                 use webview2_com::WebResourceRequestedEventHandler;
+ 417 | |                 use windows::core::PWSTR;
+...    |
+ 462 | |             });
+     | |_____________^ `Rc<filters::filter_data_context::FilterDataContext>` cannot be sent between threads safely
+     |
+     = help: within `adblock::Engine`, the trait `std::marker::Send` is not implemented for `Rc<filters::filter_data_context::FilterDataContext>`
+note: required because it appears within the type `adblock::Engine`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+     |
+  55 | pub struct Engine {
+     |            ^^^^^^
+     = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+    --> src\adblock.rs:77:5
+     |
+  76 | pub struct AdBlockEngine {
+  77 |     engine: RwLock<Engine>,
+     |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+     = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because `adblock` is used within this closure
+    --> src\webview_manager.rs:435:55
+     |
+ 435 | ...                   let blocked = adblock.should_block_request(
+     |                                     ^^^^^^^
+note: required by a bound in `tauri::Webview::<R>::with_webview`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\webview\mod.rs:1857:52
+     |
+1782 | impl<R: Runtime> Webview<R> {
+...
+1857 |   pub fn with_webview<F: FnOnce(PlatformWebview) + Send + 'static>(
+     |                                                    ^^^^ required by this bound in `Webview::<R>::with_webview`
+
+error[E0277]: `Rc<filters::filter_data_context::FilterDataContext>` cannot be shared between threads safely
+    --> src\webview_manager.rs:414:42
+     |
+ 414 |               let _ = webview.with_webview(move |platform_wv| unsafe {
+     |  _____________________________------------_^
+     | |                             |
+     | |                             required by a bound introduced by this call
+ 415 | |                 use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL;
+ 416 | |                 use webview2_com::WebResourceRequestedEventHandler;
+ 417 | |                 use windows::core::PWSTR;
+...    |
+ 462 | |             });
+     | |_____________^ `Rc<filters::filter_data_context::FilterDataContext>` cannot be shared between threads safely
+     |
+     = help: within `adblock::Engine`, the trait `Sync` is not implemented for `Rc<filters::filter_data_context::FilterDataContext>`
+note: required because it appears within the type `adblock::Engine`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+     |
+  55 | pub struct Engine {
+     |            ^^^^^^
+     = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+    --> src\adblock.rs:77:5
+     |
+  76 | pub struct AdBlockEngine {
+  77 |     engine: RwLock<Engine>,
+     |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+     = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because `adblock` is used within this closure
+    --> src\webview_manager.rs:435:55
+     |
+ 435 | ...                   let blocked = adblock.should_block_request(
+     |                                     ^^^^^^^
+note: required by a bound in `tauri::Webview::<R>::with_webview`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\webview\mod.rs:1857:52
+     |
+1782 | impl<R: Runtime> Webview<R> {
+...
+1857 |   pub fn with_webview<F: FnOnce(PlatformWebview) + Send + 'static>(
+     |                                                    ^^^^ required by this bound in `Webview::<R>::with_webview`
+
+error[E0277]: `RefCell<RegexManager>` cannot be shared between threads safely
+    --> src\webview_manager.rs:414:42
+     |
+ 414 |               let _ = webview.with_webview(move |platform_wv| unsafe {
+     |  _____________________________------------_^
+     | |                             |
+     | |                             required by a bound introduced by this call
+ 415 | |                 use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL;
+ 416 | |                 use webview2_com::WebResourceRequestedEventHandler;
+ 417 | |                 use windows::core::PWSTR;
+...    |
+ 462 | |             });
+     | |_____________^ `RefCell<RegexManager>` cannot be shared between threads safely
+     |
+     = help: within `adblock::Engine`, the trait `Sync` is not implemented for `RefCell<RegexManager>`
+     = note: if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` instead
+note: required because it appears within the type `Blocker`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\blocker.rs:77:12
+     |
+  77 | pub struct Blocker {
+     |            ^^^^^^^
+note: required because it appears within the type `adblock::Engine`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+     |
+  55 | pub struct Engine {
+     |            ^^^^^^
+     = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+    --> src\adblock.rs:77:5
+     |
+  76 | pub struct AdBlockEngine {
+  77 |     engine: RwLock<Engine>,
+     |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+     = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because `adblock` is used within this closure
+    --> src\webview_manager.rs:435:55
+     |
+ 435 | ...                   let blocked = adblock.should_block_request(
+     |                                     ^^^^^^^
+note: required by a bound in `tauri::Webview::<R>::with_webview`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\webview\mod.rs:1857:52
+     |
+1782 | impl<R: Runtime> Webview<R> {
+...
+1857 |   pub fn with_webview<F: FnOnce(PlatformWebview) + Send + 'static>(
+     |                                                    ^^^^ required by this bound in `Webview::<R>::with_webview`
+
+error[E0277]: `(dyn ResourceStorageBackend + 'static)` cannot be sent between threads safely
+    --> src\webview_manager.rs:414:42
+     |
+ 414 |               let _ = webview.with_webview(move |platform_wv| unsafe {
+     |  _____________________________------------_^
+     | |                             |
+     | |                             required by a bound introduced by this call
+ 415 | |                 use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL;
+ 416 | |                 use webview2_com::WebResourceRequestedEventHandler;
+ 417 | |                 use windows::core::PWSTR;
+...    |
+ 462 | |             });
+     | |_____________^ `(dyn ResourceStorageBackend + 'static)` cannot be sent between threads safely
+     |
+     = help: the trait `std::marker::Send` is not implemented for `(dyn ResourceStorageBackend + 'static)`
+     = note: required for `std::ptr::Unique<(dyn ResourceStorageBackend + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn ResourceStorageBackend + 'static)>`
+    --> /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/alloc\src\boxed.rs:243:11
+note: required because it appears within the type `ResourceStorage`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\resources\resource_storage.rs:50:12
+     |
+  50 | pub struct ResourceStorage {
+     |            ^^^^^^^^^^^^^^^
+note: required because it appears within the type `adblock::Engine`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+     |
+  55 | pub struct Engine {
+     |            ^^^^^^
+     = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+    --> src\adblock.rs:77:5
+     |
+  76 | pub struct AdBlockEngine {
+  77 |     engine: RwLock<Engine>,
+     |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+     = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because `adblock` is used within this closure
+    --> src\webview_manager.rs:435:55
+     |
+ 435 | ...                   let blocked = adblock.should_block_request(
+     |                                     ^^^^^^^
+note: required by a bound in `tauri::Webview::<R>::with_webview`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\webview\mod.rs:1857:52
+     |
+1782 | impl<R: Runtime> Webview<R> {
+...
+1857 |   pub fn with_webview<F: FnOnce(PlatformWebview) + Send + 'static>(
+     |                                                    ^^^^ required by this bound in `Webview::<R>::with_webview`
+
+error[E0277]: `(dyn ResourceStorageBackend + 'static)` cannot be shared between threads safely
+    --> src\webview_manager.rs:414:42
+     |
+ 414 |               let _ = webview.with_webview(move |platform_wv| unsafe {
+     |  _____________________________------------_^
+     | |                             |
+     | |                             required by a bound introduced by this call
+ 415 | |                 use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL;
+ 416 | |                 use webview2_com::WebResourceRequestedEventHandler;
+ 417 | |                 use windows::core::PWSTR;
+...    |
+ 462 | |             });
+     | |_____________^ `(dyn ResourceStorageBackend + 'static)` cannot be shared between threads safely
+     |
+     = help: the trait `Sync` is not implemented for `(dyn ResourceStorageBackend + 'static)`
+     = note: required for `std::ptr::Unique<(dyn ResourceStorageBackend + 'static)>` to implement `Sync`
+note: required because it appears within the type `Box<(dyn ResourceStorageBackend + 'static)>`
+    --> /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/alloc\src\boxed.rs:243:11
+note: required because it appears within the type `ResourceStorage`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\resources\resource_storage.rs:50:12
+     |
+  50 | pub struct ResourceStorage {
+     |            ^^^^^^^^^^^^^^^
+note: required because it appears within the type `adblock::Engine`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+     |
+  55 | pub struct Engine {
+     |            ^^^^^^
+     = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+    --> src\adblock.rs:77:5
+     |
+  76 | pub struct AdBlockEngine {
+  77 |     engine: RwLock<Engine>,
+     |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+     = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because `adblock` is used within this closure
+    --> src\webview_manager.rs:435:55
+     |
+ 435 | ...                   let blocked = adblock.should_block_request(
+     |                                     ^^^^^^^
+note: required by a bound in `tauri::Webview::<R>::with_webview`
+    --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\webview\mod.rs:1857:52
+     |
+1782 | impl<R: Runtime> Webview<R> {
+...
+1857 |   pub fn with_webview<F: FnOnce(PlatformWebview) + Send + 'static>(
+     |                                                    ^^^^ required by this bound in `Webview::<R>::with_webview`
+
+error[E0277]: `Rc<filters::filter_data_context::FilterDataContext>` cannot be sent between threads safely
+   --> src\lib.rs:81:24
+    |
+ 81 |               app.manage(AppState {
+    |  _________________------_^
+    | |                 |
+    | |                 required by a bound introduced by this call
+ 82 | |                 db,
+ 83 | |                 adblock,
+ 84 | |                 passwords,
+ 85 | |                 downloads,
+ 86 | |                 webviews,
+ 87 | |             });
+    | |_____________^ `Rc<filters::filter_data_context::FilterDataContext>` cannot be sent between threads safely
+    |
+    = help: within `adblock::Engine`, the trait `std::marker::Send` is not implemented for `Rc<filters::filter_data_context::FilterDataContext>`
+note: required because it appears within the type `adblock::Engine`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+    |
+ 55 | pub struct Engine {
+    |            ^^^^^^
+    = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+   --> src\adblock.rs:77:5
+    |
+ 76 | pub struct AdBlockEngine {
+ 77 |     engine: RwLock<Engine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+    = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because it appears within the type `AppState`
+   --> src\commands.rs:15:5
+    |
+ 13 | pub struct AppState {
+ 14 |     pub db: Arc<Database>,
+ 15 |     pub adblock: Arc<AdBlockEngine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this field
+note: required by a bound in `manage`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\lib.rs:717:8
+    |
+551 | pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
+...
+715 |   fn manage<T>(&self, state: T) -> bool
+716 |   where
+717 |     T: Send + Sync + 'static,
+    |        ^^^^ required by this bound in `Manager::manage`
+
+error[E0277]: `Rc<filters::filter_data_context::FilterDataContext>` cannot be shared between threads safely
+   --> src\lib.rs:81:24
+    |
+ 81 |               app.manage(AppState {
+    |  _________________------_^
+    | |                 |
+    | |                 required by a bound introduced by this call
+ 82 | |                 db,
+ 83 | |                 adblock,
+ 84 | |                 passwords,
+ 85 | |                 downloads,
+ 86 | |                 webviews,
+ 87 | |             });
+    | |_____________^ `Rc<filters::filter_data_context::FilterDataContext>` cannot be shared between threads safely
+    |
+    = help: within `adblock::Engine`, the trait `Sync` is not implemented for `Rc<filters::filter_data_context::FilterDataContext>`
+note: required because it appears within the type `adblock::Engine`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+    |
+ 55 | pub struct Engine {
+    |            ^^^^^^
+    = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+   --> src\adblock.rs:77:5
+    |
+ 76 | pub struct AdBlockEngine {
+ 77 |     engine: RwLock<Engine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+    = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because it appears within the type `AppState`
+   --> src\commands.rs:15:5
+    |
+ 13 | pub struct AppState {
+ 14 |     pub db: Arc<Database>,
+ 15 |     pub adblock: Arc<AdBlockEngine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this field
+note: required by a bound in `manage`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\lib.rs:717:8
+    |
+551 | pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
+...
+715 |   fn manage<T>(&self, state: T) -> bool
+716 |   where
+717 |     T: Send + Sync + 'static,
+    |        ^^^^ required by this bound in `Manager::manage`
+
+error[E0277]: `RefCell<RegexManager>` cannot be shared between threads safely
+   --> src\lib.rs:81:24
+    |
+ 81 |               app.manage(AppState {
+    |  _________________------_^
+    | |                 |
+    | |                 required by a bound introduced by this call
+ 82 | |                 db,
+ 83 | |                 adblock,
+ 84 | |                 passwords,
+ 85 | |                 downloads,
+ 86 | |                 webviews,
+ 87 | |             });
+    | |_____________^ `RefCell<RegexManager>` cannot be shared between threads safely
+    |
+    = help: within `adblock::Engine`, the trait `Sync` is not implemented for `RefCell<RegexManager>`
+    = note: if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` instead
+note: required because it appears within the type `Blocker`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\blocker.rs:77:12
+    |
+ 77 | pub struct Blocker {
+    |            ^^^^^^^
+note: required because it appears within the type `adblock::Engine`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+    |
+ 55 | pub struct Engine {
+    |            ^^^^^^
+    = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+   --> src\adblock.rs:77:5
+    |
+ 76 | pub struct AdBlockEngine {
+ 77 |     engine: RwLock<Engine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+    = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because it appears within the type `AppState`
+   --> src\commands.rs:15:5
+    |
+ 13 | pub struct AppState {
+ 14 |     pub db: Arc<Database>,
+ 15 |     pub adblock: Arc<AdBlockEngine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this field
+note: required by a bound in `manage`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\lib.rs:717:8
+    |
+551 | pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
+...
+715 |   fn manage<T>(&self, state: T) -> bool
+716 |   where
+717 |     T: Send + Sync + 'static,
+    |        ^^^^ required by this bound in `Manager::manage`
+
+error[E0277]: `(dyn ResourceStorageBackend + 'static)` cannot be sent between threads safely
+   --> src\lib.rs:81:24
+    |
+ 81 |               app.manage(AppState {
+    |  _________________------_^
+    | |                 |
+    | |                 required by a bound introduced by this call
+ 82 | |                 db,
+ 83 | |                 adblock,
+ 84 | |                 passwords,
+ 85 | |                 downloads,
+ 86 | |                 webviews,
+ 87 | |             });
+    | |_____________^ `(dyn ResourceStorageBackend + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn ResourceStorageBackend + 'static)`
+    = note: required for `std::ptr::Unique<(dyn ResourceStorageBackend + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn ResourceStorageBackend + 'static)>`
+   --> /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/alloc\src\boxed.rs:243:11
+note: required because it appears within the type `ResourceStorage`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\resources\resource_storage.rs:50:12
+    |
+ 50 | pub struct ResourceStorage {
+    |            ^^^^^^^^^^^^^^^
+note: required because it appears within the type `adblock::Engine`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+    |
+ 55 | pub struct Engine {
+    |            ^^^^^^
+    = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+   --> src\adblock.rs:77:5
+    |
+ 76 | pub struct AdBlockEngine {
+ 77 |     engine: RwLock<Engine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+    = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because it appears within the type `AppState`
+   --> src\commands.rs:15:5
+    |
+ 13 | pub struct AppState {
+ 14 |     pub db: Arc<Database>,
+ 15 |     pub adblock: Arc<AdBlockEngine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this field
+note: required by a bound in `manage`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\lib.rs:717:8
+    |
+551 | pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
+...
+715 |   fn manage<T>(&self, state: T) -> bool
+716 |   where
+717 |     T: Send + Sync + 'static,
+    |        ^^^^ required by this bound in `Manager::manage`
+
+error[E0277]: `(dyn ResourceStorageBackend + 'static)` cannot be shared between threads safely
+   --> src\lib.rs:81:24
+    |
+ 81 |               app.manage(AppState {
+    |  _________________------_^
+    | |                 |
+    | |                 required by a bound introduced by this call
+ 82 | |                 db,
+ 83 | |                 adblock,
+ 84 | |                 passwords,
+ 85 | |                 downloads,
+ 86 | |                 webviews,
+ 87 | |             });
+    | |_____________^ `(dyn ResourceStorageBackend + 'static)` cannot be shared between threads safely
+    |
+    = help: the trait `Sync` is not implemented for `(dyn ResourceStorageBackend + 'static)`
+    = note: required for `std::ptr::Unique<(dyn ResourceStorageBackend + 'static)>` to implement `Sync`
+note: required because it appears within the type `Box<(dyn ResourceStorageBackend + 'static)>`
+   --> /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/alloc\src\boxed.rs:243:11
+note: required because it appears within the type `ResourceStorage`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\resources\resource_storage.rs:50:12
+    |
+ 50 | pub struct ResourceStorage {
+    |            ^^^^^^^^^^^^^^^
+note: required because it appears within the type `adblock::Engine`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\adblock-0.13.5\src\engine.rs:55:12
+    |
+ 55 | pub struct Engine {
+    |            ^^^^^^
+    = note: required for `std::sync::RwLock<adblock::Engine>` to implement `Sync`
+note: required because it appears within the type `AdBlockEngine`
+   --> src\adblock.rs:77:5
+    |
+ 76 | pub struct AdBlockEngine {
+ 77 |     engine: RwLock<Engine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^ required by this field
+    = note: required for `Arc<AdBlockEngine>` to implement `std::marker::Send`
+note: required because it appears within the type `AppState`
+   --> src\commands.rs:15:5
+    |
+ 13 | pub struct AppState {
+ 14 |     pub db: Arc<Database>,
+ 15 |     pub adblock: Arc<AdBlockEngine>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this field
+note: required by a bound in `manage`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\lib.rs:717:8
+    |
+551 | pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
+...
+715 |   fn manage<T>(&self, state: T) -> bool
+716 |   where
+717 |     T: Send + Sync + 'static,
+    |        ^^^^ required by this bound in `Manager::manage`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:21:1
+    |
+ 21 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:26:1
+    |
+ 26 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:37:1
+    |
+ 37 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:42:1
+    |
+ 42 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:47:1
+    |
+ 47 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:57:1
+    |
+ 57 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:67:1
+    |
+ 67 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:76:1
+    |
+ 76 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:83:1
+    |
+ 83 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:92:1
+    |
+ 92 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:101:1
+    |
+101 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error: future cannot be sent between threads safely
+   --> src\commands.rs:101:1
+    |
+101 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ future returned by `update_adblock_filters` is not `Send`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+    = help: within `adblock::Engine`, the trait `std::marker::Send` is not implemented for `Rc<filters::filter_data_context::FilterDataContext>`
+note: future is not `Send` as this value is used across an await
+   --> src\commands.rs:103:41
+    |
+102 | pub async fn update_adblock_filters(state: State<'_, AppState>) -> VortexResult<usize> {
+    |                                     ----- has type `State<'_, AppState>` which is not `Send`
+103 |     state.adblock.update_filter_lists().await
+    |                                         ^^^^^ await occurs here, with `state` maybe used later
+note: required by a bound in `tauri::ipc::private::ResultFutureTag::future`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\ipc\command.rs:326:42
+    |
+320 |   impl ResultFutureTag {
+321 |     #[inline(always)]
+322 |     pub async fn future<T, E, F>(self, value: F) -> Result<InvokeResponseBody, InvokeError>
+...
+326 |       F: Future<Output = Result<T, E>> + Send,
+    |                                          ^^^^ required by this bound in `ResultFutureTag::future`
+
+error: future cannot be sent between threads safely
+   --> src\commands.rs:101:1
+    |
+101 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ future returned by `update_adblock_filters` is not `Send`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+    = help: within `adblock::Engine`, the trait `Sync` is not implemented for `Rc<filters::filter_data_context::FilterDataContext>`
+note: future is not `Send` as this value is used across an await
+   --> src\commands.rs:103:41
+    |
+102 | pub async fn update_adblock_filters(state: State<'_, AppState>) -> VortexResult<usize> {
+    |                                     ----- has type `State<'_, AppState>` which is not `Send`
+103 |     state.adblock.update_filter_lists().await
+    |                                         ^^^^^ await occurs here, with `state` maybe used later
+note: required by a bound in `tauri::ipc::private::ResultFutureTag::future`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\ipc\command.rs:326:42
+    |
+320 |   impl ResultFutureTag {
+321 |     #[inline(always)]
+322 |     pub async fn future<T, E, F>(self, value: F) -> Result<InvokeResponseBody, InvokeError>
+...
+326 |       F: Future<Output = Result<T, E>> + Send,
+    |                                          ^^^^ required by this bound in `ResultFutureTag::future`
+
+error: future cannot be sent between threads safely
+   --> src\commands.rs:101:1
+    |
+101 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ future returned by `update_adblock_filters` is not `Send`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+    = help: within `adblock::Engine`, the trait `Sync` is not implemented for `RefCell<RegexManager>`
+    = note: if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` instead
+note: future is not `Send` as this value is used across an await
+   --> src\commands.rs:103:41
+    |
+102 | pub async fn update_adblock_filters(state: State<'_, AppState>) -> VortexResult<usize> {
+    |                                     ----- has type `State<'_, AppState>` which is not `Send`
+103 |     state.adblock.update_filter_lists().await
+    |                                         ^^^^^ await occurs here, with `state` maybe used later
+note: required by a bound in `tauri::ipc::private::ResultFutureTag::future`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\ipc\command.rs:326:42
+    |
+320 |   impl ResultFutureTag {
+321 |     #[inline(always)]
+322 |     pub async fn future<T, E, F>(self, value: F) -> Result<InvokeResponseBody, InvokeError>
+...
+326 |       F: Future<Output = Result<T, E>> + Send,
+    |                                          ^^^^ required by this bound in `ResultFutureTag::future`
+
+error: future cannot be sent between threads safely
+   --> src\commands.rs:101:1
+    |
+101 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ future returned by `update_adblock_filters` is not `Send`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn ResourceStorageBackend + 'static)`
+note: future is not `Send` as this value is used across an await
+   --> src\commands.rs:103:41
+    |
+102 | pub async fn update_adblock_filters(state: State<'_, AppState>) -> VortexResult<usize> {
+    |                                     ----- has type `State<'_, AppState>` which is not `Send`
+103 |     state.adblock.update_filter_lists().await
+    |                                         ^^^^^ await occurs here, with `state` maybe used later
+note: required by a bound in `tauri::ipc::private::ResultFutureTag::future`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\ipc\command.rs:326:42
+    |
+320 |   impl ResultFutureTag {
+321 |     #[inline(always)]
+322 |     pub async fn future<T, E, F>(self, value: F) -> Result<InvokeResponseBody, InvokeError>
+...
+326 |       F: Future<Output = Result<T, E>> + Send,
+    |                                          ^^^^ required by this bound in `ResultFutureTag::future`
+
+error: future cannot be sent between threads safely
+   --> src\commands.rs:101:1
+    |
+101 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ future returned by `update_adblock_filters` is not `Send`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+    = help: the trait `Sync` is not implemented for `(dyn ResourceStorageBackend + 'static)`
+note: future is not `Send` as this value is used across an await
+   --> src\commands.rs:103:41
+    |
+102 | pub async fn update_adblock_filters(state: State<'_, AppState>) -> VortexResult<usize> {
+    |                                     ----- has type `State<'_, AppState>` which is not `Send`
+103 |     state.adblock.update_filter_lists().await
+    |                                         ^^^^^ await occurs here, with `state` maybe used later
+note: required by a bound in `tauri::ipc::private::ResultFutureTag::future`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\ipc\command.rs:326:42
+    |
+320 |   impl ResultFutureTag {
+321 |     #[inline(always)]
+322 |     pub async fn future<T, E, F>(self, value: F) -> Result<InvokeResponseBody, InvokeError>
+...
+326 |       F: Future<Output = Result<T, E>> + Send,
+    |                                          ^^^^ required by this bound in `ResultFutureTag::future`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:108:1
+    |
+108 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:113:1
+    |
+113 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:118:1
+    |
+118 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:123:1
+    |
+123 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:128:1
+    |
+128 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:136:1
+    |
+136 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:151:1
+    |
+151 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:156:1
+    |
+156 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:163:1
+    |
+163 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:171:1
+    |
+171 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:176:1
+    |
+176 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:183:1
+    |
+183 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:192:1
+    |
+192 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:197:1
+    |
+197 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:208:1
+    |
+208 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:213:1
+    |
+213 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:224:1
+    |
+224 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:229:1
+    |
+229 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:238:1
+    |
+238 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:245:1
+    |
+245 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:250:1
+    |
+250 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error[E0277]: the trait bound `State<'_, AppState>: CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not satisfied
+   --> src\commands.rs:256:1
+    |
+256 |   #[tauri::command]
+    |   ^^^^^^^^^^^^^^^^^ the trait `CommandArg<'_, tauri_runtime_wry::Wry<EventLoopMessage>>` is not implemented for `State<'_, AppState>`
+    |
+   ::: src\lib.rs:91:25
+    |
+ 91 |           .invoke_handler(tauri::generate_handler![
+    |  _________________________-
+ 92 | |             commands::get_tabs,
+ 93 | |             commands::create_tab,
+ 94 | |             commands::switch_tab,
+...   |
+124 | |             commands::get_process_memory_mb,
+125 | |         ])
+    | |_________- in this macro invocation
+    |
+help: the trait `CommandArg<'_, R>` is conditionally implemented for `State<'_, T>`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\state.rs:59:1
+    |
+ 59 | impl<'r, 'de: 'r, T: Send + Sync + 'static, R: Runtime> CommandArg<'de, R> for State<'r, T> {
+    | ^^^^^^^^^^^^^^^^^^^^^----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |                      |
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+    |                      unsatisfied requirement introduced here: `AppState: std::marker::Send`
+
+error: future cannot be sent between threads safely
+   --> src\memory_saver.rs:15:5
+    |
+ 15 | /     tauri::async_runtime::spawn(async move {
+ 16 | |         let mut ticker = tokio::time::interval(Duration::from_secs(30));
+ 17 | |         loop {
+ 18 | |             ticker.tick().await;
+...   |
+ 40 | |     });
+    | |______^ future created by async block is not `Send`
+    |
+    = help: within `adblock::Engine`, the trait `std::marker::Send` is not implemented for `Rc<filters::filter_data_context::FilterDataContext>`
+note: captured value is not `Send`
+   --> src\memory_saver.rs:34:27
+    |
+ 34 |             let changed = webviews.apply_memory_saver(&app, suspend_secs, discard_secs);
+    |                           ^^^^^^^^ has type `Arc<WebviewManager>` which is not `Send`
+note: required by a bound in `tauri::async_runtime::spawn`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\async_runtime.rs:302:15
+    |
+300 | pub fn spawn<F>(task: F) -> JoinHandle<F::Output>
+301 | where
+302 |   F: Future + Send + 'static,
+    |               ^^^^ required by this bound in `spawn`
+
+error: future cannot be sent between threads safely
+   --> src\memory_saver.rs:15:5
+    |
+ 15 | /     tauri::async_runtime::spawn(async move {
+ 16 | |         let mut ticker = tokio::time::interval(Duration::from_secs(30));
+ 17 | |         loop {
+ 18 | |             ticker.tick().await;
+...   |
+ 40 | |     });
+    | |______^ future created by async block is not `Send`
+    |
+    = help: within `adblock::Engine`, the trait `Sync` is not implemented for `Rc<filters::filter_data_context::FilterDataContext>`
+note: captured value is not `Send`
+   --> src\memory_saver.rs:34:27
+    |
+ 34 |             let changed = webviews.apply_memory_saver(&app, suspend_secs, discard_secs);
+    |                           ^^^^^^^^ has type `Arc<WebviewManager>` which is not `Send`
+note: required by a bound in `tauri::async_runtime::spawn`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\async_runtime.rs:302:15
+    |
+300 | pub fn spawn<F>(task: F) -> JoinHandle<F::Output>
+301 | where
+302 |   F: Future + Send + 'static,
+    |               ^^^^ required by this bound in `spawn`
+
+error: future cannot be sent between threads safely
+   --> src\memory_saver.rs:15:5
+    |
+ 15 | /     tauri::async_runtime::spawn(async move {
+ 16 | |         let mut ticker = tokio::time::interval(Duration::from_secs(30));
+ 17 | |         loop {
+ 18 | |             ticker.tick().await;
+...   |
+ 40 | |     });
+    | |______^ future created by async block is not `Send`
+    |
+    = help: within `adblock::Engine`, the trait `Sync` is not implemented for `RefCell<RegexManager>`
+    = note: if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` instead
+note: captured value is not `Send`
+   --> src\memory_saver.rs:34:27
+    |
+ 34 |             let changed = webviews.apply_memory_saver(&app, suspend_secs, discard_secs);
+    |                           ^^^^^^^^ has type `Arc<WebviewManager>` which is not `Send`
+note: required by a bound in `tauri::async_runtime::spawn`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\async_runtime.rs:302:15
+    |
+300 | pub fn spawn<F>(task: F) -> JoinHandle<F::Output>
+301 | where
+302 |   F: Future + Send + 'static,
+    |               ^^^^ required by this bound in `spawn`
+
+error: future cannot be sent between threads safely
+   --> src\memory_saver.rs:15:5
+    |
+ 15 | /     tauri::async_runtime::spawn(async move {
+ 16 | |         let mut ticker = tokio::time::interval(Duration::from_secs(30));
+ 17 | |         loop {
+ 18 | |             ticker.tick().await;
+...   |
+ 40 | |     });
+    | |______^ future created by async block is not `Send`
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn ResourceStorageBackend + 'static)`
+note: captured value is not `Send`
+   --> src\memory_saver.rs:34:27
+    |
+ 34 |             let changed = webviews.apply_memory_saver(&app, suspend_secs, discard_secs);
+    |                           ^^^^^^^^ has type `Arc<WebviewManager>` which is not `Send`
+note: required by a bound in `tauri::async_runtime::spawn`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\async_runtime.rs:302:15
+    |
+300 | pub fn spawn<F>(task: F) -> JoinHandle<F::Output>
+301 | where
+302 |   F: Future + Send + 'static,
+    |               ^^^^ required by this bound in `spawn`
+
+error: future cannot be sent between threads safely
+   --> src\memory_saver.rs:15:5
+    |
+ 15 | /     tauri::async_runtime::spawn(async move {
+ 16 | |         let mut ticker = tokio::time::interval(Duration::from_secs(30));
+ 17 | |         loop {
+ 18 | |             ticker.tick().await;
+...   |
+ 40 | |     });
+    | |______^ future created by async block is not `Send`
+    |
+    = help: the trait `Sync` is not implemented for `(dyn ResourceStorageBackend + 'static)`
+note: captured value is not `Send`
+   --> src\memory_saver.rs:34:27
+    |
+ 34 |             let changed = webviews.apply_memory_saver(&app, suspend_secs, discard_secs);
+    |                           ^^^^^^^^ has type `Arc<WebviewManager>` which is not `Send`
+note: required by a bound in `tauri::async_runtime::spawn`
+   --> C:\Users\aawas\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.12.6\src\async_runtime.rs:302:15
+    |
+300 | pub fn spawn<F>(task: F) -> JoinHandle<F::Output>
+301 | where
+302 |   F: Future + Send + 'static,
+    |               ^^^^ required by this bound in `spawn`
+
+Some errors have detailed explanations: E0277, E0609.
+For more information about an error, try `rustc --explain E0277`.
+warning: `vortex-browser` (lib) generated 1 warning
+error: could not compile `vortex-browser` (lib) due to 59 previous errors; 1 warning emitted

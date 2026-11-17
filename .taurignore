@@ -1,0 +1,9 @@
+src-tauri/target
+src-tauri/target/
+src-tauri/target/**
+src-tauri/gen
+src-tauri/gen/**
+target/
+dist/
+data/
+node_modules/
