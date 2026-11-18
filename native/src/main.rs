@@ -99,6 +99,7 @@ struct BrowserState {
     vault_form_scan_result: RefCell<String>,
     vault_csv_preview: RefCell<Option<password_vault::CsvImportPreview>>,
     pending_permissions: RefCell<Vec<PendingPermission>>,
+    navigation_security_notice: RefCell<String>,
 }
 
 struct PendingPermission {
@@ -781,6 +782,15 @@ ${sections}</body></html>"#);
                     }
                     if ui.button("Закладки").clicked() {
                         self.bookmarks_manager_open.set(true);
+                    }
+                    if !self.navigation_security_notice.borrow().is_empty() {
+                        ui.colored_label(
+                            egui::Color32::from_rgb(255, 170, 90),
+                            self.navigation_security_notice.borrow().as_str(),
+                        );
+                        if ui.small_button("×").on_hover_text("Закрити повідомлення").clicked() {
+                            self.navigation_security_notice.borrow_mut().clear();
+                        }
                     }
                     let response = ui.add(
                         egui::TextEdit::singleline(&mut address)
@@ -2110,6 +2120,20 @@ ${sections}</body></html>"#);
 }
 
 impl servo::WebViewDelegate for BrowserState {
+    fn request_navigation(&self, webview: WebView, request: servo::NavigationRequest) {
+        let current = webview.url();
+        if let Some(reason) = navigation_block_reason(current.as_ref(), &request.url) {
+            *self.navigation_security_notice.borrow_mut() = format!(
+                "Заблоковано перехід: {reason} ({})",
+                request.url
+            );
+            request.deny();
+            self.window.request_redraw();
+            return;
+        }
+        request.allow();
+    }
+
     fn request_permission(&self, webview: WebView, request: servo::PermissionRequest) {
         let Some(url) = webview.url() else {
             request.deny();
@@ -2402,6 +2426,7 @@ impl VertexApp {
             vault_form_scan_result: RefCell::new(String::new()),
             vault_csv_preview: RefCell::new(None),
             pending_permissions: RefCell::new(Vec::new()),
+            navigation_security_notice: RefCell::new(String::new()),
         });
 
         let saved_filter_url = state.adblock_list_url.borrow().clone();
@@ -2493,6 +2518,25 @@ fn format_download_progress(received: u64, total: Option<u64>) -> String {
         ),
         None => format!("{received} bytes"),
     }
+}
+
+fn navigation_block_reason(current: Option<&Url>, target: &Url) -> Option<&'static str> {
+    if target.scheme() == "about" && target.as_str() == "about:blank" {
+        return None;
+    }
+    if !matches!(target.scheme(), "http" | "https") {
+        return Some("зовнішні та небезпечні URL-схеми не підтримуються");
+    }
+    if target.host_str().is_none() {
+        return Some("адреса не містить коректного хоста");
+    }
+    if !target.username().is_empty() || target.password().is_some() {
+        return Some("URL з вбудованими обліковими даними заборонені");
+    }
+    if current.is_some_and(|url| url.scheme() == "https") && target.scheme() == "http" {
+        return Some("перехід з HTTPS на незахищений HTTP");
+    }
+    None
 }
 
 fn parse_navigation_input(input: &str) -> Url {
@@ -2923,6 +2967,36 @@ mod tests {
         assert_eq!(format_download_progress(512, Some(1024)), "50% · 512 / 1024 bytes");
         assert_eq!(format_download_progress(2048, None), "2048 bytes");
         assert_eq!(format_download_progress(1200, Some(1000)), "100% · 1200 / 1000 bytes");
+    }
+
+    #[test]
+    fn blocks_unsafe_navigation_schemes_and_embedded_credentials() {
+        let https = Url::parse("https://secure.example/").unwrap();
+        let javascript = Url::parse("javascript:alert(1)").unwrap();
+        let credentials = Url::parse("https://user:pass@example.com/").unwrap();
+        assert!(navigation_block_reason(Some(&https), &javascript).is_some());
+        assert!(navigation_block_reason(None, &credentials).is_some());
+    }
+
+    #[test]
+    fn blocks_https_to_http_downgrade_but_allows_http_to_https() {
+        let https = Url::parse("https://secure.example/").unwrap();
+        let http = Url::parse("http://secure.example/").unwrap();
+        assert_eq!(
+            navigation_block_reason(Some(&https), &http),
+            Some("перехід з HTTPS на незахищений HTTP")
+        );
+        assert_eq!(navigation_block_reason(Some(&http), &https), None);
+    }
+
+    #[test]
+    fn allows_http_https_and_initial_blank_navigation() {
+        let http = Url::parse("http://example.com/").unwrap();
+        let https = Url::parse("https://example.com/").unwrap();
+        let blank = Url::parse("about:blank").unwrap();
+        assert_eq!(navigation_block_reason(None, &http), None);
+        assert_eq!(navigation_block_reason(None, &https), None);
+        assert_eq!(navigation_block_reason(None, &blank), None);
     }
 
     #[test]
