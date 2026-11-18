@@ -66,6 +66,9 @@ struct BrowserState {
     adblock_rules: RefCell<adblock::RuleSet>,
     adblock_rules_draft: RefCell<String>,
     adblock_rules_open: Cell<bool>,
+    adblock_list_url: RefCell<String>,
+    adblock_update_status: RefCell<String>,
+    adblock_update_in_progress: Cell<bool>,
     settings_open: Cell<bool>,
     bookmarks_manager_open: Cell<bool>,
     history_manager_open: Cell<bool>,
@@ -421,7 +424,7 @@ ${sections}</body></html>"#);
                         id, received, total, &partial_path,
                         validators.etag.as_deref(), validators.last_modified.as_deref(),
                     );
-                    let _ = proxy.send_event(ServoWakeup);
+                    let _ = proxy.send_event(ServoWakeup::Wake);
                     !cancelled.load(Ordering::Relaxed)
                 },
             );
@@ -440,7 +443,7 @@ ${sections}</body></html>"#);
                     }
                 }
             }
-            let _ = proxy.send_event(ServoWakeup);
+            let _ = proxy.send_event(ServoWakeup::Wake);
         });
     }
 
@@ -516,6 +519,62 @@ ${sections}</body></html>"#);
         if let Some(view) = self.active_webview() {
             view.reload();
             self.servo.spin_event_loop();
+        }
+        self.window.request_redraw();
+    }
+
+    fn request_adblock_update(&self, url: String) {
+        let url = url.trim().to_owned();
+        if url.is_empty() {
+            *self.adblock_update_status.borrow_mut() = "Вкажи HTTPS-адресу списку".to_owned();
+            return;
+        }
+        if self.adblock_update_in_progress.replace(true) {
+            return;
+        }
+        if let Err(error) = self.storage.set_setting("adblock_list_url", &url) {
+            self.adblock_update_in_progress.set(false);
+            *self.adblock_update_status.borrow_mut() = format!("Не вдалося зберегти адресу: {error}");
+            return;
+        }
+        *self.adblock_list_url.borrow_mut() = url.clone();
+        *self.adblock_update_status.borrow_mut() = "Завантаження у фоновому режимі…".to_owned();
+        let proxy = self.event_loop_proxy.clone();
+        thread::spawn(move || {
+            let result = adblock::fetch_filter_list(&url);
+            if proxy.send_event(ServoWakeup::AdblockListFetched(result)).is_err() {
+                log::warn!("browser event loop closed before AdBlock update completed");
+            }
+        });
+        self.window.request_redraw();
+    }
+
+    fn apply_adblock_update(&self, result: Result<String, String>) {
+        self.adblock_update_in_progress.set(false);
+        match result {
+            Ok(imported) => {
+                let current = self.adblock_custom_rules.borrow().clone();
+                let (merged, supported, ignored) =
+                    adblock::merge_imported_rules(&current, &imported);
+                match self.storage.set_setting("adblock_custom_rules", &merged) {
+                    Ok(()) => {
+                        *self.adblock_custom_rules.borrow_mut() = merged.clone();
+                        *self.adblock_rules.borrow_mut() = adblock::RuleSet::new(&merged);
+                        *self.adblock_update_status.borrow_mut() = format!(
+                            "Оновлено: {supported} підтримуваних правил; пропущено: {ignored}"
+                        );
+                        if let Some(view) = self.active_webview() {
+                            view.reload();
+                        }
+                        self.servo.spin_event_loop();
+                    }
+                    Err(error) => {
+                        *self.adblock_update_status.borrow_mut() =
+                            format!("Не вдалося зберегти список: {error}");
+                    }
+                }
+            }
+            Err(error) => *self.adblock_update_status.borrow_mut() = error,
         }
         self.window.request_redraw();
     }
@@ -720,6 +779,8 @@ ${sections}</body></html>"#);
             });
             if self.adblock_rules_open.get() {
                 let mut open = true;
+                let mut update_list = false;
+                let mut list_url = self.adblock_list_url.borrow().clone();
                 let mut save = false;
                 let mut import_message = String::new();
                 egui::Window::new("Правила AdBlock")
@@ -728,6 +789,22 @@ ${sections}</body></html>"#);
                     .default_width(560.0)
                     .show(ui.ctx(), |ui| {
                         ui.label("Власні правила та імпорт списків фільтрів. Підтримуються домени, шляхи й винятки @@||домен^. Косметичні правила та модифікатори EasyList поки ігноруються.");
+                        ui.horizontal(|ui| {
+                            ui.add(egui::TextEdit::singleline(&mut list_url)
+                                .desired_width(350.0)
+                                .hint_text("https://example.org/filters.txt"));
+                            if ui.add_enabled(
+                                !self.adblock_update_in_progress.get(),
+                                egui::Button::new("Оновити з URL"),
+                            ).clicked() {
+                                update_list = true;
+                            }
+                        });
+                        ui.label("Віддалені списки завантажуються у фоновому потоці. Дозволено лише HTTPS, максимум 5 МБ.");
+                        let update_status = self.adblock_update_status.borrow().clone();
+                        if !update_status.is_empty() {
+                            ui.label(update_status);
+                        }
                         ui.horizontal(|ui| {
                             if ui.button("Імпортувати список…").clicked() {
                                 if let Some(path) = rfd::FileDialog::new()
@@ -768,6 +845,7 @@ ${sections}</body></html>"#);
                         });
                     });
                 if !open { self.adblock_rules_open.set(false); }
+                if update_list { self.request_adblock_update(list_url); }
                 if save {
                     let rules = self.adblock_rules_draft.borrow().clone();
                     match self.storage.set_setting("adblock_custom_rules", &rules) {
@@ -2045,6 +2123,10 @@ impl VertexApp {
             adblock_custom_rules: RefCell::new(custom_adblock_rules),
             adblock_rules_draft: RefCell::new(String::new()),
             adblock_rules_open: Cell::new(false),
+            adblock_list_url: RefCell::new(storage.get_setting("adblock_list_url")
+                .ok().flatten().unwrap_or_default()),
+            adblock_update_status: RefCell::new(String::new()),
+            adblock_update_in_progress: Cell::new(false),
             settings_open: Cell::new(false),
             bookmarks_manager_open: Cell::new(false),
             history_manager_open: Cell::new(false),
@@ -2264,8 +2346,11 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
         self.initialize(event_loop);
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, _event: ServoWakeup) {
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: ServoWakeup) {
         if let Self::Running(state) = self {
+            if let ServoWakeup::AdblockListFetched(result) = event {
+                state.apply_adblock_update(result);
+            }
             state.servo.spin_event_loop();
             state.window.request_redraw();
         }
@@ -2513,7 +2598,10 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
 struct ServoWaker(EventLoopProxy<ServoWakeup>);
 
 #[derive(Debug)]
-struct ServoWakeup;
+enum ServoWakeup {
+    Wake,
+    AdblockListFetched(Result<String, String>),
+}
 
 impl EventLoopWaker for ServoWaker {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
