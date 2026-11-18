@@ -36,6 +36,23 @@ use winit::{
     window::{Window, WindowId},
 };
 
+fn vortex_servo_preferences() -> servo::Preferences {
+    let mut preferences = servo::Preferences::default();
+
+    // Modern single-page applications rely on these APIs for their component
+    // lifecycle, persistent state, lazy rendering and asynchronous UI updates.
+    preferences.dom_indexeddb_enabled = true;
+    preferences.dom_intersection_observer_enabled = true;
+    preferences.dom_resize_observer_enabled = true;
+    preferences.dom_serviceworker_enabled = true;
+    preferences.dom_web_animations_enabled = true;
+    preferences.dom_adoptedstylesheet_enabled = true;
+    preferences.dom_allow_preloading_module_descendants = true;
+    preferences.dom_async_clipboard_enabled = true;
+
+    preferences
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
@@ -2879,6 +2896,7 @@ impl VertexApp {
         let _ = rendering_context.make_current();
 
         let servo = ServoBuilder::default()
+            .preferences(vortex_servo_preferences())
             .event_loop_waker(Box::new(waker.clone()))
             .build();
         servo.setup_logging();
@@ -3685,6 +3703,19 @@ impl EventLoopWaker for ServoWaker {
 mod tests {
     use super::*;
 
+
+    #[test]
+    fn enables_modern_web_application_preferences() {
+        let preferences = vortex_servo_preferences();
+        assert!(preferences.dom_indexeddb_enabled);
+        assert!(preferences.dom_intersection_observer_enabled);
+        assert!(preferences.dom_resize_observer_enabled);
+        assert!(preferences.dom_serviceworker_enabled);
+        assert!(preferences.dom_web_animations_enabled);
+        assert!(preferences.dom_adoptedstylesheet_enabled);
+        assert!(preferences.dom_allow_preloading_module_descendants);
+        assert!(preferences.dom_async_clipboard_enabled);
+    }
 
     #[test]
     fn escapes_html_in_internal_pages() {
