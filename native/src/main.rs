@@ -38,13 +38,74 @@ struct BrowserState {
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
+    active_tab: Cell<usize>,
     cursor_position: Cell<PhysicalPosition<f64>>,
     modifiers: Cell<Modifiers>,
 }
 
 impl BrowserState {
     fn active_webview(&self) -> Option<WebView> {
-        self.webviews.borrow().last().cloned()
+        let tabs = self.webviews.borrow();
+        tabs.get(self.active_tab.get()).cloned()
+    }
+
+    fn tab_count(&self) -> usize {
+        self.webviews.borrow().len()
+    }
+
+    fn activate_tab(&self, index: usize) {
+        let mut tabs = self.webviews.borrow_mut();
+        if index >= tabs.len() {
+            return;
+        }
+        if let Some(previous) = tabs.get(self.active_tab.get()) {
+            previous.set_focused(false);
+        }
+        self.active_tab.set(index);
+        if let Some(active) = tabs.get(index) {
+            active.set_focused(true);
+            self.update_window_title(active);
+        }
+        self.window.request_redraw();
+    }
+
+    fn create_tab(self: &Rc<Self>, url: Url) {
+        if let Some(active) = self.active_webview() {
+            active.set_focused(false);
+        }
+        let webview = WebViewBuilder::new(&self.servo, self.rendering_context.clone())
+            .url(url)
+            .hidpi_scale_factor(euclid::Scale::new(self.window.scale_factor() as f32))
+            .delegate(self.clone())
+            .build();
+        let mut tabs = self.webviews.borrow_mut();
+        tabs.push(webview);
+        let index = tabs.len() - 1;
+        self.active_tab.set(index);
+        if let Some(active) = tabs.get(index) {
+            active.set_focused(true);
+            self.update_window_title(active);
+        }
+        drop(tabs);
+        self.window.request_redraw();
+    }
+
+    fn close_active_tab(&self) {
+        let mut tabs = self.webviews.borrow_mut();
+        if tabs.len() <= 1 {
+            return;
+        }
+        let index = self.active_tab.get().min(tabs.len() - 1);
+        tabs[index].set_focused(false);
+        tabs.remove(index);
+        let next = index.min(tabs.len() - 1);
+        self.active_tab.set(next);
+        if let Some(active) = tabs.get(next) {
+            active.set_focused(true);
+            self.update_window_title(active);
+        }
+        drop(tabs);
+        self.window.request_redraw();
     }
 
     fn update_window_title(&self, webview: &WebView) {
@@ -74,6 +135,13 @@ impl BrowserState {
             // Native browser shortcuts are intercepted before page delivery.
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("r")) {
                 webview.reload();
+                return;
+            }
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
+                // Tab creation is handled by the event loop where the shared state is available.
+                return;
+            }
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("w")) {
                 return;
             }
             if is_alt && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::ArrowLeft)) {
@@ -216,6 +284,7 @@ impl VertexApp {
             webviews: RefCell::new(Vec::new()),
             cursor_position: Cell::new(PhysicalPosition::new(0.0, 0.0)),
             modifiers: Cell::new(Modifiers::empty()),
+            active_tab: Cell::new(0),
         });
 
         let start_url = std::env::args()
@@ -399,6 +468,31 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             }
             WindowEvent::KeyboardInput { event, .. } => {
                 if let Self::Running(state) = self {
+                    if event.state == ElementState::Pressed {
+                        let control = state.modifiers.get().contains(Modifiers::CONTROL);
+                        let shift = state.modifiers.get().contains(Modifiers::SHIFT);
+                        if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
+                            state.create_tab(Url::parse("about:blank").expect("valid blank URL"));
+                            return;
+                        }
+                        if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("w")) {
+                            state.close_active_tab();
+                            return;
+                        }
+                        if control && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::Tab)) {
+                            let count = state.tab_count();
+                            if count > 1 {
+                                let current = state.active_tab.get();
+                                let next = if shift {
+                                    (current + count - 1) % count
+                                } else {
+                                    (current + 1) % count
+                                };
+                                state.activate_tab(next);
+                            }
+                            return;
+                        }
+                    }
                     state.handle_keyboard(event);
                 }
             }
