@@ -50,6 +50,9 @@ struct BrowserState {
     storage: BrowserStorage,
     egui: RefCell<egui_glow::winit::EguiGlow>,
     address_bar: RefCell<String>,
+    adblock_custom_rules: RefCell<String>,
+    adblock_rules_draft: RefCell<String>,
+    adblock_rules_open: Cell<bool>,
 }
 
 impl BrowserState {
@@ -496,6 +499,10 @@ ${sections}</body></html>"#);
                         .on_hover_text("Перемкнути блокування реклами лише для поточного сайту").clicked() {
                         self.toggle_site_adblock();
                     }
+                    if ui.button("Фільтри").on_hover_text("Керування власними правилами AdBlock").clicked() {
+                        *self.adblock_rules_draft.borrow_mut() = self.adblock_custom_rules.borrow().clone();
+                        self.adblock_rules_open.set(true);
+                    }
                     if ui.button("Історія").clicked() {
                         address.clear();
                         self.open_history_page();
@@ -524,6 +531,37 @@ ${sections}</body></html>"#);
                     }
                 });
             });
+            if self.adblock_rules_open.get() {
+                let mut open = true;
+                let mut save = false;
+                egui::Window::new("Правила AdBlock")
+                    .open(&mut open)
+                    .resizable(true)
+                    .default_width(520.0)
+                    .show(ui.ctx(), |ui| {
+                        ui.label("По одному правилу на рядок. Підтримуються домени, шляхи та винятки @@||домен^. Не підтримуються косметичні правила й модифікатори.");
+                        ui.add(egui::TextEdit::multiline(&mut *self.adblock_rules_draft.borrow_mut())
+                            .desired_rows(14)
+                            .desired_width(f32::INFINITY));
+                        ui.horizontal(|ui| {
+                            if ui.button("Зберегти").clicked() { save = true; }
+                            if ui.button("Скасувати").clicked() { self.adblock_rules_open.set(false); }
+                        });
+                    });
+                if !open { self.adblock_rules_open.set(false); }
+                if save {
+                    let rules = self.adblock_rules_draft.borrow().clone();
+                    match self.storage.set_setting("adblock_custom_rules", &rules) {
+                        Ok(()) => {
+                            *self.adblock_custom_rules.borrow_mut() = rules;
+                            self.adblock_rules_open.set(false);
+                            if let Some(view) = self.active_webview() { view.reload(); }
+                            self.servo.spin_event_loop();
+                        }
+                        Err(error) => log::error!("could not save custom AdBlock rules: {error}"),
+                    }
+                }
+            }
         });
         chrome.paint(&self.window);
         if self.active_tab.get() == initial_active_tab {
@@ -711,7 +749,7 @@ impl servo::WebViewDelegate for BrowserState {
         let Ok(url) = Url::parse(&load.request().url.to_string()) else {
             return;
         };
-        if adblock::is_blocked_url(&url) {
+        if adblock::is_blocked_url_with_rules(&url, self.adblock_custom_rules.borrow().as_str()) {
             log::debug!("AdBlock blocked resource: {url}");
             // An empty successful response prevents the blocked resource from reaching the page.
             // Dropping the interception sends FinishLoad to Servo.
@@ -820,6 +858,8 @@ impl VertexApp {
             None,
             true,
         );
+        let custom_adblock_rules = storage.get_setting("adblock_custom_rules")
+            .ok().flatten().unwrap_or_default();
         let state = Rc::new(BrowserState {
             window,
             servo,
@@ -833,6 +873,9 @@ impl VertexApp {
             storage,
             egui: RefCell::new(chrome),
             address_bar: RefCell::new(String::new()),
+            adblock_custom_rules: RefCell::new(custom_adblock_rules),
+            adblock_rules_draft: RefCell::new(String::new()),
+            adblock_rules_open: Cell::new(false),
         });
 
         let url = match std::env::args().nth(1) {
