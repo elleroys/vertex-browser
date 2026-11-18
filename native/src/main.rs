@@ -1,4 +1,5 @@
 mod adblock;
+mod downloads;
 mod password_vault;
 mod storage;
 
