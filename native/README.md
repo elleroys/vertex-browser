@@ -1,4 +1,4 @@
-# Vertex Native — Servo browser runtime
+# Vortex Native — Servo browser runtime
 
 This directory contains the native browser runtime prototype. The rendering engine is Servo embedded directly in the Rust process. The native path must not use Tauri, WebView2, or another system webview.
 
@@ -10,7 +10,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - New-tab page with a Google search form, up to eight bookmark shortcuts and eight recently visited pages.
 - Input parsing for HTTP(S) URLs, dotted hostnames, and search queries.
 - Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation.
-- A Servo `OffscreenRenderingContext` renders the page into a framebuffer sized to the content area below the 82-logical-pixel browser chrome; the frame is blitted into the native window before egui paints the toolbar. Mouse coordinates are translated into page-viewport coordinates and toolbar-area pointer events are not sent to the page.
+- Servo WebViews render directly through the native `WindowRenderingContext` into the application window; egui/Glow paints the browser chrome in the same native rendering context. This avoids the earlier offscreen-framebuffer blit path that produced a black page surface. Mouse coordinates are translated into the page viewport and toolbar-area pointer events are not sent to the page.
 - Mouse movement, clicks, leaving the viewport and wheel scrolling forwarded to Servo.
 - Keyboard down/up events, logical keys, common physical key codes, and modifier state forwarded to Servo.
 - Window focus is synchronized with the active Servo WebView.
@@ -34,7 +34,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - The native site-data manager uses Servo's pinned `SiteDataManager` API to list sites with cookies, localStorage or sessionStorage, clear all supported data for one site, and confirm before clearing all cookies and Web Storage across sites. This does not yet cover IndexedDB, cache storage, service workers or other future storage categories.
 - A local encrypted password vault using Argon2id and XChaCha20-Poly1305, with create/unlock/lock, search, save/delete, password generation and clipboard copy.
 - Servo-backed login-form detection and explicit user-triggered same-origin autofill. Autofill checks the current origin again immediately before filling, serializes values safely and does not submit the form.
-- Password vault CSV import/export with a preview/validation step before import confirmation, row/size limits and temporary-buffer zeroization. The supported CSV schema is Vertex's own `origin,title,username,password,notes` format; arbitrary Chrome/vendor exports are not guaranteed to import unchanged.
+- Password vault CSV import/export with a preview/validation step before import confirmation, row/size limits and temporary-buffer zeroization. The supported CSV schema is the browser's own `origin,title,username,password,notes` format; arbitrary Chrome/vendor exports are not guaranteed to import unchanged.
 - A limited native AdBlock request interceptor with global enable/disable, per-site exceptions and custom domain/path/exception rules persisted in SQLite, including `*` wildcards inside path patterns. Path-scoped exception rules can exempt a matching URL path without disabling the rest of a blocked host; exception precedence is independent of rule order. The rule editor can import local EasyList-style text files up to 5 MiB, de-duplicates lines and reports how many imported rules this matcher supports versus ignores. It can also fetch a user-supplied remote list in a background thread: HTTPS only (including redirects), a 25-second request timeout, a 5 MiB response limit, UTF-8 validation and a requirement for at least one supported rule. Successfully fetched rules replace the previous remote list (without deleting the user's separate custom rules), are saved to the profile and applied after the active page reloads. A configured list is refreshed automatically at browser startup and then every 24 hours while the browser is running; the same action can be triggered manually from the rule editor. It is not a full EasyList parser: cosmetic rules, regexes, unsupported modifiers and scriptlets are not applied. The supported resource modifiers are $script, $image, $stylesheet, $font, $media, $subdocument, $object, $document and $xmlhttprequest, including negated type tokens such as $~image.
 - Right-clicking an HTTP(S) link opens a native link-actions menu with **Download link…** (native Save As dialog) and **Open in new tab**. This uses the pinned Servo context-menu element metadata; it does not pretend to detect attachment responses or automatically download on a normal left click.
 - Navigation safety at the Servo delegate boundary: only HTTP(S) and the initial `about:blank` navigation are accepted, HTTPS-to-HTTP downgrade navigations are denied, URLs containing embedded credentials are rejected, and denied transitions are surfaced in the browser chrome. External/custom protocols are deliberately blocked rather than launched by the OS; safe external-app handoff is not implemented yet.
@@ -53,6 +53,8 @@ This remains a development browser, not a release-ready consumer browser. The fo
 - Site compatibility and performance measurements on real Windows hardware. Servo feature coverage (media, WebRTC, DRM, extensions and DevTools) must be evaluated separately.
 
 Do not treat source-level implementation or GitHub commits as proof that the application compiles or works at runtime. Build and end-to-end testing are intentionally deferred until the feature set is implemented.
+
+The browser menu groups features into Library (downloads, bookmarks, history and passwords), Privacy & Security (AdBlock, site data and permissions), Tabs & Windows, and Settings. Zoom controls remain available at the bottom of the menu.
 
 Physical-key mapping currently covers letters, digits, navigation keys, modifiers and F1–F12; uncommon keys still fall back to `Unidentified`. IME committed text is supported, while composition/preedit events remain follow-up work.
 
