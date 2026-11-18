@@ -932,6 +932,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             }
             WindowEvent::Resized(size) => {
                 if let Self::Running(state) = self {
+                    state.rendering_context.resize(size);
                     if let Some(webview) = state.active_webview() {
                         webview.resize(state.page_size(size));
                     }
