@@ -1147,7 +1147,18 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
             }
             if self.downloads_manager_open.get() {
                 let mut open = true;
-                let entries = self.storage.recent_downloads(100).unwrap_or_default();
+                let entries = self.storage.recent_downloads(500).unwrap_or_default();
+                let mut filter = ui.ctx().data_mut(|data| {
+                    data.get_temp::<String>(egui::Id::new("vertex-download-filter"))
+                }).unwrap_or_else(|| "all".to_owned());
+                let mut search = ui.ctx().data_mut(|data| {
+                    data.get_temp::<String>(egui::Id::new("vertex-download-search"))
+                }).unwrap_or_default();
+                let total_count = entries.len();
+                let active_count = entries.iter().filter(|entry| matches!(entry.status.as_str(), "queued" | "downloading")).count();
+                let completed_count = entries.iter().filter(|entry| entry.status == "completed").count();
+                let failed_count = entries.iter().filter(|entry| matches!(entry.status.as_str(), "failed" | "cancelled")).count();
+                let mut clear_completed = false;
                 let mut requested_url = None;
                 let mut retry_download_id: Option<i64> = None;
                 let mut pause_download_id: Option<i64> = None;
@@ -1184,9 +1195,55 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                 }
                             }
                         });
-                        ui.separator();
+                        ui.horizontal_wrapped(|ui| {
+                            ui.label(format!("Усього: {total_count}"));
+                            ui.separator();
+                            ui.label(format!("Активні: {active_count}"));
+                            ui.separator();
+                            ui.label(format!("Завершені: {completed_count}"));
+                            ui.separator();
+                            ui.label(format!("Помилки: {failed_count}"));
+                        });
+                        ui.horizontal_wrapped(|ui| {
+                            for (key, label) in [
+                                ("all", "Усі"),
+                                ("active", "Активні"),
+                                ("completed", "Завершені"),
+                                ("failed", "Помилки"),
+                                ("paused", "Призупинені"),
+                            ] {
+                                if ui.selectable_label(filter == key, label).clicked() {
+                                    filter = key.to_owned();
+                                }
+                            }
+                            if ui.add_enabled(completed_count > 0, egui::Button::new("Очистити завершені")).clicked() {
+                                clear_completed = true;
+                            }
+                        });
+                        ui.ctx().data_mut(|data| data.insert_temp(egui::Id::new("vertex-download-filter"), filter.clone()));
+                        ui.horizontal(|ui| {
+                            ui.label("Пошук:");
+                            ui.add(egui::TextEdit::singleline(&mut search)
+                                .desired_width(f32::INFINITY)
+                                .hint_text("Назва файлу або адреса"));
+                        });
+                        ui.ctx().data_mut(|data| data.insert_temp(egui::Id::new("vertex-download-search"), search.clone()));
+                        let visible_entries = entries.iter().filter(|entry| {
+                            let status_matches = match filter.as_str() {
+                                "active" => matches!(entry.status.as_str(), "queued" | "downloading"),
+                                "completed" => entry.status == "completed",
+                                "failed" => matches!(entry.status.as_str(), "failed" | "cancelled"),
+                                "paused" => entry.status == "paused",
+                                _ => true,
+                            };
+                            let needle = search.trim().to_lowercase();
+                            status_matches && (needle.is_empty()
+                                || entry.file_name.to_lowercase().contains(&needle)
+                                || entry.url.to_lowercase().contains(&needle)
+                                || entry.file_path.to_lowercase().contains(&needle))
+                        }).collect::<Vec<_>>();
                         egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
-                            for entry in &entries {
+                            for entry in visible_entries {
                                 ui.group(|ui| {
                                     ui.horizontal(|ui| {
                                         ui.label(egui::RichText::new(&entry.file_name).strong());
@@ -1252,12 +1309,22 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                     ui.add(egui::Label::new(egui::RichText::new(&entry.url).small().weak()).truncate());
                                 });
                             }
-                            if entries.is_empty() {
-                                ui.label("Завантажень поки немає.");
+                            if visible_entries.is_empty() {
+                                ui.label(if entries.is_empty() {
+                                    "Завантажень поки немає."
+                                } else {
+                                    "Нічого не знайдено за поточним фільтром."
+                                });
                             }
                         });
                     });
                 if !open { self.downloads_manager_open.set(false); }
+                if clear_completed {
+                    match self.storage.delete_completed_downloads() {
+                        Ok(count) => log::info!("removed {count} completed download records"),
+                        Err(error) => log::error!("could not clear completed downloads: {error}"),
+                    }
+                }
                 if let Some(id) = pause_download_id {
                     if let Some(token) = self.active_downloads.borrow().get(&id) {
                         token.store(true, Ordering::Relaxed);
