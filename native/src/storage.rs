@@ -178,6 +178,47 @@ impl BrowserStorage {
         ).optional()
     }
 
+    /// Persist the restorable HTTP(S) tab URLs and the selected tab index.
+    pub fn save_session(&self, urls: &[String], active_index: usize) -> rusqlite::Result<()> {
+        let session = serde_json::json!({
+            "version": 1,
+            "urls": urls,
+            "active_index": active_index,
+        });
+        self.set_setting("browser_session_v1", &session.to_string())
+    }
+
+    /// Load a previously saved session. Invalid or obsolete data is ignored safely.
+    pub fn load_session(&self) -> rusqlite::Result<Option<(Vec<String>, usize)>> {
+        let Some(raw) = self.get_setting("browser_session_v1")? else {
+            return Ok(None);
+        };
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else {
+            return Ok(None);
+        };
+        if value.get("version").and_then(serde_json::Value::as_u64) != Some(1) {
+            return Ok(None);
+        }
+        let Some(items) = value.get("urls").and_then(serde_json::Value::as_array) else {
+            return Ok(None);
+        };
+        let urls: Vec<String> = items.iter()
+            .filter_map(serde_json::Value::as_str)
+            .filter_map(|raw_url| url::Url::parse(raw_url).ok())
+            .filter(|url| matches!(url.scheme(), "http" | "https"))
+            .map(|url| url.to_string())
+            .take(50)
+            .collect();
+        if urls.is_empty() {
+            return Ok(None);
+        }
+        let requested_index = value.get("active_index")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0) as usize;
+        let active_index = requested_index.min(urls.len() - 1);
+        Ok(Some((urls, active_index)))
+    }
+
     pub fn get_vault_meta(&self) -> rusqlite::Result<Option<(String, String, String)>> {
         self.connection.lock().expect("database mutex poisoned").query_row(
             "SELECT salt_b64,verifier_enc,kdf_params FROM vault_meta WHERE id=1",
@@ -431,6 +472,34 @@ mod tests {
         assert_eq!(storage.recent_downloads(10).unwrap()[0].status, "completed");
         storage.delete_download(id).unwrap();
         assert!(storage.recent_downloads(10).unwrap().is_empty());
+    }
+
+    #[test]
+    fn saves_and_restores_only_valid_http_sessions() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let urls = vec![
+            "https://example.com/".to_owned(),
+            "http://localhost:8080/".to_owned(),
+            "file:///secret".to_owned(),
+            "javascript:alert(1)".to_owned(),
+            "not a url".to_owned(),
+        ];
+        storage.save_session(&urls, 1).unwrap();
+        let (restored, active) = storage.load_session().unwrap().unwrap();
+        assert_eq!(restored, vec![
+            "https://example.com/".to_owned(),
+            "http://localhost:8080/".to_owned(),
+        ]);
+        assert_eq!(active, 1);
+    }
+
+    #[test]
+    fn ignores_corrupt_or_empty_saved_sessions() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        storage.set_setting("browser_session_v1", "not-json").unwrap();
+        assert!(storage.load_session().unwrap().is_none());
+        storage.save_session(&["file:///private".to_owned()], 0).unwrap();
+        assert!(storage.load_session().unwrap().is_none());
     }
 
     #[test]
