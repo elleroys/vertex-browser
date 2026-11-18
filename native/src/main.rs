@@ -16,7 +16,7 @@ use servo::{
     WindowRenderingContext, OffscreenRenderingContext, RenderingContext, KeyboardEvent,
 };
 use url::Url;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 use storage::{default_profile_dir, BrowserStorage};
 use winit::{
     application::ApplicationHandler,
@@ -716,8 +716,8 @@ ${sections}</body></html>"#);
             self.password_vault_open.set(false);
         }
         if setup {
-            let master = self.vault_master_password.borrow().clone();
-            let confirm = self.vault_confirm_password.borrow().clone();
+            let master = Zeroizing::new(self.vault_master_password.borrow().clone());
+            let confirm = Zeroizing::new(self.vault_confirm_password.borrow().clone());
             let result = if master != confirm {
                 Err("Майстер-паролі не збігаються".to_owned())
             } else {
@@ -730,8 +730,8 @@ ${sections}</body></html>"#);
             }).unwrap_or_else(|error| error);
         }
         if unlock {
-            let master = self.vault_master_password.borrow().clone();
-            let result = self.password_vault.unlock(&self.storage, &master);
+            let master = Zeroizing::new(self.vault_master_password.borrow().clone());
+            let result = self.password_vault.unlock(&self.storage, master.as_str());
             self.vault_master_password.borrow_mut().zeroize();
             *self.vault_message.borrow_mut() = result.map(|_| "Сховище розблоковано.".to_owned())
                 .unwrap_or_else(|error| error);
@@ -747,11 +747,11 @@ ${sections}</body></html>"#);
         if save {
             let origin = self.vault_origin.borrow().clone();
             let title = self.vault_title.borrow().clone();
-            let username = self.vault_username.borrow().clone();
-            let password = self.vault_password.borrow().clone();
-            let notes = self.vault_notes.borrow().clone();
+            let username = Zeroizing::new(self.vault_username.borrow().clone());
+            let password = Zeroizing::new(self.vault_password.borrow().clone());
+            let notes = Zeroizing::new(self.vault_notes.borrow().clone());
             let result = self.password_vault.save_credential(
-                &self.storage, &origin, &title, &username, &password, Some(&notes),
+                &self.storage, &origin, &title, username.as_str(), password.as_str(), Some(notes.as_str()),
             );
             match result {
                 Ok(_) => {
