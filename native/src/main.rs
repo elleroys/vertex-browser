@@ -727,12 +727,26 @@ ${sections}</body></html>"#);
                 let mut open = true;
                 let entries = self.storage.recent_downloads(100).unwrap_or_default();
                 let mut requested_url = None;
+                let mut open_file: Option<PathBuf> = None;
+                let mut open_folder: Option<PathBuf> = None;
+                let mut delete_record: Option<i64> = None;
                 egui::Window::new("Менеджер завантажень")
                     .open(&mut open)
                     .resizable(true)
                     .default_width(560.0)
                     .show(ui.ctx(), |ui| {
                         ui.label("Завантажити файл за прямим HTTP(S)-посиланням");
+                        ui.horizontal(|ui| {
+                            if ui.button("Відкрити папку завантажень").clicked() {
+                                let directory = self.storage.get_setting("download_directory")
+                                    .ok().flatten()
+                                    .map(PathBuf::from)
+                                    .unwrap_or_else(|| std::env::var_os("USERPROFILE")
+                                        .map(|home| PathBuf::from(home).join("Downloads"))
+                                        .unwrap_or_else(|| PathBuf::from(".")));
+                                open_folder = Some(directory);
+                            }
+                        });
                         ui.horizontal(|ui| {
                             ui.add(egui::TextEdit::singleline(&mut *self.download_url.borrow_mut())
                                 .desired_width(f32::INFINITY)
@@ -756,7 +770,21 @@ ${sections}</body></html>"#);
                                                 if ui.small_button("Скасувати").clicked() {
                                                     if let Some(token) = self.active_downloads.borrow().get(&entry.id) {
                                                         token.store(true, Ordering::Relaxed);
+                                                    } else {
+                                                        let _ = self.storage.cancel_download(entry.id);
                                                     }
+                                                }
+                                            } else {
+                                                if entry.status == "completed" {
+                                                    if ui.small_button("Відкрити").clicked() {
+                                                        open_file = Some(PathBuf::from(&entry.file_path));
+                                                    }
+                                                    if ui.small_button("Папка").clicked() {
+                                                        open_folder = PathBuf::from(&entry.file_path).parent().map(PathBuf::from);
+                                                    }
+                                                }
+                                                if ui.small_button("Прибрати зі списку").clicked() {
+                                                    delete_record = Some(entry.id);
                                                 }
                                             }
                                         });
@@ -778,6 +806,29 @@ ${sections}</body></html>"#);
                     });
                 if !open { self.downloads_manager_open.set(false); }
                 if let Some(url) = requested_url { self.start_download(url); }
+                if let Some(path) = open_file {
+                    if path.is_file() {
+                        if let Err(error) = open::that(&path) {
+                            log::error!("could not open downloaded file {}: {error}", path.display());
+                        }
+                    } else {
+                        log::warn!("downloaded file is missing: {}", path.display());
+                    }
+                }
+                if let Some(path) = open_folder {
+                    if path.is_dir() {
+                        if let Err(error) = open::that(&path) {
+                            log::error!("could not open download folder {}: {error}", path.display());
+                        }
+                    } else {
+                        log::warn!("download folder does not exist: {}", path.display());
+                    }
+                }
+                if let Some(id) = delete_record {
+                    if let Err(error) = self.storage.delete_download(id) {
+                        log::error!("could not remove download record {id}: {error}");
+                    }
+                }
                 let active_ids: std::collections::HashSet<i64> = entries.iter()
                     .filter(|entry| matches!(entry.status.as_str(), "queued" | "downloading"))
                     .map(|entry| entry.id)
