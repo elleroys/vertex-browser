@@ -7,13 +7,14 @@ This directory is the isolated native-engine proof of concept. It does not repla
 - Native desktop window created by `winit`.
 - Servo is embedded in-process through its current `ServoBuilder` / `WebViewBuilder` API.
 - Initial page can be supplied as the first command-line argument; defaults to `https://example.com`.
-- Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation are wired.\n- Mouse movement, clicks, leaving the viewport and wheel scrolling are forwarded to Servo.
+- Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation are wired.
+- Mouse movement, clicks, leaving the viewport and wheel scrolling are forwarded to Servo.
 
-This is an engine integration spike, **not yet the full Vertex browser**. Navigation controls, keyboard/mouse forwarding, multiple tabs, downloads, permissions, profile storage, ad blocking and the browser chrome are not implemented here yet.
+This is an engine integration spike, **not yet the full Vertex browser**. Keyboard input, navigation controls, multiple tabs, downloads, permissions, profile storage, ad blocking and the browser chrome are not implemented here yet.
 
 ## Toolchain and Windows
 
-Servo's current main branch requires a recent Rust toolchain (the upstream toolchain file currently pins Rust 1.99.1; use that version for this pinned Servo revision). Use the upstream-pinned toolchain for reproducible builds.
+Servo's current main branch requires a recent Rust toolchain. The upstream toolchain file currently pins Rust 1.99.1, which is also pinned for this native prototype.
 
 Servo's Windows build has native dependencies and platform-specific rendering configuration. In particular, the Windows dependency enables Servo's `no-wgl` feature. Media support requires the matching GStreamer development/runtime libraries; this initial prototype intentionally does not enable the media feature.
 
@@ -24,7 +25,7 @@ cd native
 cargo run -- https://example.com
 ```
 
-The first build is expected to be large and may take a long time because Servo compiles a substantial engine and JavaScript runtime.
+Rustup will install the pinned toolchain if it is not already present. The first build is expected to be large and may take a long time because Servo compiles a substantial engine and JavaScript runtime.
 
 ## Upstream API references
 
