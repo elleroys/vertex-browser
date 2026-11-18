@@ -101,6 +101,7 @@ struct BrowserState {
     vault_notes: RefCell<String>,
     vault_search: RefCell<String>,
     vault_show_passwords: Cell<bool>,
+    vault_reveal_deadline: Cell<Option<Instant>>,
     vault_message: RefCell<String>,
     vault_form_scan_result: RefCell<String>,
     vault_csv_preview: RefCell<Option<password_vault::CsvImportPreview>>,
@@ -1862,7 +1863,7 @@ ${sections}</body></html>"#);
                         ui.horizontal(|ui| {
                             ui.label("Пошук:");
                             ui.text_edit_singleline(&mut *self.vault_search.borrow_mut());
-                            ui.checkbox(&mut show_passwords, "Показувати паролі");
+                            ui.checkbox(&mut show_passwords, "Показувати паролі (30 секунд)");
                         });
                         egui::ScrollArea::vertical().max_height(230.0).show(ui, |ui| {
                             match entries.as_ref() {
@@ -1930,7 +1931,14 @@ ${sections}</body></html>"#);
         {
             self.password_vault.touch();
         }
-        if show_passwords != self.vault_show_passwords.get() { self.password_vault.touch(); }
+        if show_passwords != self.vault_show_passwords.get() {
+            self.password_vault.touch();
+            self.vault_reveal_deadline.set(if show_passwords {
+                Some(Instant::now() + Duration::from_secs(30))
+            } else {
+                None
+            });
+        }
         self.vault_show_passwords.set(show_passwords);
         if let Some(value) = clipboard_text {
             self.password_vault.touch();
@@ -2006,6 +2014,7 @@ ${sections}</body></html>"#);
             self.password_vault_open.set(false);
             self.password_vault.lock();
             self.vault_show_passwords.set(false);
+            self.vault_reveal_deadline.set(None);
             self.vault_master_password.borrow_mut().zeroize();
             self.vault_confirm_password.borrow_mut().zeroize();
             self.vault_new_master_password.borrow_mut().zeroize();
@@ -2043,6 +2052,7 @@ ${sections}</body></html>"#);
         if lock {
             self.password_vault.lock();
             self.vault_show_passwords.set(false);
+            self.vault_reveal_deadline.set(None);
             self.vault_master_password.borrow_mut().zeroize();
             self.vault_confirm_password.borrow_mut().zeroize();
             self.vault_new_master_password.borrow_mut().zeroize();
@@ -2721,6 +2731,7 @@ impl VertexApp {
             vault_notes: RefCell::new(String::new()),
             vault_search: RefCell::new(String::new()),
             vault_show_passwords: Cell::new(false),
+            vault_reveal_deadline: Cell::new(None),
             vault_message: RefCell::new(String::new()),
             vault_form_scan_result: RefCell::new(String::new()),
             vault_csv_preview: RefCell::new(None),
@@ -3036,6 +3047,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             }
             if state.password_vault.expire_if_idle() {
                 state.vault_show_passwords.set(false);
+                state.vault_reveal_deadline.set(None);
                 state.vault_master_password.borrow_mut().zeroize();
                 state.vault_confirm_password.borrow_mut().zeroize();
                 state.vault_new_master_password.borrow_mut().zeroize();
@@ -3053,9 +3065,19 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 *state.vault_message.borrow_mut() = "Сховище автоматично заблоковано після 5 хвилин бездіяльності.".to_owned();
                 state.window.request_redraw();
             }
+            let reveal_deadline = state.vault_reveal_deadline.get();
+            if reveal_deadline.is_some_and(|deadline| now >= deadline) {
+                state.vault_reveal_deadline.set(None);
+                state.vault_show_passwords.set(false);
+                state.window.request_redraw();
+            }
             let vault_check = now + Duration::from_secs(30);
+            let reveal_check = reveal_deadline.unwrap_or(vault_check);
             event_loop.set_control_flow(ControlFlow::WaitUntil(
-                state.adblock_next_refresh.get().min(state.threat_feed_next_refresh.get()).min(vault_check)
+                state.adblock_next_refresh.get()
+                    .min(state.threat_feed_next_refresh.get())
+                    .min(vault_check)
+                    .min(reveal_check)
             ));
         }
     }

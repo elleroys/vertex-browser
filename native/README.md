@@ -88,3 +88,5 @@ The page surface is an offscreen framebuffer attached to the window's Servo rend
 
 
 - Password vault memory handling: decrypted credential and CSV preview fields are zeroized when dropped. Pending CSV previews are discarded on manual lock, automatic lock, or closing the vault window.
+
+- Revealed passwords are automatically hidden after 30 seconds, independently of the five-minute vault inactivity lock.
