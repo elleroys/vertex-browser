@@ -721,7 +721,7 @@ ${sections}</body></html>"#);
             let result = if master != confirm {
                 Err("Майстер-паролі не збігаються".to_owned())
             } else {
-                self.password_vault.setup_master_password(&self.storage, &master)
+                self.password_vault.setup_master_password(&self.storage, master.as_str())
             };
             *self.vault_message.borrow_mut() = result.map(|_| {
                 self.vault_master_password.borrow_mut().zeroize();
