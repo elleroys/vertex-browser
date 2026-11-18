@@ -75,6 +75,7 @@ struct BrowserState {
     settings_open: Cell<bool>,
     bookmarks_manager_open: Cell<bool>,
     history_manager_open: Cell<bool>,
+    site_data_manager_open: Cell<bool>,
     history_clear_confirm_open: Cell<bool>,
     search_engine: RefCell<String>,
     home_page: RefCell<String>,
@@ -759,6 +760,9 @@ ${sections}</body></html>"#);
                     if ui.button("Історія").clicked() {
                         self.history_manager_open.set(true);
                     }
+                    if ui.button("Дані сайтів").on_hover_text("Перегляд і очищення cookies та Web Storage").clicked() {
+                        self.site_data_manager_open.set(true);
+                    }
                     if ui.button("Завантаження").clicked() {
                         address.clear();
                         self.downloads_manager_open.set(true);
@@ -1118,6 +1122,67 @@ ${sections}</body></html>"#);
                     }
                 }
                 if !open { self.settings_open.set(false); }
+            }
+            if self.site_data_manager_open.get() {
+                let entries = self.servo.site_data_manager().site_data(
+                    servo::StorageType::Cookies | servo::StorageType::Local | servo::StorageType::Session,
+                );
+                let mut open = true;
+                let mut clear_site: Option<String> = None;
+                let mut clear_all = false;
+                egui::Window::new("Дані сайтів")
+                    .open(&mut open)
+                    .resizable(true)
+                    .default_width(540.0)
+                    .default_height(420.0)
+                    .show(ui.ctx(), |ui| {
+                        ui.label("Servo зберігає cookies, localStorage та sessionStorage для сайтів.");
+                        ui.horizontal(|ui| {
+                            ui.label(format!("Сайтів із даними: {}", entries.len()));
+                            if ui.button("Очистити всі дані сайтів…").clicked() {
+                                clear_all = true;
+                            }
+                        });
+                        ui.separator();
+                        if entries.is_empty() {
+                            ui.label("Збережених даних сайтів не знайдено.");
+                        }
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for entry in &entries {
+                                let name = entry.name();
+                                ui.horizontal(|ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new(&name).strong());
+                                        let kinds = entry.storage_types();
+                                        let mut labels = Vec::new();
+                                        if kinds.contains(servo::StorageType::Cookies) { labels.push("Cookies"); }
+                                        if kinds.contains(servo::StorageType::Local) { labels.push("localStorage"); }
+                                        if kinds.contains(servo::StorageType::Session) { labels.push("sessionStorage"); }
+                                        ui.label(egui::RichText::new(labels.join(" · ")).small().color(egui::Color32::GRAY));
+                                    });
+                                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                        if ui.small_button("Очистити").clicked() {
+                                            clear_site = Some(name.clone());
+                                        }
+                                    });
+                                });
+                                ui.separator();
+                            }
+                        });
+                    });
+                if let Some(site) = clear_site {
+                    self.servo.site_data_manager().clear_site_data(
+                        &[site.as_str()],
+                        servo::StorageType::Cookies | servo::StorageType::Local | servo::StorageType::Session,
+                    );
+                }
+                if clear_all {
+                    self.servo.site_data_manager().clear_site_data(
+                        &[],
+                        servo::StorageType::Cookies | servo::StorageType::Local | servo::StorageType::Session,
+                    );
+                }
+                if !open { self.site_data_manager_open.set(false); }
             }
             if self.history_manager_open.get() {
                 let entries = self.storage.recent_history(500).unwrap_or_default();
@@ -2160,6 +2225,7 @@ impl VertexApp {
             settings_open: Cell::new(false),
             bookmarks_manager_open: Cell::new(false),
             history_manager_open: Cell::new(false),
+            site_data_manager_open: Cell::new(false),
             history_clear_confirm_open: Cell::new(false),
             search_engine: RefCell::new(search_engine),
             home_page: RefCell::new(home_page),
