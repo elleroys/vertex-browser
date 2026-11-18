@@ -262,6 +262,11 @@ impl BrowserState {
         }
         sections.push_str("</section>");
 
+        let search_action = match self.search_engine.borrow().as_str() {
+            "duckduckgo" => "https://duckduckgo.com/",
+            "bing" => "https://www.bing.com/search",
+            _ => "https://www.google.com/search",
+        };
         let html = format!(r#"<!doctype html>
 <html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Нова вкладка — Vertex</title><style>
@@ -278,7 +283,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
 .tile:hover,article:hover{{border-color:#6578ed}}article{{margin:9px 0}}small{{display:block;color:#858b9b;font-size:12px;margin-top:6px;overflow-wrap:anywhere}}
 .muted{{color:#858b9b;font-size:13px}}
 </style></head><body><div class="brand">VERTEX BROWSER</div><h1>Нова вкладка</h1>
-<form action="https://www.google.com/search" method="get"><input name="q" type="search" placeholder="Шукати в інтернеті або ввести адресу" autofocus><button type="submit">Знайти</button></form>
+<form action="{search_action}" method="get"><input name="q" type="search" placeholder="Шукати в інтернеті або ввести адресу" autofocus><button type="submit">Знайти</button></form>
 ${sections}</body></html>"#);
         html_data_url(&html)
     }
