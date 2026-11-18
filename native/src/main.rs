@@ -292,6 +292,7 @@ ${sections}</body></html>"#);
                         if let Some(view) = &active { view.reload(); }
                     }
                     if ui.button("⌂").clicked() {
+                        address.clear();
                         if let Some(view) = &active { view.load(self.new_tab_url()); }
                     }
                     if ui.button("★").clicked() {
@@ -314,9 +315,11 @@ ${sections}</body></html>"#);
                         }
                     }
                     if ui.button("Історія").clicked() {
+                        address.clear();
                         self.open_history_page();
                     }
                     if ui.button("Закладки").clicked() {
+                        address.clear();
                         self.open_bookmarks_page();
                     }
                     let response = ui.add(
