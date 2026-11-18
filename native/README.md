@@ -13,7 +13,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Keyboard down/up events, logical keys, common physical key codes, and modifier state forwarded to Servo.
 - Window focus is synchronized with the active Servo WebView.
 - IME committed text is forwarded to Servo.
-- Native shortcuts: Ctrl+R / F5 reload, Alt+Left back, Alt+Right forward.
+- Native shortcuts: Ctrl+L enters an editable address/search field (type, Enter to navigate, Escape to cancel), Ctrl+R / F5 reload, Alt+Left back, Alt+Right forward.
 - Multiple Servo WebViews in one native window, with active-tab focus management.
 - Tab lifecycle shortcuts: Ctrl+T opens a blank tab, Ctrl+W closes the active tab (the final tab is kept open), Ctrl+Tab switches forward and Ctrl+Shift+Tab switches backward.
 - Active page title is reflected in the native window title.
@@ -23,7 +23,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 
 ## Still missing
 
-This is an engine shell, not yet a complete consumer browser. It does not yet have native browser chrome/address bar, visible tab strip, visible bookmarks/history UI, download integration, password autofill, ad-block network interception, profile settings, installer or production hardening. Do not claim those features are implemented.
+This is an engine shell, not yet a complete consumer browser. Ctrl+L currently provides keyboard-driven address entry through the window title; a proper visible native address bar and toolbar are still missing. It does not yet have a visible tab strip, visible bookmarks/history UI, download integration, password autofill, ad-block network interception, profile settings, installer or production hardening. Do not claim those features are implemented.
 
 Physical-key mapping currently covers letters, digits, navigation keys, modifiers and F1–F12; uncommon keys still fall back to `Unidentified`. IME committed text is supported, while composition/preedit events remain follow-up work.
 
