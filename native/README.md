@@ -19,7 +19,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Active page title is reflected in the native window title.
 - A per-user SQLite profile is created under `%APPDATA%\\VertexBrowser\\profile.sqlite3` on Windows (or a home-directory fallback elsewhere).
 - Browsing history is recorded on navigation and updated when the page title arrives; internal `about:` pages are excluded.
-- Ctrl+D saves the current HTTP(S) page as a bookmark. Bookmark/history/settings storage is implemented as an engine-independent native service.
+- Ctrl+D toggles a bookmark for the current HTTP(S) page. Bookmark/history/settings storage is implemented as an engine-independent native service, with APIs for recent history, listing bookmarks, deleting one history entry and clearing history.
 
 ## Still missing
 
