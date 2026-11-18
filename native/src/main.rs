@@ -16,6 +16,7 @@ use servo::{
     WindowRenderingContext, OffscreenRenderingContext, RenderingContext, KeyboardEvent,
 };
 use url::Url;
+use zeroize::Zeroize;
 use storage::{default_profile_dir, BrowserStorage};
 use winit::{
     application::ApplicationHandler,
@@ -684,7 +685,7 @@ ${sections}</body></html>"#);
                                         }
                                     });
                                     ui.label(format!("Логін: {}", entry.username));
-                                    if self.vault_show_passwords.get() {
+                                    if show_passwords {
                                         ui.label(format!("Пароль: {}", entry.password));
                                     } else {
                                         ui.label("Пароль: ••••••••");
@@ -723,22 +724,24 @@ ${sections}</body></html>"#);
                 self.password_vault.setup_master_password(&self.storage, &master)
             };
             *self.vault_message.borrow_mut() = result.map(|_| {
-                self.vault_master_password.borrow_mut().clear();
-                self.vault_confirm_password.borrow_mut().clear();
+                self.vault_master_password.borrow_mut().zeroize();
+                self.vault_confirm_password.borrow_mut().zeroize();
                 "Сховище створено й розблоковано.".to_owned()
             }).unwrap_or_else(|error| error);
         }
         if unlock {
             let master = self.vault_master_password.borrow().clone();
             let result = self.password_vault.unlock(&self.storage, &master);
-            self.vault_master_password.borrow_mut().clear();
+            self.vault_master_password.borrow_mut().zeroize();
             *self.vault_message.borrow_mut() = result.map(|_| "Сховище розблоковано.".to_owned())
                 .unwrap_or_else(|error| error);
         }
         if lock {
             self.password_vault.lock();
             self.vault_show_passwords.set(false);
-            self.vault_master_password.borrow_mut().clear();
+            self.vault_master_password.borrow_mut().zeroize();
+            self.vault_confirm_password.borrow_mut().zeroize();
+            self.vault_password.borrow_mut().zeroize();
             *self.vault_message.borrow_mut() = "Сховище заблоковано.".to_owned();
         }
         if save {
@@ -752,7 +755,7 @@ ${sections}</body></html>"#);
             );
             match result {
                 Ok(_) => {
-                    self.vault_password.borrow_mut().clear();
+                    self.vault_password.borrow_mut().zeroize();
                     self.vault_notes.borrow_mut().clear();
                     *self.vault_message.borrow_mut() = "Пароль зашифровано та збережено.".to_owned();
                 }
