@@ -297,7 +297,7 @@ ${sections}</body></html>"#);
                     }
                     if ui.button("★").clicked() {
                         if let Some(view) = &active {
-                            if let Some(url) = view.url() {
+                            if let Some(url) = view.url().filter(|url| matches!(url.scheme(), "http" | "https")) {
                                 let result = self.storage.is_bookmarked(url.as_str()).and_then(|saved| {
                                     if saved {
                                         self.storage.remove_bookmark(url.as_str())
@@ -387,7 +387,7 @@ ${sections}</body></html>"#);
                 return;
             }
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("d")) {
-                if let Some(url) = webview.url() {
+                if let Some(url) = webview.url().filter(|url| matches!(url.scheme(), "http" | "https")) {
                     let result = self.storage.is_bookmarked(url.as_str()).and_then(|saved| {
                         if saved {
                             self.storage.remove_bookmark(url.as_str())
