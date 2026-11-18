@@ -641,9 +641,16 @@ ${sections}</body></html>"#);
                 let mut open = true;
                 let mut selected_engine = self.search_engine.borrow().clone();
                 let mut selected_home_page = self.home_page.borrow().clone();
+                let mut selected_download_dir = self.storage.get_setting("download_directory")
+                    .ok().flatten()
+                    .unwrap_or_else(|| std::env::var("USERPROFILE")
+                        .map(|home| format!("{home}\\Downloads"))
+                        .unwrap_or_else(|_| ".".to_owned()));
                 let mut restore_session = self.restore_session.get();
                 let mut changed_engine = false;
                 let mut changed_home_page = false;
+                let mut choose_download_dir = false;
+                let mut changed_download_dir = false;
                 let mut changed_restore_session = false;
                 egui::Window::new("Налаштування Vertex")
                     .open(&mut open)
@@ -674,6 +681,16 @@ ${sections}</body></html>"#);
                                 changed_home_page = true;
                             }
                         });
+                        ui.separator();
+                        ui.label("Папка для завантажень");
+                        ui.horizontal(|ui| {
+                            ui.add(egui::TextEdit::singleline(&mut selected_download_dir)
+                                .desired_width(f32::INFINITY)
+                                .interactive(false));
+                            if ui.button("Обрати…").clicked() {
+                                choose_download_dir = true;
+                            }
+                        });
                         if ui.checkbox(&mut restore_session, "Відновлювати вкладки після запуску").changed() {
                             changed_restore_session = true;
                         }
@@ -695,6 +712,20 @@ ${sections}</body></html>"#);
                         }
                     } else {
                         log::warn!("ignored invalid home page; only HTTP and HTTPS URLs are allowed");
+                    }
+                }
+                if choose_download_dir {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .set_directory(&selected_download_dir)
+                        .pick_folder()
+                    {
+                        selected_download_dir = path.display().to_string();
+                        changed_download_dir = true;
+                    }
+                }
+                if changed_download_dir {
+                    if let Err(error) = self.storage.set_setting("download_directory", &selected_download_dir) {
+                        log::error!("could not save download directory: {error}");
                     }
                 }
                 if changed_restore_session {
