@@ -199,6 +199,23 @@ impl BrowserStorage {
         ).optional()
     }
 
+    pub fn site_permissions(&self) -> rusqlite::Result<Vec<(String, String)>> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let mut statement = connection.prepare(
+            "SELECT key, value FROM settings WHERE key LIKE 'permission:%' ORDER BY key"
+        )?;
+        let rows = statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        rows.collect()
+    }
+
+    pub fn delete_setting(&self, key: &str) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "DELETE FROM settings WHERE key=?1",
+            params![key],
+        )?;
+        Ok(())
+    }
+
     /// Persist the restorable HTTP(S) tab URLs and the selected tab index.
     pub fn save_session(&self, urls: &[String], active_index: usize) -> rusqlite::Result<()> {
         let session = serde_json::json!({
@@ -660,6 +677,20 @@ mod tests {
             "https://new.example/".to_owned(),
             "https://old.example/".to_owned(),
         ]);
+    }
+
+    #[test]
+    fn lists_and_revokes_persisted_site_permissions() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        storage.set_setting("permission:https://example.com:Geolocation", "allow").unwrap();
+        storage.set_setting("permission:https://example.com:Camera", "deny").unwrap();
+        let entries = storage.site_permissions().unwrap();
+        assert_eq!(entries.len(), 2);
+        assert!(entries.iter().any(|(key, value)| key.ends_with(":Geolocation") && value == "allow"));
+        storage.delete_setting("permission:https://example.com:Geolocation").unwrap();
+        let remaining = storage.site_permissions().unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert!(remaining[0].0.ends_with(":Camera"));
     }
 
     #[test]
