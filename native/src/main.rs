@@ -260,6 +260,9 @@ impl BrowserState {
             return;
         }
         let was_active = index == self.active_tab.get();
+        let Some(next) = active_index_after_close(self.active_tab.get(), index, tabs.len()) else {
+            return;
+        };
         if let Some(url) = tabs[index].url().filter(|url| matches!(url.scheme(), "http" | "https")) {
             let mut closed = self.closed_tabs.borrow_mut();
             closed.push(url);
@@ -268,14 +271,6 @@ impl BrowserState {
         tabs[index].set_focused(false);
         tabs[index].hide();
         tabs.remove(index);
-
-        let next = if index < self.active_tab.get() {
-            self.active_tab.get() - 1
-        } else if was_active {
-            index.min(tabs.len() - 1)
-        } else {
-            self.active_tab.get()
-        };
         self.active_tab.set(next);
 
         if let Some(active) = tabs.get(next) {
@@ -3006,6 +3001,22 @@ small{{display:block;color:#858b9b;font-size:12px;margin-top:7px;overflow-wrap:a
 </style></head><body><div class="brand">VORTEX</div><h1>{title}</h1>{items}</body></html>"#)
 }
 
+/// Returns the active tab index after removing a tab, or None when the
+/// requested removal is invalid or would remove the last remaining tab.
+fn active_index_after_close(active_index: usize, closed_index: usize, tab_count: usize) -> Option<usize> {
+    if tab_count <= 1 || closed_index >= tab_count || active_index >= tab_count {
+        return None;
+    }
+    let remaining = tab_count - 1;
+    Some(if closed_index < active_index {
+        active_index - 1
+    } else if closed_index == active_index {
+        closed_index.min(remaining - 1)
+    } else {
+        active_index
+    })
+}
+
 fn format_download_progress(received: u64, total: Option<u64>) -> String {
     match total.filter(|total| *total > 0) {
         Some(total) => format!(
@@ -3560,6 +3571,30 @@ mod tests {
         assert!(page.contains("color-scheme:dark"));
         assert!(page.contains("<article>Example</article>"));
         assert!(page.contains("<h1>Історія</h1>"));
+    }
+
+    #[test]
+    fn closing_a_tab_before_the_active_tab_shifts_active_index_left() {
+        assert_eq!(active_index_after_close(3, 1, 5), Some(2));
+    }
+
+    #[test]
+    fn closing_a_tab_after_the_active_tab_keeps_active_index() {
+        assert_eq!(active_index_after_close(1, 3, 5), Some(1));
+    }
+
+    #[test]
+    fn closing_the_active_tab_selects_the_next_tab_or_previous_last_tab() {
+        assert_eq!(active_index_after_close(1, 1, 4), Some(1));
+        assert_eq!(active_index_after_close(3, 3, 4), Some(2));
+        assert_eq!(active_index_after_close(0, 0, 2), Some(0));
+    }
+
+    #[test]
+    fn refusing_to_close_the_last_tab_or_an_invalid_index() {
+        assert_eq!(active_index_after_close(0, 0, 1), None);
+        assert_eq!(active_index_after_close(0, 2, 2), None);
+        assert_eq!(active_index_after_close(3, 0, 2), None);
     }
 
     #[test]
