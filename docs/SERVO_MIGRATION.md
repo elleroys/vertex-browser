@@ -30,7 +30,7 @@ Implemented in the native branch:
 - Navigation, page title/loading state, zoom controls, keyboard/mouse/wheel/focus input and common keyboard shortcuts.
 - SQLite-backed history, bookmarks, settings, download records and persistent session restore (up to 50 HTTP(S) tab URLs plus active-tab index).
 - Persistent recently-closed-tab recovery (up to ten HTTP(S) URLs) and basic settings for search provider (Google, DuckDuckGo, Bing) and validated HTTP(S) homepage.
-- Internal pages for new tab, history, bookmarks and download records.
+- Internal pages for new tab, history, bookmarks and download records; native bookmark/history managers support opening and deleting entries, with confirmed full-history clearing.
 - Basic request blocking through Servo's `WebViewDelegate::load_web_resource`.
 - Global AdBlock toggle, per-site exceptions and a custom-rule editor persisted in SQLite. The supported EasyList subset includes domain rules (`||host^`), domain/path rules and exception rules (`@@||host^`); comments are ignored. Cosmetic filters, regular expressions, resource modifiers, scriptlets and full uBlock syntax are not supported.
 - Encrypted password vault using Argon2id and XChaCha20-Poly1305, including save/search/delete, password generation and lock/unlock.
