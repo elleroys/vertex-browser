@@ -17,7 +17,7 @@ use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, Ime, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
-    keyboard::{Key as WinitKey, ModifiersState, NamedKey as WinitNamedKey},
+    keyboard::{Key as WinitKey, KeyCode, ModifiersState, NamedKey as WinitNamedKey, PhysicalKey},
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
     window::{Window, WindowId},
 };
@@ -132,8 +132,7 @@ impl BrowserState {
         let keyboard_event = KeyboardEvent::new_without_event(
             state,
             key,
-            Code::Unidentified,
-            Location::Standard,
+            match event.physical_key {\n                PhysicalKey::Code(code) => code_from_winit(code),\n                PhysicalKey::Unidentified(_) => Code::Unidentified,\n            },\n            Location::Standard,
             modifiers,
             event.repeat,
             false,
@@ -235,6 +234,50 @@ fn parse_navigation_input(input: &str) -> Url {
     let encoded: String = url::form_urlencoded::byte_serialize(trimmed.as_bytes()).collect();
     Url::parse(&format!("https://www.google.com/search?q={encoded}"))
         .expect("constructed search URL is valid")
+}
+
+
+fn code_from_winit(code: KeyCode) -> Code {
+    match code {
+        KeyCode::KeyA => Code::KeyA, KeyCode::KeyB => Code::KeyB,
+        KeyCode::KeyC => Code::KeyC, KeyCode::KeyD => Code::KeyD,
+        KeyCode::KeyE => Code::KeyE, KeyCode::KeyF => Code::KeyF,
+        KeyCode::KeyG => Code::KeyG, KeyCode::KeyH => Code::KeyH,
+        KeyCode::KeyI => Code::KeyI, KeyCode::KeyJ => Code::KeyJ,
+        KeyCode::KeyK => Code::KeyK, KeyCode::KeyL => Code::KeyL,
+        KeyCode::KeyM => Code::KeyM, KeyCode::KeyN => Code::KeyN,
+        KeyCode::KeyO => Code::KeyO, KeyCode::KeyP => Code::KeyP,
+        KeyCode::KeyQ => Code::KeyQ, KeyCode::KeyR => Code::KeyR,
+        KeyCode::KeyS => Code::KeyS, KeyCode::KeyT => Code::KeyT,
+        KeyCode::KeyU => Code::KeyU, KeyCode::KeyV => Code::KeyV,
+        KeyCode::KeyW => Code::KeyW, KeyCode::KeyX => Code::KeyX,
+        KeyCode::KeyY => Code::KeyY, KeyCode::KeyZ => Code::KeyZ,
+        KeyCode::Digit0 => Code::Digit0, KeyCode::Digit1 => Code::Digit1,
+        KeyCode::Digit2 => Code::Digit2, KeyCode::Digit3 => Code::Digit3,
+        KeyCode::Digit4 => Code::Digit4, KeyCode::Digit5 => Code::Digit5,
+        KeyCode::Digit6 => Code::Digit6, KeyCode::Digit7 => Code::Digit7,
+        KeyCode::Digit8 => Code::Digit8, KeyCode::Digit9 => Code::Digit9,
+        KeyCode::Enter => Code::Enter, KeyCode::Escape => Code::Escape,
+        KeyCode::Backspace => Code::Backspace, KeyCode::Tab => Code::Tab,
+        KeyCode::Space => Code::Space, KeyCode::ArrowDown => Code::ArrowDown,
+        KeyCode::ArrowLeft => Code::ArrowLeft, KeyCode::ArrowRight => Code::ArrowRight,
+        KeyCode::ArrowUp => Code::ArrowUp, KeyCode::Delete => Code::Delete,
+        KeyCode::Home => Code::Home, KeyCode::End => Code::End,
+        KeyCode::PageDown => Code::PageDown, KeyCode::PageUp => Code::PageUp,
+        KeyCode::Insert => Code::Insert, KeyCode::F1 => Code::F1,
+        KeyCode::F2 => Code::F2, KeyCode::F3 => Code::F3,
+        KeyCode::F4 => Code::F4, KeyCode::F5 => Code::F5,
+        KeyCode::F6 => Code::F6, KeyCode::F7 => Code::F7,
+        KeyCode::F8 => Code::F8, KeyCode::F9 => Code::F9,
+        KeyCode::F10 => Code::F10, KeyCode::F11 => Code::F11,
+        KeyCode::F12 => Code::F12, KeyCode::ShiftLeft => Code::ShiftLeft,
+        KeyCode::ShiftRight => Code::ShiftRight,
+        KeyCode::ControlLeft => Code::ControlLeft,
+        KeyCode::ControlRight => Code::ControlRight,
+        KeyCode::AltLeft => Code::AltLeft, KeyCode::AltRight => Code::AltRight,
+        KeyCode::SuperLeft => Code::MetaLeft, KeyCode::SuperRight => Code::MetaRight,
+        _ => Code::Unidentified,
+    }
 }
 
 fn modifiers_from_winit(mods: ModifiersState) -> Modifiers {
