@@ -86,6 +86,9 @@ impl BrowserStorage {
                  status TEXT NOT NULL DEFAULT 'queued',
                  received_bytes INTEGER NOT NULL DEFAULT 0,
                  total_bytes INTEGER,
+                 partial_path TEXT,
+                 etag TEXT,
+                 last_modified TEXT,
                  created_at INTEGER NOT NULL,
                  updated_at INTEGER NOT NULL
              );
@@ -109,6 +112,21 @@ impl BrowserStorage {
              );
              CREATE INDEX IF NOT EXISTS idx_password_entries_origin ON password_entries(origin);",
         )?;
+        // Additive migration for profiles created before resumable downloads.
+        for (column, declaration) in [
+            ("partial_path", "TEXT"),
+            ("etag", "TEXT"),
+            ("last_modified", "TEXT"),
+        ] {
+            let exists: bool = {
+                let mut statement = connection.prepare("PRAGMA table_info(downloads)")?;
+                let columns = statement.query_map([], |row| row.get::<_, String>(1))?;
+                columns.filter_map(Result::ok).any(|name| name == column)
+            };
+            if !exists {
+                connection.execute_batch(&format!("ALTER TABLE downloads ADD COLUMN {column} {declaration}"))?;
+            }
+        }
         Ok(Self { connection: Mutex::new(connection) })
     }
 
@@ -318,10 +336,15 @@ impl BrowserStorage {
     }
 
     /// Update transfer progress. A missing total means the server did not provide a content length.
-    pub fn update_download_progress(&self, id: i64, received: u64, total: Option<u64>) -> rusqlite::Result<()> {
+    pub fn update_download_progress(
+        &self, id: i64, received: u64, total: Option<u64>,
+        partial_path: &Path, etag: Option<&str>, last_modified: Option<&str>,
+    ) -> rusqlite::Result<()> {
         self.connection.lock().expect("database mutex poisoned").execute(
-            "UPDATE downloads SET status='downloading',received_bytes=?1,total_bytes=?2,updated_at=?3 WHERE id=?4",
-            params![received as i64, total.map(|value| value as i64), unix_time_ms(), id],
+            "UPDATE downloads SET status='downloading',received_bytes=?1,total_bytes=?2,
+             partial_path=?3,etag=COALESCE(?4,etag),last_modified=COALESCE(?5,last_modified),updated_at=?6 WHERE id=?7",
+            params![received as i64, total.map(|value| value as i64), partial_path.display().to_string(),
+                etag, last_modified, unix_time_ms(), id],
         )?;
         Ok(())
     }
@@ -362,7 +385,7 @@ impl BrowserStorage {
     pub fn recent_downloads(&self, limit: u32) -> rusqlite::Result<Vec<DownloadEntry>> {
         let connection = self.connection.lock().expect("database mutex poisoned");
         let mut statement = connection.prepare(
-            "SELECT id,url,file_path,file_name,status,received_bytes,total_bytes,created_at
+            "SELECT id,url,file_path,file_name,status,received_bytes,total_bytes,created_at,partial_path,etag,last_modified
              FROM downloads ORDER BY created_at DESC LIMIT ?1",
         )?;
         let rows = statement.query_map(params![limit], |row| {
@@ -375,6 +398,9 @@ impl BrowserStorage {
                 received_bytes: row.get::<_, i64>(5)? as u64,
                 total_bytes: row.get::<_, Option<i64>>(6)?.map(|value| value as u64),
                 created_at: row.get(7)?,
+                partial_path: row.get(8)?,
+                etag: row.get(9)?,
+                last_modified: row.get(10)?,
             })
         })?;
         rows.collect()
