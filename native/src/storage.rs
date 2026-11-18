@@ -508,7 +508,7 @@ impl BrowserStorage {
     }
 }
 
-pub fn default_profile_dir() -> PathBuf {
+fn profile_root_dir() -> PathBuf {
     if let Some(app_data) = std::env::var_os("APPDATA") {
         return PathBuf::from(app_data).join("VertexBrowser");
     }
@@ -516,6 +516,73 @@ pub fn default_profile_dir() -> PathBuf {
         return PathBuf::from(home).join(".vertex-browser");
     }
     std::env::temp_dir().join("VertexBrowser")
+}
+
+/// Profile names are deliberately restricted to portable ASCII path components.
+pub fn validate_profile_name(name: &str) -> Result<String, String> {
+    let name = name.trim();
+    if name.is_empty() || name.len() > 32
+        || !name.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+    {
+        return Err("Назва профілю: 1–32 символи латиницею, цифрами, дефісом або підкресленням.".to_owned());
+    }
+    Ok(name.to_ascii_lowercase())
+}
+
+pub fn active_profile_name() -> String {
+    let marker = profile_root_dir().join("active-profile.txt");
+    std::fs::read_to_string(marker)
+        .ok()
+        .and_then(|name| validate_profile_name(&name).ok())
+        .unwrap_or_else(|| "default".to_owned())
+}
+
+pub fn list_profile_names() -> Vec<String> {
+    let root = profile_root_dir();
+    let mut names = vec!["default".to_owned()];
+    let profiles = root.join("profiles");
+    if let Ok(entries) = std::fs::read_dir(profiles) {
+        for entry in entries.flatten() {
+            if entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false) {
+                if let Some(name) = entry.file_name().to_str().and_then(|value| validate_profile_name(value).ok()) {
+                    if name != "default" && !names.contains(&name) { names.push(name); }
+                }
+            }
+        }
+    }
+    names.sort();
+    names
+}
+
+/// Atomically select the profile used on the next browser start.
+pub fn set_active_profile_name(name: &str) -> Result<String, String> {
+    let name = validate_profile_name(name)?;
+    let root = profile_root_dir();
+    std::fs::create_dir_all(root.join("profiles"))
+        .map_err(|error| format!("Не вдалося створити каталог профілів: {error}"))?;
+    if name != "default" {
+        std::fs::create_dir_all(root.join("profiles").join(&name))
+            .map_err(|error| format!("Не вдалося створити профіль: {error}"))?;
+    }
+    let marker = root.join("active-profile.txt");
+    let temporary = root.join("active-profile.txt.tmp");
+    std::fs::write(&temporary, &name)
+        .map_err(|error| format!("Не вдалося записати вибір профілю: {error}"))?;
+    if marker.exists() { std::fs::remove_file(&marker).map_err(|error| error.to_string())?; }
+    std::fs::rename(&temporary, &marker)
+        .map_err(|error| format!("Не вдалося активувати профіль: {error}"))?;
+    Ok(name)
+}
+
+pub fn default_profile_dir() -> PathBuf {
+    let root = profile_root_dir();
+    let name = active_profile_name();
+    if name == "default" {
+        // Preserve existing installations and their original SQLite database.
+        root
+    } else {
+        root.join("profiles").join(name)
+    }
 }
 
 fn unix_time_ms() -> i64 {
@@ -526,6 +593,16 @@ fn unix_time_ms() -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+
+    #[test]
+    fn profile_names_reject_path_traversal_and_nonportable_names() {
+        assert_eq!(validate_profile_name(" Work_1 ").unwrap(), "work_1");
+        assert!(validate_profile_name("../outside").is_err());
+        assert!(validate_profile_name("a/b").is_err());
+        assert!(validate_profile_name("").is_err());
+        assert!(validate_profile_name(&"x".repeat(33)).is_err());
+    }
 
     #[test]
     fn migrates_legacy_download_table_for_resume_metadata() {

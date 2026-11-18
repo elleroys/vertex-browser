@@ -57,6 +57,7 @@ struct BrowserState {
     cursor_position: Cell<PhysicalPosition<f64>>,
     modifiers: Cell<Modifiers>,
     storage: Arc<BrowserStorage>,
+    active_profile_name: String,
     event_loop_proxy: EventLoopProxy<ServoWakeup>,
     downloads_manager_open: Cell<bool>,
     download_url: RefCell<String>,
@@ -1081,6 +1082,9 @@ ${sections}</body></html>"#);
             if self.settings_open.get() {
                 let mut open = true;
                 let mut selected_engine = self.search_engine.borrow().clone();
+                let mut selected_profile = self.active_profile_name.clone();
+                let mut new_profile_name = String::new();
+                let mut profile_message = String::new();
                 let mut selected_home_page = self.home_page.borrow().clone();
                 let mut selected_download_dir = self.storage.get_setting("download_directory")
                     .ok().flatten()
@@ -1167,7 +1171,36 @@ ${sections}</body></html>"#);
                         }
                         ui.label("Збіг із базою зупиняє перехід і показує попередження. Це не гарантує виявлення всіх фішингових сайтів.");
                         ui.separator();
-                        ui.label("Дозволені лише адреси HTTP та HTTPS. Профіль зберігається локально в SQLite.");
+                        ui.heading("Профілі браузера");
+                        ui.label("Кожен профіль має окрему базу SQLite, історію, закладки, паролі, налаштування та завантаження. Перемикання застосовується після перезапуску.");
+                        egui::ComboBox::from_id_salt("vertex-profile-selector")
+                            .selected_text(format!("Поточний: {}", selected_profile))
+                            .show_ui(ui, |ui| {
+                                for profile in storage::list_profile_names() {
+                                    ui.selectable_value(&mut selected_profile, profile.clone(), profile);
+                                }
+                            });
+                        ui.horizontal(|ui| {
+                            ui.add(egui::TextEdit::singleline(&mut new_profile_name)
+                                .desired_width(170.0).hint_text("Назва нового профілю"));
+                            if ui.button("Створити й обрати").clicked() {
+                                match storage::set_active_profile_name(&new_profile_name) {
+                                    Ok(name) => { selected_profile = name; profile_message = "Профіль створено. Перезапусти Vortex, щоб перейти до нього.".to_owned(); }
+                                    Err(error) => profile_message = error,
+                                }
+                            }
+                        });
+                        if selected_profile != self.active_profile_name {
+                            if ui.button("Застосувати вибраний профіль після перезапуску").clicked() {
+                                match storage::set_active_profile_name(&selected_profile) {
+                                    Ok(name) => profile_message = format!("Профіль {name} буде відкрито після перезапуску Vortex."),
+                                    Err(error) => profile_message = error,
+                                }
+                            }
+                        }
+                        if !profile_message.is_empty() { ui.colored_label(egui::Color32::LIGHT_BLUE, profile_message); }
+                        ui.separator();
+                        ui.label("Дозволені лише адреси HTTP та HTTPS. Дані кожного профілю зберігаються окремо локально в SQLite.");
                     });
                 if changed_engine {
                     *self.search_engine.borrow_mut() = selected_engine.clone();
@@ -2519,6 +2552,7 @@ impl VertexApp {
             active_tab: Cell::new(0),
             closed_tabs: RefCell::new(closed_tabs),
             storage,
+            active_profile_name: storage::active_profile_name(),
             event_loop_proxy: waker.0.clone(),
             downloads_manager_open: Cell::new(false),
             download_url: RefCell::new(String::new()),
