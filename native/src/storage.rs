@@ -345,7 +345,7 @@ impl BrowserStorage {
     ) -> rusqlite::Result<()> {
         self.connection.lock().expect("database mutex poisoned").execute(
             "UPDATE downloads SET status='downloading',received_bytes=?1,total_bytes=?2,
-             partial_path=?3,etag=COALESCE(?4,etag),last_modified=COALESCE(?5,last_modified),updated_at=?6 WHERE id=?7",
+             partial_path=?3,etag=?4,last_modified=?5,updated_at=?6 WHERE id=?7",
             params![received as i64, total.map(|value| value as i64), partial_path.display().to_string(),
                 etag, last_modified, unix_time_ms(), id],
         )?;
