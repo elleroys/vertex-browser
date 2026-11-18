@@ -598,7 +598,7 @@ mod tests {
         assert_eq!(entry.status, "queued");
         assert_eq!(entry.received_bytes, 0);
         assert_eq!(entry.total_bytes, None);
-        assert_eq!(entry.partial_path, None);
+        assert_eq!(entry.partial_path.as_deref(), Some("file.part"));
         assert_eq!(entry.etag, None);
     }
 
