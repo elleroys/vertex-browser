@@ -67,15 +67,15 @@ impl BrowserState {
                 webview.reload();
                 return;
             }
-            if is_alt && matches!(event.logical_key, WinitKey::Named(WinitNamedKey::ArrowLeft)) {
+            if is_alt && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::ArrowLeft)) {
                 webview.go_back(1);
                 return;
             }
-            if is_alt && matches!(event.logical_key, WinitKey::Named(WinitNamedKey::ArrowRight)) {
+            if is_alt && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::ArrowRight)) {
                 webview.go_forward(1);
                 return;
             }
-            if matches!(event.logical_key, WinitKey::Named(WinitNamedKey::F5)) {
+            if matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::F5)) {
                 webview.reload();
                 return;
             }
