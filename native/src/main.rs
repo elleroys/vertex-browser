@@ -54,8 +54,7 @@ struct BrowserState {
     closed_tabs: RefCell<Vec<Url>>,
     cursor_position: Cell<PhysicalPosition<f64>>,
     modifiers: Cell<Modifiers>,
-    storage: BrowserStorage,
-    profile_db_path: PathBuf,
+    storage: Arc<BrowserStorage>,
     event_loop_proxy: EventLoopProxy<ServoWakeup>,
     downloads_manager_open: Cell<bool>,
     download_url: RefCell<String>,
@@ -379,16 +378,9 @@ ${sections}</body></html>"#);
 
         let cancelled = Arc::new(AtomicBool::new(false));
         self.active_downloads.borrow_mut().insert(id, cancelled.clone());
-        let database_path = self.profile_db_path.clone();
+        let storage = self.storage.clone();
         let proxy = self.event_loop_proxy.clone();
         thread::spawn(move || {
-            let storage = match BrowserStorage::open(&database_path) {
-                Ok(storage) => storage,
-                Err(error) => {
-                    log::error!("download worker could not open profile database: {error}");
-                    return;
-                }
-            };
             let result = downloads::download_to_path(&url_text, &destination, |received, total| {
                 if cancelled.load(Ordering::Relaxed) {
                     let _ = storage.cancel_download(id);
@@ -1843,8 +1835,11 @@ impl VertexApp {
         servo.setup_logging();
 
         let profile_dir = default_profile_dir();
-        let storage = BrowserStorage::open(&profile_dir.join("profile.sqlite3"))
-            .expect("failed to open Vertex browser profile database");
+        let storage = Arc::new(BrowserStorage::open(&profile_dir.join("profile.sqlite3"))
+            .expect("failed to open Vertex browser profile database"));
+        if let Err(error) = storage.recover_interrupted_downloads() {
+            log::error!("could not recover interrupted downloads: {error}");
+        }
 
         let window_size = window.inner_size();
         let toolbar_height = (82.0 * window.scale_factor()).round() as u32;
@@ -1888,7 +1883,6 @@ impl VertexApp {
             active_tab: Cell::new(0),
             closed_tabs: RefCell::new(closed_tabs),
             storage,
-            profile_db_path: profile_dir.join("profile.sqlite3"),
             event_loop_proxy: waker.0.clone(),
             downloads_manager_open: Cell::new(false),
             download_url: RefCell::new(String::new()),
