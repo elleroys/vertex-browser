@@ -2010,9 +2010,13 @@ ${sections}</body></html>"#);
             self.vault_confirm_password.borrow_mut().zeroize();
             self.vault_new_master_password.borrow_mut().zeroize();
             self.vault_confirm_new_master_password.borrow_mut().zeroize();
+            self.vault_origin.borrow_mut().zeroize();
+            self.vault_title.borrow_mut().zeroize();
             self.vault_username.borrow_mut().zeroize();
             self.vault_password.borrow_mut().zeroize();
             self.vault_notes.borrow_mut().zeroize();
+            self.vault_search.borrow_mut().zeroize();
+            self.vault_form_scan_result.borrow_mut().zeroize();
             self.vault_csv_preview.borrow_mut().take();
         }
         if setup {
@@ -2043,9 +2047,13 @@ ${sections}</body></html>"#);
             self.vault_confirm_password.borrow_mut().zeroize();
             self.vault_new_master_password.borrow_mut().zeroize();
             self.vault_confirm_new_master_password.borrow_mut().zeroize();
+            self.vault_origin.borrow_mut().zeroize();
+            self.vault_title.borrow_mut().zeroize();
             self.vault_username.borrow_mut().zeroize();
             self.vault_password.borrow_mut().zeroize();
             self.vault_notes.borrow_mut().zeroize();
+            self.vault_search.borrow_mut().zeroize();
+            self.vault_form_scan_result.borrow_mut().zeroize();
             self.vault_csv_preview.borrow_mut().take();
             *self.vault_message.borrow_mut() = "Сховище заблоковано.".to_owned();
         }
@@ -3032,9 +3040,13 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 state.vault_confirm_password.borrow_mut().zeroize();
                 state.vault_new_master_password.borrow_mut().zeroize();
                 state.vault_confirm_new_master_password.borrow_mut().zeroize();
+                state.vault_origin.borrow_mut().zeroize();
+                state.vault_title.borrow_mut().zeroize();
                 state.vault_username.borrow_mut().zeroize();
                 state.vault_password.borrow_mut().zeroize();
                 state.vault_notes.borrow_mut().zeroize();
+                state.vault_search.borrow_mut().zeroize();
+                state.vault_form_scan_result.borrow_mut().zeroize();
                 // Dropping the preview drops its entries, which zeroize
                 // usernames, passwords and notes in their Drop implementation.
                 state.vault_csv_preview.borrow_mut().take();
