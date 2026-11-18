@@ -15,6 +15,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Window focus is synchronized with the active Servo WebView.
 - IME committed text is forwarded to Servo.
 - Native shortcuts: Ctrl+L enters an editable address/search field (type, Ctrl+A to clear/replace, Enter to navigate, Escape to cancel), Ctrl+R / F5 reload, Alt+Left back, Alt+Right forward.
+- Toolbar actions include bookmark toggle, history and bookmarks pages in addition to back/forward/reload/home and address navigation.
 - Multiple Servo WebViews in one native window, with active-tab focus and visibility management.
 - Tab lifecycle shortcuts: Ctrl+T opens the new-tab page, Ctrl+W closes the active tab (the final tab is kept open), Ctrl+Tab switches forward and Ctrl+Shift+Tab switches backward; Ctrl+1 through Ctrl+8 activate the corresponding tab and Ctrl+9 activates the last tab.
 - Active page title is reflected in the native window title.
