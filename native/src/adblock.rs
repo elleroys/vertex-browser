@@ -171,6 +171,65 @@ impl RuleSet {
     }
 }
 
+
+/// Maximum accepted remote filter-list size (5 MiB).
+pub const MAX_FILTER_LIST_BYTES: usize = 5 * 1024 * 1024;
+
+/// Fetch a plain-text filter list without blocking the browser's UI thread.
+/// Only HTTPS URLs and HTTPS redirects are accepted.
+pub fn fetch_filter_list(raw_url: &str) -> Result<String, String> {
+    use std::io::Read;
+    use std::time::Duration;
+
+    let url = url::Url::parse(raw_url.trim())
+        .map_err(|_| "Некоректна URL-адреса списку".to_owned())?;
+    if url.scheme() != "https" || url.host_str().is_none()
+        || !url.username().is_empty() || url.password().is_some()
+    {
+        return Err("Список фільтрів має бути доступний за безпечною HTTPS-адресою".to_owned());
+    }
+
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(25))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 5 {
+                return attempt.stop();
+            }
+            if attempt.url().scheme() != "https" {
+                return attempt.stop();
+            }
+            attempt.follow()
+        }))
+        .build()
+        .map_err(|error| format!("Не вдалося створити HTTP-клієнт: {error}"))?;
+    let mut response = client.get(url).send()
+        .map_err(|error| format!("Помилка завантаження списку: {error}"))?;
+    if !response.status().is_success() {
+        return Err(format!("Сервер повернув HTTP {}", response.status()));
+    }
+    if response.url().scheme() != "https" {
+        return Err("Сервер перенаправив на незахищене з'єднання".to_owned());
+    }
+    if response.content_length().is_some_and(|size| size > MAX_FILTER_LIST_BYTES as u64) {
+        return Err("Список завеликий: максимум 5 МБ".to_owned());
+    }
+
+    let mut bytes = Vec::new();
+    response.take((MAX_FILTER_LIST_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("Не вдалося прочитати список: {error}"))?;
+    if bytes.len() > MAX_FILTER_LIST_BYTES {
+        return Err("Список завеликий: максимум 5 МБ".to_owned());
+    }
+    let text = String::from_utf8(bytes)
+        .map_err(|_| "Список має бути текстом у кодуванні UTF-8".to_owned())?;
+    let supported = text.lines().filter(|line| parse_rule(line).is_some()).count();
+    if supported == 0 {
+        return Err("У файлі не знайдено правил підтримуваного формату".to_owned());
+    }
+    Ok(text)
+}
+
 /// Merge imported filter-list text into the editable custom rules.
 /// Only rules understood by this matcher are counted as supported; comments and
 /// unsupported EasyList syntax are retained in the editor but do not affect matching.
