@@ -1,71 +1,85 @@
-# Vertex Browser: migration to Servo
+# Vortex Browser: native Servo migration
 
-## Goal
+## Target architecture
 
-Replace the WebView2/Tauri runtime with a native Rust desktop application embedding Servo. The existing browser remains intact while the new runtime is developed on `servo-migration`.
+Vortex is being migrated to a native Rust desktop browser. The active implementation is `native/` on `servo-migration`.
 
-## Current repository findings
+- Runtime: native Rust process.
+- Web engine: Servo embedded in-process at the pinned revision in `native/Cargo.toml`.
+- Window/input: winit.
+- Browser chrome: egui/Glow.
+- Profile: SQLite under the per-user application data directory.
+- Constraint: do not reintroduce Tauri, WebView2, Edge WebView, CEF or a second system webview into the native runtime.
 
-The current application is not just a Tauri window. Its React interface depends on Tauri IPC, while external pages are rendered in child WebView2 instances managed by `src-tauri/src/webview_manager.rs`.
+The old Tauri/React code remains for reference. It is not the executable being developed on this branch.
 
-The existing Rust services are valuable and should be evaluated for reuse rather than rewritten blindly:
+## Implemented native functionality
 
-- `src-tauri/src/db.rs`: SQLite persistence.
-- `src-tauri/src/adblock.rs`: filter-list parsing and rule storage; the WebView2 request interception integration must be replaced.
-- `src-tauri/src/password_manager.rs`: encrypted vault logic; page-level credential detection/autofill needs a new integration.
-- `src-tauri/src/downloads.rs`: download persistence and transfer logic; engine download events need an adapter.
-- `src-tauri/src/commands.rs` and `lib.rs`: Tauri command/runtime glue, not portable as-is.
-- `src-tauri/src/memory_saver.rs`: currently coupled to Tauri and WebView2 tab lifecycle; redesign around Servo WebViews and measured engine behaviour.
+The detailed source-of-truth inventory is [native/README.md](../native/README.md). Current implementation includes:
 
-The current React frontend uses `@tauri-apps/api` and `vortexApi.ts`; it cannot simply be hosted in the native window without introducing another webview engine. The native browser chrome therefore needs a native UI (initial candidate: egui), or a separately designed UI process with a clearly defined IPC boundary.
+- Servo window, page rendering, event-loop integration, resize/DPI and mouse/keyboard/focus/committed IME input.
+- Native toolbar, address/search field, tab strip, multiple WebViews, tab shortcuts, tab recovery, title/loading indicators and internal new-tab/history/bookmark pages.
+- SQLite profile, settings, bookmarks, history, session restore and recently closed tabs.
+- Download manager for direct HTTP(S) URLs with streamed writes, progress, cancellation, retry and conditional range resume where supported by server validators.
+- Encrypted local password vault (Argon2id + XChaCha20-Poly1305), CSV import/export, login form detection and explicit same-origin autofill.
+- Request blocking with a documented subset of EasyList-style rules, custom rules, per-site exceptions, local import and HTTPS remote list refresh.
+- Permission prompts with per-origin persistent allow/deny decisions and a permission manager.
+- Site data manager for cookies, localStorage and sessionStorage.
+- Navigation hardening for unsupported schemes, embedded credentials and HTTPS-to-HTTP downgrade.
+- Heuristic warnings for IDN/Punycode, mixed-script homographs, invisible/bidi controls, literal IP hosts, deep subdomains and non-local HTTP.
+- Optional OpenPhish Community feed with strict parsing, local SQLite cache and exact URL matching.
 
-## Native Servo branch status (2026-11-18)
+## Known limitations
 
-The `native/` application is the active migration target on `servo-migration`. It uses a native `winit` window, Servo WebViews and an `egui` browser toolbar. Do not reintroduce Tauri or WebView2 into this runtime.
+This is a development browser, not a production-ready release.
 
-Implemented in the native branch:
+- No successful end-to-end acceptance test on a user's Windows machine has yet been recorded. Use the latest Windows CI result as the source of truth for compile/test status.
+- The current AdBlock matcher is not a full EasyList/uBlock parser. Cosmetic filters, scriptlets, regexes and several modifiers are not supported.
+- Download manager supports direct HTTP(S) URLs and right-click link actions; it does not yet automatically capture every attachment response initiated by a page.
+- Site-data clearing currently covers cookies and Web Storage only, not IndexedDB, Cache Storage or service workers.
+- Session persistence stores tab URLs and active index, not full per-tab back/forward stacks or scroll positions.
+- External/custom protocols are blocked; safe OS handoff is not implemented.
+- Media, DRM, WebRTC, extensions, DevTools, accessibility and broad site compatibility need separate validation against the pinned Servo build.
+- Windows packaging is a portable development ZIP, not a signed installer or auto-updater.
+- OpenPhish Community is restricted by the provider to personal/academic/independent non-commercial use. It is disabled by default; commercial product use requires an appropriately licensed source and any required written permission. Do not enable it for commercial distribution without resolving the license.
 
-- Native window, Servo rendering/event-loop integration, address bar, native egui/Glow toolbar and multi-tab UI.
-- Web content can open auxiliary windows as native tabs; `window.close()` is reflected in the tab strip when another tab remains open.
-- Navigation, page title/loading state, zoom controls, keyboard/mouse/wheel/focus input and common keyboard shortcuts.
-- SQLite-backed history, bookmarks, settings, download records and persistent session restore (up to 50 HTTP(S) tab URLs plus active-tab index).
-- Persistent recently-closed-tab recovery (up to ten HTTP(S) URLs) and basic settings for search provider (Google, DuckDuckGo, Bing) and validated HTTP(S) homepage.
-- Internal pages for new tab, history, bookmarks and download records; native bookmark/history managers support opening and deleting entries, with confirmed full-history clearing.
-- Basic request blocking through Servo's `WebViewDelegate::load_web_resource`.
-- Global AdBlock toggle, per-site exceptions and a custom-rule editor persisted in SQLite. The supported EasyList subset includes domain rules (`||host^`), domain/path rules and exception rules (`@@||host^`); comments are ignored. Cosmetic filters, regular expressions, resource modifiers, scriptlets and full uBlock syntax are not supported.
-- Encrypted password vault using Argon2id and XChaCha20-Poly1305, including save/search/delete, password generation and lock/unlock.
-- Servo-backed login form detection and explicit user-triggered same-origin autofill with origin revalidation and safe JS value serialization.
-- Password CSV import/export with validation preview, explicit import confirmation and a Vertex-specific CSV schema.
+## Windows build and validation
 
-Known limitations (not yet acceptance-tested):
+Requirements:
+- Windows 11 x64.
+- Visual Studio 2022 / Build Tools with Desktop development with C++.
+- Rustup and the exact toolchain declared in `native/rust-toolchain.toml`.
 
-- The native AdBlock module implements a deliberately limited EasyList network-rule subset plus a small built-in host list. It is not EasyList/uBlock-compatible: cosmetic filters, regular expressions, resource modifiers, scriptlets and filter-list updates are not implemented.
-- Rules are parsed into an in-memory rule set when the browser starts and when custom rules are saved, rather than reparsed for every resource request. Path rules with the EasyList separator marker check the separator boundary, so `/ads^` does not accidentally match `/adserver`.
-- The downloads page currently displays persisted records only. Actual network transfers, progress reporting, cancellation and opening files are not yet integrated.
-- Servo's pinned `WebViewDelegate::load_web_resource` hook exposes the outgoing `WebResourceRequest` and lets the embedder replace a response; it does not expose the eventual server response headers to that callback. Therefore it cannot safely identify `Content-Disposition: attachment` downloads on its own. Do not intercept every URL or start a second unauthenticated HTTP request as a workaround. A proper download integration needs a verified response/download event or an engine-level API change.
-- The password vault supports manual credential management, safe same-origin autofill and CSV import/export. Autofill is explicit and never submits the form. CSV import currently targets the Vertex schema (`origin,title,username,password,notes`), not every browser/vendor export format. Clipboard contents are not automatically cleared by the browser.
-- Session restore currently stores only HTTP(S) tab URLs and the active-tab index. Recently closed URLs are persisted separately; per-tab back/forward history and scroll positions are not persisted.
-- The settings UI currently covers the search provider and homepage only. Download directory, broader privacy controls, Windows packaging and production hardening remain unfinished.
-- No successful native build or end-to-end browser test has been recorded yet. Do not treat source-level changes as proof of runtime correctness.
+From the repository root:
 
-## Migration sequence
+```powershell
+.\scripts\build-windows.ps1
+```
 
-1. **Engine proof of concept (current):** start Servo in a native winit window, render a page, handle resize/redraw and event-loop wakeups. Keep this separate from the existing app.
-2. **Input and navigation:** forward mouse, wheel, keyboard, focus and clipboard events; implement URL navigation and loading/title callbacks.
-3. **Native browser chrome:** build address bar, tabs, toolbar, menus and dark theme with egui or another native toolkit. Do not embed React in WebView2.
-4. **Browser services:** adapt SQLite, bookmarks, history, encrypted vault and downloads behind engine-independent Rust interfaces.
-5. **Privacy and ad blocking:** integrate request interception using Servo's network/resource APIs, with per-site allow/deny controls. Verify API coverage before claiming EasyList parity.
-6. **Tab lifecycle:** implement multiple Servo WebViews, session restore, suspend/discard policies and process/resource accounting.
-7. **Compatibility and release:** test real sites, forms, media, WebGL, permissions, downloads, TLS, accessibility and Windows packaging.
-8. **Benchmark:** compare against Chrome on the same machine and URLs at 1/5/10/20 tabs. Record RAM working set/private bytes, CPU time, startup and page-load timings. Do not claim a speed or memory improvement until measured.
+This builds the optimized native executable and packages `dist\Vortex-Windows-x64.zip`. Add `-Launch` to run it after building, or `-Launch -Url "https://example.com"` to open a page.
 
-## Acceptance criteria for the first prototype
+Manual checks:
 
-- Runs as a native Windows process with no Tauri runtime and no WebView2 dependency.
-- Opens a remote HTTPS page and presents Servo-rendered frames.
-- Resizes correctly and exits cleanly.
-- Does not modify the existing `src-tauri/` runtime or the `main` branch.
+```powershell
+cd native
+cargo check
+cargo test
+cargo build --release
+cargo run -- https://example.com
+```
 
-## Important constraints
+The first Servo build is large and can take a long time. The workflow at [GitHub Actions](https://github.com/elleroys/vertex-browser/actions/workflows/servo-windows.yml?query=branch%3Aservo-migration) runs check, unit tests, release build and uploads a portable Windows x64 artifact when all steps succeed.
 
-Servo is an engine, not a drop-in Chromium replacement. Its embedding API and web-platform coverage are evolving. DRM, extensions, WebRTC, DevTools, media codecs and other compatibility features must be tested individually. A smaller process footprint or faster page load is a benchmark hypothesis, not a guaranteed result.
+## Acceptance checklist before hands-on testing
+
+- [ ] Windows CI completes `cargo check`.
+- [ ] Windows CI completes `cargo test`.
+- [ ] Windows CI completes `cargo build --release` and uploads `Vortex-Windows-x64`.
+- [ ] Downloaded executable starts on Windows 11 x64.
+- [ ] HTTPS navigation, search, tab creation/switch/close and session restore work.
+- [ ] History, bookmarks, settings and profile persistence work.
+- [ ] AdBlock, permissions and navigation warnings behave as documented.
+- [ ] Download cancellation/retry and password vault workflows work.
+- [ ] No critical crashes or data-loss issues during a basic browsing session.
+
+Do not report performance improvements until they are measured against Chrome on the same machine and repeatable pages/workloads.

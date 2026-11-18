@@ -20,7 +20,6 @@ function Require-Command([string]$Name, [string]$Hint) {
 
 Require-Command "cargo" "Install Rust using rustup and reopen PowerShell."
 Require-Command "rustc" "Install Rust using rustup and reopen PowerShell."
-Require-Command "git" "Install Git for Windows."
 
 Write-Host "Vortex native build" -ForegroundColor Cyan
 Write-Host ("Rust: " + (& rustc --version))
