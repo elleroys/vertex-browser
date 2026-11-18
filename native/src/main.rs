@@ -924,9 +924,11 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 if let Self::Running(state) = self {
+                    let window_size = state.window.inner_size();
+                    state.rendering_context.resize(window_size);
                     if let Some(webview) = state.active_webview() {
                         webview.set_hidpi_scale_factor(euclid::Scale::new(scale_factor as f32));
-                        webview.resize(state.page_size(state.window.inner_size()));
+                        webview.resize(state.page_size(window_size));
                     }
                 }
             }
@@ -1018,10 +1020,14 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                if egui_consumed { return; }
                 if let Self::Running(state) = self {
                     state.cursor_position.set(position);
-                    if !state.cursor_over_page() { return; }
+                    if egui_consumed || !state.cursor_over_page() {
+                        if let Some(webview) = state.active_webview() {
+                            webview.notify_input_event(InputEvent::MouseLeftViewport(MouseLeftViewportEvent::default()));
+                        }
+                        return;
+                    }
                     if let Some(webview) = state.active_webview() {
                         webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
                             state.cursor_point(),
