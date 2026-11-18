@@ -62,6 +62,7 @@ struct BrowserState {
     history_clear_confirm_open: Cell<bool>,
     search_engine: RefCell<String>,
     home_page: RefCell<String>,
+    restore_session: Cell<bool>,
     password_vault: password_vault::PasswordVault,
     password_vault_open: Cell<bool>,
     vault_master_password: RefCell<String>,
@@ -640,8 +641,10 @@ ${sections}</body></html>"#);
                 let mut open = true;
                 let mut selected_engine = self.search_engine.borrow().clone();
                 let mut selected_home_page = self.home_page.borrow().clone();
+                let mut restore_session = self.restore_session.get();
                 let mut changed_engine = false;
                 let mut changed_home_page = false;
+                let mut changed_restore_session = false;
                 egui::Window::new("Налаштування Vertex")
                     .open(&mut open)
                     .resizable(false)
@@ -671,6 +674,9 @@ ${sections}</body></html>"#);
                                 changed_home_page = true;
                             }
                         });
+                        if ui.checkbox(&mut restore_session, "Відновлювати вкладки після запуску").changed() {
+                            changed_restore_session = true;
+                        }
                         ui.label("Дозволені лише адреси HTTP та HTTPS. Профіль зберігається локально в SQLite.");
                     });
                 if changed_engine {
@@ -689,6 +695,15 @@ ${sections}</body></html>"#);
                         }
                     } else {
                         log::warn!("ignored invalid home page; only HTTP and HTTPS URLs are allowed");
+                    }
+                }
+                if changed_restore_session {
+                    self.restore_session.set(restore_session);
+                    if let Err(error) = self.storage.set_setting(
+                        "restore_session",
+                        if restore_session { "true" } else { "false" },
+                    ) {
+                        log::error!("could not save session restore preference: {error}");
                     }
                 }
                 if !open { self.settings_open.set(false); }
@@ -1624,6 +1639,10 @@ impl VertexApp {
             .filter(|value| matches!(value.as_str(), "google" | "duckduckgo" | "bing"))
             .unwrap_or_else(|| "google".to_owned());
         let home_page = storage.get_setting("home_page").ok().flatten().unwrap_or_default();
+        let restore_session = !matches!(
+            storage.get_setting("restore_session"),
+            Ok(Some(value)) if value == "false"
+        );
         let closed_tabs = storage.load_closed_tabs().unwrap_or_default()
             .into_iter()
             .rev()
@@ -1652,6 +1671,7 @@ impl VertexApp {
             history_clear_confirm_open: Cell::new(false),
             search_engine: RefCell::new(search_engine),
             home_page: RefCell::new(home_page),
+            restore_session: Cell::new(restore_session),
             password_vault: password_vault::PasswordVault::new(),
             password_vault_open: Cell::new(false),
             vault_master_password: RefCell::new(String::new()),
@@ -1671,6 +1691,22 @@ impl VertexApp {
         let explicit_start_url = std::env::args().nth(1);
         let (startup_urls, restore_active_index) = if let Some(start_url) = explicit_start_url {
             (vec![parse_navigation_input(&start_url)], 0)
+        } else if state.restore_session.get() {
+            if let Ok(Some((urls, active_index))) = state.storage.load_session() {
+                let parsed = urls.into_iter().filter_map(|value| Url::parse(&value).ok()).collect::<Vec<_>>();
+                if parsed.is_empty() {
+                    (vec![state.new_tab_url()], 0)
+                } else {
+                    (parsed, active_index)
+                }
+            } else {
+                (vec![state.new_tab_url()], 0)
+            }
+        } else {
+            (vec![state.new_tab_url()], 0)
+        };
+
+        /*
         } else if let Ok(Some((urls, active_index))) = state.storage.load_session() {
             let parsed = urls.into_iter().filter_map(|value| Url::parse(&value).ok()).collect::<Vec<_>>();
             if parsed.is_empty() {
@@ -1681,6 +1717,7 @@ impl VertexApp {
         } else {
             (vec![state.new_tab_url()], 0)
         };
+        */
 
         let mut startup_urls = startup_urls.into_iter();
         let first_url = startup_urls.next().unwrap_or_else(|| state.new_tab_url());
