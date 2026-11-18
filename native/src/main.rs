@@ -1370,6 +1370,15 @@ impl servo::WebViewDelegate for BrowserState {
         self.window.request_redraw();
     }
 
+    fn notify_closed(&self, webview: WebView) {
+        let closed_id = webview.id();
+        let index = self.webviews.borrow().iter()
+            .position(|tab| tab.id() == closed_id);
+        if let Some(index) = index {
+            self.close_tab_at(index);
+        }
+    }
+
     fn notify_url_changed(&self, webview: WebView, url: Url) {
         let is_active = self.active_webview()
             .and_then(|active| active.url())
