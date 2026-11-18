@@ -2943,7 +2943,7 @@ impl EventLoopWaker for ServoWaker {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_navigation_input;
+    use super::*;
 
 
     #[test]
