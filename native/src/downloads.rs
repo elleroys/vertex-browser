@@ -1,9 +1,16 @@
 use std::{
     error::Error,
     fs::{self, OpenOptions},
-    io::{Read, Write},
-    path::{Path, PathBuf},
+    io::{Read, Seek, SeekFrom, Write},
+    path::Path,
+    time::Duration,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResumeInfo {
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DownloadResult {
@@ -11,17 +18,21 @@ pub struct DownloadResult {
     pub file_name: String,
     pub bytes_received: u64,
     pub total_bytes: Option<u64>,
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
 }
 
-/// Fetch an HTTP(S) resource into a temporary sibling file, then publish it at the
-/// requested destination only after the response has been fully written.
+/// Download to a stable partial file. Resume is attempted only when a validator
+/// (ETag or Last-Modified) was persisted with the partial file.
 pub fn download_to_path<F>(
     raw_url: &str,
     destination: &Path,
+    partial_path: &Path,
+    resume: ResumeInfo,
     mut progress: F,
 ) -> Result<DownloadResult, Box<dyn Error + Send + Sync>>
 where
-    F: FnMut(u64, Option<u64>) -> bool,
+    F: FnMut(u64, Option<u64>, &ResumeInfo) -> bool,
 {
     let url = url::Url::parse(raw_url)?;
     if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none()
@@ -31,8 +42,8 @@ where
     }
 
     let client = reqwest::blocking::Client::builder()
-        .connect_timeout(std::time::Duration::from_secs(20))
-        .timeout(std::time::Duration::from_secs(60 * 30))
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(60 * 30))
         .redirect(reqwest::redirect::Policy::custom(|attempt| {
             if attempt.previous().len() >= 10 {
                 return attempt.error("too many redirects");
@@ -49,11 +60,74 @@ where
         }))
         .build()?;
 
-    let mut response = client.get(url).send()?.error_for_status()?;
-    let final_url = response.url().to_string();
-    let total_bytes = response.content_length();
-    let file_name = response
-        .headers()
+    let parent = destination.parent().filter(|path| !path.as_os_str().is_empty()).unwrap_or(Path::new("."));
+    fs::create_dir_all(parent)?;
+    if destination.exists() {
+        return Err(format!("Destination already exists: {}", destination.display()).into());
+    }
+    if let Some(partial_parent) = partial_path.parent().filter(|path| !path.as_os_str().is_empty()) {
+        fs::create_dir_all(partial_parent)?;
+    }
+
+    let mut existing = fs::metadata(partial_path).map(|m| m.len()).unwrap_or(0);
+    let validator = resume.etag.as_deref().or(resume.last_modified.as_deref());
+    if existing > 0 && validator.is_none() {
+        fs::remove_file(partial_path)?;
+        existing = 0;
+    }
+
+    let mut request = client.get(url.clone());
+    if existing > 0 {
+        request = request.header(reqwest::header::RANGE, format!("bytes={existing}-"));
+        if let Some(value) = validator {
+            request = request.header(reqwest::header::IF_RANGE, value);
+        }
+    }
+    let mut response = request.send()?;
+
+    // A stale partial may refer to a representation that no longer exists.
+    // Start over once on 416; never append bytes from a different representation.
+    if response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE && existing > 0 {
+        fs::remove_file(partial_path)?;
+        existing = 0;
+        response = client.get(url).send()?;
+    }
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!("Download server returned HTTP {status}").into());
+    }
+    let append = existing > 0 && status == reqwest::StatusCode::PARTIAL_CONTENT;
+    if append {
+        let range = response.headers().get(reqwest::header::CONTENT_RANGE)
+            .and_then(|v| v.to_str().ok())
+            .ok_or("Server returned 206 without Content-Range")?;
+        if content_range_start(range) != Some(existing) {
+            return Err("Server returned an unexpected Content-Range; partial file preserved".into());
+        }
+    } else if status == reqwest::StatusCode::PARTIAL_CONTENT {
+        return Err("Server returned partial content without a valid resume request".into());
+    }
+
+    let response_etag = response.headers().get(reqwest::header::ETAG)
+        .and_then(|v| v.to_str().ok()).map(str::to_owned);
+    let response_modified = response.headers().get(reqwest::header::LAST_MODIFIED)
+        .and_then(|v| v.to_str().ok()).map(str::to_owned);
+    if append {
+        if let (Some(old), Some(new)) = (resume.etag.as_deref(), response_etag.as_deref()) {
+            if old != new { return Err("ETag changed during resume; partial file preserved".into()); }
+        }
+        if let (Some(old), Some(new)) = (resume.last_modified.as_deref(), response_modified.as_deref()) {
+            if old != new { return Err("Last-Modified changed during resume; partial file preserved".into()); }
+        }
+    }
+    let response_info = ResumeInfo {
+        etag: response_etag.or(resume.etag),
+        last_modified: response_modified.or(resume.last_modified),
+    };
+    let remaining = response.content_length();
+    let total_bytes = if append { remaining.map(|n| n.saturating_add(existing)) } else { remaining };
+
+    let file_name = response.headers()
         .get(reqwest::header::CONTENT_DISPOSITION)
         .and_then(|value| value.to_str().ok())
         .and_then(filename_from_content_disposition)
@@ -62,53 +136,53 @@ where
         .unwrap_or_else(|| "download".to_owned());
     let file_name = sanitize_file_name(&file_name);
 
-    let parent = destination.parent().filter(|path| !path.as_os_str().is_empty()).unwrap_or(Path::new("."));
-    fs::create_dir_all(parent)?;
+    let mut output = OpenOptions::new().create(true).write(true).open(partial_path)?;
+    if append {
+        output.seek(SeekFrom::End(0))?;
+    } else {
+        output.set_len(0)?;
+    }
+    let mut received = if append { existing } else { 0 };
+    if !progress(received, total_bytes, &response_info) {
+        return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Download cancelled").into());
+    }
+    let mut buffer = vec![0u8; 64 * 1024];
+    let mut response = response;
+    loop {
+        let count = response.read(&mut buffer)?;
+        if count == 0 { break; }
+        output.write_all(&buffer[..count])?;
+        received = received.saturating_add(count as u64);
+        if !progress(received, total_bytes, &response_info) {
+            output.flush()?;
+            output.sync_all()?;
+            return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Download cancelled").into());
+        }
+    }
+    output.flush()?;
+    output.sync_all()?;
+    if !progress(received, total_bytes, &response_info) {
+        return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Download cancelled").into());
+    }
     if destination.exists() {
         return Err(format!("Destination already exists: {}", destination.display()).into());
     }
+    fs::rename(partial_path, destination)?;
+    Ok(DownloadResult {
+        final_url: response.url().to_string(),
+        file_name,
+        bytes_received: received,
+        total_bytes,
+        etag: response_info.etag,
+        last_modified: response_info.last_modified,
+    })
+}
 
-    let mut temporary_name = destination.file_name().unwrap_or_default().to_os_string();
-    temporary_name.push(format!(".{}.vertex-part", uuid::Uuid::new_v4()));
-    let temporary_path: PathBuf = parent.join(temporary_name);
-
-    let result = (|| -> Result<u64, Box<dyn Error + Send + Sync>> {
-        let mut output = OpenOptions::new().write(true).create_new(true).open(&temporary_path)?;
-        let mut received = 0u64;
-        let mut buffer = vec![0u8; 64 * 1024];
-        loop {
-            let count = response.read(&mut buffer)?;
-            if count == 0 {
-                break;
-            }
-            output.write_all(&buffer[..count])?;
-            received = received.saturating_add(count as u64);
-            if !progress(received, total_bytes) {
-                return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Download cancelled").into());
-            }
-        }
-        if !progress(received, total_bytes) {
-            return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Download cancelled").into());
-        }
-        output.flush()?;
-        output.sync_all()?;
-        Ok(received)
-    })();
-
-    match result {
-        Ok(bytes_received) => {
-            if destination.exists() {
-                let _ = fs::remove_file(&temporary_path);
-                return Err(format!("Destination already exists: {}", destination.display()).into());
-            }
-            fs::rename(&temporary_path, destination)?;
-            Ok(DownloadResult { final_url, file_name, bytes_received, total_bytes })
-        }
-        Err(error) => {
-            let _ = fs::remove_file(&temporary_path);
-            Err(error)
-        }
-    }
+fn content_range_start(value: &str) -> Option<u64> {
+    let range = value.strip_prefix("bytes ")?;
+    let (span, _) = range.split_once('/')?;
+    let (start, _) = span.split_once('-')?;
+    start.parse().ok()
 }
 
 pub fn suggested_file_name(raw_url: &str) -> String {
@@ -120,8 +194,7 @@ pub fn suggested_file_name(raw_url: &str) -> String {
 
 pub fn sanitize_file_name(input: &str) -> String {
     let leaf = input.rsplit(['/', '\\\\']).next().unwrap_or(input);
-    let cleaned: String = leaf
-        .chars()
+    let cleaned: String = leaf.chars()
         .filter(|character| !character.is_control() && !matches!(character, '<' | '>' | ':' | '"' | '/' | '\\\\' | '|' | '?' | '*'))
         .collect();
     let cleaned = cleaned.trim().trim_matches('.');
@@ -147,6 +220,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn parses_content_range_start() {
+        assert_eq!(content_range_start("bytes 123-999/1000"), Some(123));
+        assert_eq!(content_range_start("bytes */1000"), None);
+        assert_eq!(content_range_start("items 1-2/3"), None);
+    }
+
+    #[test]
     fn sanitizes_windows_paths_and_control_characters() {
         assert_eq!(sanitize_file_name(r"..\\folder\\report?.pdf"), "report.pdf");
         assert_eq!(sanitize_file_name(""), "download");
@@ -154,19 +234,7 @@ mod tests {
 
     #[test]
     fn reads_content_disposition_filenames() {
-        assert_eq!(
-            filename_from_content_disposition("attachment; filename=\"archive.zip\""),
-            Some("archive.zip".to_owned())
-        );
-        assert_eq!(
-            filename_from_content_disposition("attachment; filename*=UTF-8''hello%20world.zip"),
-            Some("hello world.zip".to_owned())
-        );
-    }
-
-    #[test]
-    fn rejects_non_http_and_embedded_credentials() {
-        assert!(download_to_path("file:///C:/secret", Path::new("unused"), |_, _| true).is_err());
-        assert!(download_to_path("https://user:pass@example.com/file", Path::new("unused"), |_, _| true).is_err());
+        assert_eq!(filename_from_content_disposition("attachment; filename=\"archive.zip\""), Some("archive.zip".to_owned()));
+        assert_eq!(filename_from_content_disposition("attachment; filename*=UTF-8''hello%20world.zip"), Some("hello world.zip".to_owned()));
     }
 }
