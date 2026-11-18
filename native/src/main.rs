@@ -2691,6 +2691,34 @@ fn navigation_block_reason(current: Option<&Url>, target: &Url) -> Option<&'stat
     None
 }
 
+fn is_latin_letter(ch: char) -> bool {
+    ch.is_alphabetic() && matches!(ch as u32, 0x0041..=0x024F | 0x1E00..=0x1EFF)
+}
+
+fn is_cyrillic_letter(ch: char) -> bool {
+    ch.is_alphabetic() && matches!(ch as u32, 0x0400..=0x052F | 0x1C80..=0x1C8F | 0x2DE0..=0x2DFF | 0xA640..=0xA69F)
+}
+
+fn is_greek_letter(ch: char) -> bool {
+    ch.is_alphabetic() && matches!(ch as u32, 0x0370..=0x03FF | 0x1F00..=0x1FFF)
+}
+
+fn has_mixed_confusable_scripts(label: &str) -> bool {
+    let latin = label.chars().any(is_latin_letter);
+    let cyrillic = label.chars().any(is_cyrillic_letter);
+    let greek = label.chars().any(is_greek_letter);
+    (latin && (cyrillic || greek)) || (cyrillic && greek)
+}
+
+fn has_invisible_or_bidi_controls(host: &str) -> bool {
+    host.chars().any(|ch| matches!(ch as u32,
+        0x00AD | 0x034F | 0x061C | 0x115F..=0x1160 | 0x17B4..=0x17B5 |
+        0x180B..=0x180F | 0x200B..=0x200F | 0x202A..=0x202E |
+        0x2060..=0x206F | 0x3164 | 0xFE00..=0xFE0F | 0xFEFF |
+        0xFFA0 | 0xFFF9..=0xFFFB | 0xE0100..=0xE01EF
+    ))
+}
+
 fn suspicious_navigation_reasons(url: &Url) -> Vec<&'static str> {
     let mut reasons = Vec::new();
     let Some(host) = url.host_str() else { return reasons; };
@@ -2698,6 +2726,15 @@ fn suspicious_navigation_reasons(url: &Url) -> Vec<&'static str> {
 
     if host.split('.').any(|label| label.starts_with("xn--")) {
         reasons.push("Домен містить Punycode (IDN). Перевір символи в назві: підміна схожими літерами є поширеним прийомом.");
+        let (unicode_host, decode_result) = idna::domain_to_unicode(&host);
+        if decode_result.is_err() {
+            reasons.push("IDN-домен не вдалося коректно декодувати; його відображення може бути неоднозначним.");
+        } else if unicode_host.split('.').any(has_mixed_confusable_scripts) {
+            reasons.push("В одному сегменті домену змішані латиниця, кирилиця або грецька абетка. Це характерна ознака омографічної підміни.");
+        }
+        if has_invisible_or_bidi_controls(&unicode_host) {
+            reasons.push("У домені виявлено невидимі або керувальні Unicode-символи.");
+        }
     }
     if host.parse::<std::net::IpAddr>().is_ok() {
         reasons.push("Замість звичайного доменного імені використано IP-адресу.");
@@ -3187,6 +3224,32 @@ mod tests {
         assert!(suspicious_navigation_reasons(&punycode).iter().any(|reason| reason.contains("Punycode")));
         assert!(suspicious_navigation_reasons(&ip).iter().any(|reason| reason.contains("IP-адресу")));
         assert!(suspicious_navigation_reasons(&deep).iter().any(|reason| reason.contains("піддоменів")));
+    }
+
+    #[test]
+    fn detects_mixed_script_idn_homographs_but_not_single_script_labels() {
+        let spoof = Url::parse("https://xn--pple-43d.com/").unwrap();
+        let legitimate = Url::parse("https://xn--80asehdb.com/").unwrap();
+        let spoof_reasons = suspicious_navigation_reasons(&spoof);
+        let legitimate_reasons = suspicious_navigation_reasons(&legitimate);
+        assert!(spoof_reasons.iter().any(|reason| reason.contains("змішані")));
+        assert!(!legitimate_reasons.iter().any(|reason| reason.contains("змішані")));
+    }
+
+    #[test]
+    fn identifies_unicode_script_categories_without_cross_label_false_positive() {
+        assert!(has_mixed_confusable_scripts("aа")); // Latin a + Cyrillic а
+        assert!(has_mixed_confusable_scripts("aα")); // Latin a + Greek alpha
+        assert!(!has_mixed_confusable_scripts("тест"));
+        assert!(!has_mixed_confusable_scripts("example"));
+        assert!(!has_mixed_confusable_scripts("тест.example"));
+    }
+
+    #[test]
+    fn detects_invisible_and_bidirectional_unicode_controls() {
+        assert!(has_invisible_or_bidi_controls("safe\\u{200B}name"));
+        assert!(has_invisible_or_bidi_controls("safe\\u{202E}name"));
+        assert!(!has_invisible_or_bidi_controls("example.com"));
     }
 
     #[test]
