@@ -7,7 +7,7 @@ use std::{
 };
 
 use servo::{
-    Code, DevicePoint, EventLoopWaker, InputEvent, Key, KeyState, Location, Modifiers,
+    Code, DevicePoint, EventLoopWaker, InputEvent, Key, KeyState, LoadStatus, Location, Modifiers,
     MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
     ImeEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, Servo, ServoBuilder,
     WebView, WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
@@ -279,13 +279,14 @@ ${sections}</body></html>"#);
             .filter(|url| matches!(url.scheme(), "http" | "https"))
             .and_then(|url| self.storage.is_bookmarked(url.as_str()).ok())
             .unwrap_or(false);
-        let tab_labels: Vec<(usize, String, bool)> = self.webviews.borrow().iter().enumerate()
+        let tab_labels: Vec<(usize, String, bool, bool)> = self.webviews.borrow().iter().enumerate()
             .map(|(index, view)| {
                 let title = view.page_title()
                     .filter(|title| !title.trim().is_empty())
                     .or_else(|| view.url().and_then(|url| url.host_str().map(str::to_owned)))
                     .unwrap_or_else(|| "Нова вкладка".to_owned());
-                (index, title, index == self.active_tab.get())
+                let loading = matches!(view.load_status(), LoadStatus::Started | LoadStatus::HeadParsed);
+                (index, title, index == self.active_tab.get(), loading)
             })
             .collect();
 
@@ -316,13 +317,14 @@ ${sections}</body></html>"#);
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
-                                for (index, title, selected) in &tab_labels {
+                                for (index, title, selected, loading) in &tab_labels {
                                     let short_title: String = title.chars().take(18).collect();
                                     ui.horizontal(|ui| {
+                                        let tab_title = if *loading { format!("◌ {short_title}") } else { short_title };
                                         let label = if *selected {
-                                            egui::RichText::new(format!("● {short_title}")).strong()
+                                            egui::RichText::new(format!("● {tab_title}")).strong()
                                         } else {
-                                            egui::RichText::new(short_title)
+                                            egui::RichText::new(tab_title)
                                         };
                                         if ui.add(egui::Button::new(label).fill(if *selected {
                                             egui::Color32::from_rgb(54, 62, 91)
@@ -592,6 +594,10 @@ ${sections}</body></html>"#);
 
 impl servo::WebViewDelegate for BrowserState {
     fn notify_new_frame_ready(&self, _webview: WebView) {
+        self.window.request_redraw();
+    }
+
+    fn notify_load_status_changed(&self, _webview: WebView, _status: LoadStatus) {
         self.window.request_redraw();
     }
 
