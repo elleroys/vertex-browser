@@ -5,11 +5,11 @@ use std::{
 };
 
 use servo::{
-    DevicePoint, EventLoopWaker, InputEvent, Modifiers,
+    Code, DevicePoint, EventLoopWaker, InputEvent, Key, KeyState, Location, Modifiers,
     MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeftViewportEvent, MouseMoveEvent, Servo, ServoBuilder, WebView,
-    WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
-    WindowRenderingContext,
+    MouseLeftViewportEvent, MouseMoveEvent, NamedKey, Servo, ServoBuilder,
+    WebView, WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
+    WindowRenderingContext, KeyboardEvent,
 };
 use url::Url;
 use winit::{
@@ -17,6 +17,7 @@ use winit::{
     dpi::PhysicalPosition,
     event::{ElementState, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
+    keyboard::{Key as WinitKey, ModifiersState, NamedKey as WinitNamedKey},
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
     window::{Window, WindowId},
 };
@@ -38,6 +39,7 @@ struct BrowserState {
     rendering_context: Rc<WindowRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
     cursor_position: Cell<PhysicalPosition<f64>>,
+    modifiers: Cell<Modifiers>,
 }
 
 impl BrowserState {
@@ -48,6 +50,95 @@ impl BrowserState {
     fn cursor_point(&self) -> WebViewPoint {
         let position = self.cursor_position.get();
         WebViewPoint::Device(DevicePoint::new(position.x as f32, position.y as f32))
+    }
+
+    fn handle_keyboard(&self, event: winit::event::KeyEvent) {
+        let Some(webview) = self.active_webview() else {
+            return;
+        };
+
+        let modifiers = self.modifiers.get();
+        if event.state == ElementState::Pressed {
+            let is_control = modifiers.contains(Modifiers::CONTROL);
+            let is_alt = modifiers.contains(Modifiers::ALT);
+
+            // Native browser shortcuts are intercepted before page delivery.
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("r")) {
+                webview.reload();
+                return;
+            }
+            if is_alt && matches!(event.logical_key, WinitKey::Named(WinitNamedKey::ArrowLeft)) {
+                webview.go_back(1);
+                return;
+            }
+            if is_alt && matches!(event.logical_key, WinitKey::Named(WinitNamedKey::ArrowRight)) {
+                webview.go_forward(1);
+                return;
+            }
+            if matches!(event.logical_key, WinitKey::Named(WinitNamedKey::F5)) {
+                webview.reload();
+                return;
+            }
+        }
+
+        let key = match &event.logical_key {
+            WinitKey::Character(value) => Key::Character(value.to_string()),
+            WinitKey::Named(named) => {
+                let named = match named {
+                    WinitNamedKey::Backspace => NamedKey::Backspace,
+                    WinitNamedKey::Tab => NamedKey::Tab,
+                    WinitNamedKey::Enter => NamedKey::Enter,
+                    WinitNamedKey::Escape => NamedKey::Escape,
+                    WinitNamedKey::Space => NamedKey::Space,
+                    WinitNamedKey::ArrowDown => NamedKey::ArrowDown,
+                    WinitNamedKey::ArrowLeft => NamedKey::ArrowLeft,
+                    WinitNamedKey::ArrowRight => NamedKey::ArrowRight,
+                    WinitNamedKey::ArrowUp => NamedKey::ArrowUp,
+                    WinitNamedKey::Delete => NamedKey::Delete,
+                    WinitNamedKey::Home => NamedKey::Home,
+                    WinitNamedKey::End => NamedKey::End,
+                    WinitNamedKey::PageDown => NamedKey::PageDown,
+                    WinitNamedKey::PageUp => NamedKey::PageUp,
+                    WinitNamedKey::Insert => NamedKey::Insert,
+                    WinitNamedKey::F1 => NamedKey::F1,
+                    WinitNamedKey::F2 => NamedKey::F2,
+                    WinitNamedKey::F3 => NamedKey::F3,
+                    WinitNamedKey::F4 => NamedKey::F4,
+                    WinitNamedKey::F5 => NamedKey::F5,
+                    WinitNamedKey::F6 => NamedKey::F6,
+                    WinitNamedKey::F7 => NamedKey::F7,
+                    WinitNamedKey::F8 => NamedKey::F8,
+                    WinitNamedKey::F9 => NamedKey::F9,
+                    WinitNamedKey::F10 => NamedKey::F10,
+                    WinitNamedKey::F11 => NamedKey::F11,
+                    WinitNamedKey::F12 => NamedKey::F12,
+                    WinitNamedKey::CapsLock => NamedKey::CapsLock,
+                    WinitNamedKey::Shift => NamedKey::Shift,
+                    WinitNamedKey::Control => NamedKey::Control,
+                    WinitNamedKey::Alt => NamedKey::Alt,
+                    WinitNamedKey::Meta => NamedKey::Meta,
+                    _ => NamedKey::Unidentified,
+                };
+                Key::Named(named)
+            }
+            _ => Key::Named(NamedKey::Unidentified),
+        };
+
+        let state = match event.state {
+            ElementState::Pressed => KeyState::Down,
+            ElementState::Released => KeyState::Up,
+        };
+
+        let keyboard_event = KeyboardEvent::new_without_event(
+            state,
+            key,
+            Code::Unidentified,
+            Location::Standard,
+            modifiers,
+            event.repeat,
+            false,
+        );
+        webview.notify_input_event(InputEvent::Keyboard(keyboard_event));
     }
 }
 
@@ -78,7 +169,7 @@ impl VertexApp {
         let window = event_loop
             .create_window(
                 Window::default_attributes()
-                    .with_title("Vertex Browser — Servo prototype")
+                    .with_title("Vertex Browser — Servo")
                     .with_inner_size(winit::dpi::LogicalSize::new(1280.0, 800.0)),
             )
             .expect("failed to create native window");
@@ -103,14 +194,13 @@ impl VertexApp {
             rendering_context,
             webviews: RefCell::new(Vec::new()),
             cursor_position: Cell::new(PhysicalPosition::new(0.0, 0.0)),
+            modifiers: Cell::new(Modifiers::empty()),
         });
 
         let start_url = std::env::args()
             .nth(1)
             .unwrap_or_else(|| "https://example.com".to_owned());
-        let url = Url::parse(&start_url).unwrap_or_else(|_| {
-            Url::parse("https://example.com").expect("static fallback URL is valid")
-        });
+        let url = parse_navigation_input(&start_url);
 
         let webview = WebViewBuilder::new(&state.servo, state.rendering_context.clone())
             .url(url)
@@ -124,6 +214,35 @@ impl VertexApp {
             state.window.request_redraw();
         }
     }
+}
+
+fn parse_navigation_input(input: &str) -> Url {
+    let trimmed = input.trim();
+    if let Ok(url) = Url::parse(trimmed) {
+        if url.scheme() == "http" || url.scheme() == "https" {
+            return url;
+        }
+    }
+
+    // Treat a dotted host without spaces as HTTPS; all other input becomes a search.
+    if !trimmed.is_empty() && !trimmed.contains(char::is_whitespace) && trimmed.contains('.') {
+        if let Ok(url) = Url::parse(&format!("https://{trimmed}")) {
+            return url;
+        }
+    }
+
+    let encoded: String = url::form_urlencoded::byte_serialize(trimmed.as_bytes()).collect();
+    Url::parse(&format!("https://www.google.com/search?q={encoded}"))
+        .expect("constructed search URL is valid")
+}
+
+fn modifiers_from_winit(mods: ModifiersState) -> Modifiers {
+    let mut result = Modifiers::empty();
+    result.set(Modifiers::CONTROL, mods.control_key());
+    result.set(Modifiers::SHIFT, mods.shift_key());
+    result.set(Modifiers::ALT, mods.alt_key());
+    result.set(Modifiers::META, mods.super_key());
+    result
 }
 
 impl ApplicationHandler<ServoWakeup> for VertexApp {
@@ -169,6 +288,16 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     if let Some(webview) = state.active_webview() {
                         webview.resize(size);
                     }
+                }
+            }
+            WindowEvent::ModifiersChanged(modifiers) => {
+                if let Self::Running(state) = self {
+                    state.modifiers.set(modifiers_from_winit(modifiers.state()));
+                }
+            }
+            WindowEvent::KeyboardInput { event, .. } => {
+                if let Self::Running(state) = self {
+                    state.handle_keyboard(event);
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
@@ -229,7 +358,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                         webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
                             WheelDelta { x: dx, y: dy, z: 0.0, mode },
                             state.cursor_point(),
-                            Modifiers::default(),
+                            state.modifiers.get(),
                         )));
                     }
                 }
