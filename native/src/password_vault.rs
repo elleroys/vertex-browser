@@ -5,7 +5,7 @@
 
 use std::{
     sync::Mutex,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use argon2::{Algorithm, Argon2, Params, Version};
@@ -21,6 +21,7 @@ use crate::storage::{BrowserStorage, EncryptedVaultRow};
 
 const VERIFIER_PLAINTEXT: &[u8] = b"VERTEX_VAULT_VERIFIED_V1";
 const KDF_PARAMS: &str = "argon2id:m=65536,t=3,p=1;xchacha20poly1305";
+const AUTO_LOCK_AFTER: Duration = Duration::from_secs(5 * 60);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VaultStatus {
@@ -53,6 +54,7 @@ impl Drop for PasswordCredential {
 
 pub struct PasswordVault {
     master_key: Mutex<Option<Zeroizing<[u8; 32]>>>,
+    last_activity: Mutex<Option<Instant>>,
 }
 
 impl Default for PasswordVault {
@@ -65,10 +67,12 @@ impl PasswordVault {
     pub fn new() -> Self {
         Self {
             master_key: Mutex::new(None),
+            last_activity: Mutex::new(None),
         }
     }
 
     pub fn status(&self, storage: &BrowserStorage) -> Result<VaultStatus, String> {
+        self.expire_if_idle();
         let is_configured = storage
             .get_vault_meta()
             .map_err(|error| error.to_string())?
@@ -131,12 +135,35 @@ impl PasswordVault {
     }
 
     fn require_key(&self) -> Result<Zeroizing<[u8; 32]>, String> {
+        self.expire_if_idle();
         self.master_key
             .lock()
             .map_err(|_| "Сховище паролів заблоковане через помилку синхронізації".to_owned())?
             .clone()
             .ok_or_else(|| "Спочатку розблокуй сховище паролів".to_owned())
     }
+
+    pub fn touch(&self) {
+        let unlocked = self.master_key.lock().map(|key| key.is_some()).unwrap_or(false);
+        if unlocked {
+            if let Ok(mut activity) = self.last_activity.lock() { *activity = Some(Instant::now()); }
+        }
+    }
+
+    pub fn expire_if_idle(&self) -> bool {
+        let expired = self.last_activity.lock().ok().map(|mut activity| {
+            if activity.is_some_and(|last| last.elapsed() >= AUTO_LOCK_AFTER) {
+                *activity = None;
+                true
+            } else { false }
+        }).unwrap_or(false);
+        if expired {
+            if let Ok(mut key) = self.master_key.lock() { *key = None; }
+        }
+        expired
+    }
+
+    pub fn auto_lock_seconds(&self) -> u64 { AUTO_LOCK_AFTER.as_secs() }
 
     pub fn setup_master_password(
         &self,
@@ -164,6 +191,7 @@ impl PasswordVault {
             .lock()
             .map_err(|_| "Не вдалося отримати доступ до сховища паролів".to_owned())? =
             Some(key);
+        if let Ok(mut activity) = self.last_activity.lock() { *activity = Some(Instant::now()); }
         Ok(())
     }
 
@@ -195,13 +223,54 @@ impl PasswordVault {
             .lock()
             .map_err(|_| "Не вдалося отримати доступ до сховища паролів".to_owned())? =
             Some(key);
+        if let Ok(mut activity) = self.last_activity.lock() { *activity = Some(Instant::now()); }
         Ok(())
     }
 
     pub fn lock(&self) {
-        if let Ok(mut key) = self.master_key.lock() {
-            *key = None;
+        if let Ok(mut key) = self.master_key.lock() { *key = None; }
+        if let Ok(mut activity) = self.last_activity.lock() { *activity = None; }
+    }
+
+    /// Re-encrypt all entries with a fresh salt. SQLite replacement is atomic.
+    pub fn change_master_password(&self, storage: &BrowserStorage, new_master_password: &str) -> Result<(), String> {
+        if new_master_password.chars().count() < 12 {
+            return Err("Новий майстер-пароль має містити щонайменше 12 символів".to_owned());
         }
+        if new_master_password.len() > 1024 {
+            return Err("Майстер-пароль не може перевищувати 1024 байти".to_owned());
+        }
+        let old_key = self.require_key()?;
+        let rows = storage.list_password_rows().map_err(|error| error.to_string())?;
+        let mut salt = [0u8; 16];
+        rand::thread_rng().fill_bytes(&mut salt);
+        let new_key = Self::derive_key(new_master_password, &salt)?;
+        let verifier = Self::encrypt_bytes(&new_key, VERIFIER_PLAINTEXT)?;
+        let mut replacement = Vec::with_capacity(rows.len());
+        for row in rows {
+            let mut username_bytes = Zeroizing::new(Self::decrypt_bytes(&old_key, &row.username_enc)?);
+            let mut password_bytes = Zeroizing::new(Self::decrypt_bytes(&old_key, &row.password_enc)?);
+            let username_enc = Self::encrypt_bytes(&new_key, username_bytes.as_slice())?;
+            let password_enc = Self::encrypt_bytes(&new_key, password_bytes.as_slice())?;
+            username_bytes.zeroize();
+            password_bytes.zeroize();
+            let notes_enc = if let Some(encoded) = row.notes_enc.as_deref() {
+                let mut notes_bytes = Zeroizing::new(Self::decrypt_bytes(&old_key, encoded)?);
+                let encrypted = Self::encrypt_bytes(&new_key, notes_bytes.as_slice())?;
+                notes_bytes.zeroize();
+                Some(encrypted)
+            } else { None };
+            replacement.push(EncryptedVaultRow {
+                id: row.id, origin: row.origin, title: row.title,
+                username_enc, password_enc, notes_enc,
+                created_at: row.created_at, updated_at: row.updated_at,
+            });
+        }
+        storage.replace_vault_data(&replacement, &BASE64.encode(salt), &verifier, KDF_PARAMS)
+            .map_err(|error| format!("Не вдалося атомарно оновити сховище: {error}"))?;
+        *self.master_key.lock().map_err(|_| "Не вдалося отримати доступ до сховища паролів".to_owned())? = Some(new_key);
+        if let Ok(mut activity) = self.last_activity.lock() { *activity = Some(Instant::now()); }
+        Ok(())
     }
 
     pub fn save_credential(
@@ -214,6 +283,7 @@ impl PasswordVault {
         notes: Option<&str>,
     ) -> Result<String, String> {
         let key = self.require_key()?;
+        self.touch();
         if password.is_empty() {
             return Err("Пароль не може бути порожнім".to_owned());
         }
@@ -312,6 +382,7 @@ impl PasswordVault {
 
     pub fn delete_credential(&self, storage: &BrowserStorage, id: &str) -> Result<(), String> {
         let _ = self.require_key()?;
+        self.touch();
         storage
             .delete_password_row(id)
             .map_err(|error| error.to_string())
@@ -355,6 +426,8 @@ impl PasswordVault {
     /// Export decrypted credentials as RFC 4180 CSV. The caller must treat the returned
     /// string as highly sensitive and write it only to a user-selected location.
     pub fn export_csv(&self, storage: &BrowserStorage) -> Result<String, String> {
+        self.require_key()?;
+        self.touch();
         let credentials = self.list_credentials(storage, None)?;
         let mut writer = csv::WriterBuilder::new()
             .has_headers(false)
@@ -507,6 +580,52 @@ fn unix_time_ms() -> i64 {
 mod tests {
     use super::*;
     use std::path::Path;
+
+    #[test]
+    fn changing_master_password_reencrypts_all_credentials() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let vault = PasswordVault::new();
+        vault.setup_master_password(&storage, "correct horse battery").unwrap();
+        vault.save_credential(&storage, "https://example.com", "Example", "alice", "secret-1", Some("private note")).unwrap();
+        vault.save_credential(&storage, "https://other.example", "Other", "bob", "secret-2", None).unwrap();
+        assert!(vault.change_master_password(&storage, "short").is_err());
+        vault.change_master_password(&storage, "new master password phrase").unwrap();
+        assert_eq!(vault.list_credentials(&storage, None).unwrap().len(), 2);
+        assert_eq!(vault.find_for_origin(&storage, "https://example.com").unwrap()[0].password, "secret-1");
+        vault.lock();
+        assert!(vault.unlock(&storage, "correct horse battery").is_err());
+        vault.unlock(&storage, "new master password phrase").unwrap();
+        let example = vault.find_for_origin(&storage, "https://example.com").unwrap();
+        assert_eq!(example[0].username, "alice");
+        assert_eq!(example[0].notes.as_deref(), Some("private note"));
+    }
+
+    #[test]
+    fn failed_master_password_change_keeps_old_verifier() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let vault = PasswordVault::new();
+        vault.setup_master_password(&storage, "correct horse battery").unwrap();
+        vault.save_credential(&storage, "https://example.com", "Example", "alice", "secret", None).unwrap();
+        let mut damaged = storage.list_password_rows().unwrap().remove(0);
+        damaged.password_enc = "not-valid-base64!".to_owned();
+        storage.upsert_password_row(&damaged).unwrap();
+        assert!(vault.change_master_password(&storage, "new master password phrase").is_err());
+        vault.lock();
+        assert!(vault.unlock(&storage, "correct horse battery").is_ok());
+        assert!(vault.unlock(&storage, "new master password phrase").is_err());
+    }
+
+    #[test]
+    fn vault_auto_locks_after_inactivity() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let vault = PasswordVault::new();
+        vault.setup_master_password(&storage, "correct horse battery").unwrap();
+        assert!(vault.status(&storage).unwrap().is_unlocked);
+        *vault.last_activity.lock().unwrap() = Some(Instant::now() - AUTO_LOCK_AFTER - Duration::from_secs(1));
+        assert!(vault.expire_if_idle());
+        assert!(!vault.status(&storage).unwrap().is_unlocked);
+        assert!(vault.unlock(&storage, "correct horse battery").is_ok());
+    }
 
     #[test]
     fn creates_unlocks_and_locks_vault() {

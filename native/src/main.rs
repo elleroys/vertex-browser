@@ -92,6 +92,8 @@ struct BrowserState {
     password_vault_open: Cell<bool>,
     vault_master_password: RefCell<String>,
     vault_confirm_password: RefCell<String>,
+    vault_new_master_password: RefCell<String>,
+    vault_confirm_new_master_password: RefCell<String>,
     vault_origin: RefCell<String>,
     vault_title: RefCell<String>,
     vault_username: RefCell<String>,
@@ -1741,6 +1743,7 @@ ${sections}</body></html>"#);
         let mut setup = false;
         let mut unlock = false;
         let mut lock = false;
+        let mut change_master_password = false;
         let mut save = false;
         let mut show_passwords = self.vault_show_passwords.get();
         let mut delete_id: Option<String> = None;
@@ -1778,6 +1781,7 @@ ${sections}</body></html>"#);
                         }
                     }
                     Ok(value) => {
+                        ui.label(format!("Автоблокування після {} хвилин бездіяльності.", self.password_vault.auto_lock_seconds() / 60));
                         ui.horizontal(|ui| {
                             ui.label(format!("Записів у сховищі: {}", value.entry_count));
                             if ui.button("Заблокувати").clicked() {
@@ -1785,6 +1789,16 @@ ${sections}</body></html>"#);
                             }
                         });
                         ui.separator();
+                        egui::CollapsingHeader::new("Змінити майстер-пароль")
+                            .default_open(false)
+                            .show(ui, |ui| {
+                                ui.label("Усі збережені записи буде повторно зашифровано новим ключем. Старий пароль перестане працювати.");
+                                ui.add(egui::TextEdit::singleline(&mut *self.vault_new_master_password.borrow_mut())
+                                    .password(true).hint_text("Новий майстер-пароль (мінімум 12 символів)"));
+                                ui.add(egui::TextEdit::singleline(&mut *self.vault_confirm_new_master_password.borrow_mut())
+                                    .password(true).hint_text("Повтори новий майстер-пароль"));
+                                if ui.button("Змінити й повторно зашифрувати").clicked() { change_master_password = true; }
+                            });
                         egui::CollapsingHeader::new("Додати пароль")
                             .default_open(true)
                             .show(ui, |ui| {
@@ -1909,8 +1923,10 @@ ${sections}</body></html>"#);
                 }
             });
 
+        if show_passwords != self.vault_show_passwords.get() { self.password_vault.touch(); }
         self.vault_show_passwords.set(show_passwords);
         if let Some(value) = clipboard_text {
+            self.password_vault.touch();
             ctx.copy_text(value);
             *self.vault_message.borrow_mut() = "Скопійовано в буфер обміну.".to_owned();
         }
@@ -1968,9 +1984,11 @@ ${sections}</body></html>"#);
             *self.vault_message.borrow_mut() = "Імпорт скасовано.".to_owned();
         }
         if scan_forms {
+            self.password_vault.touch();
             self.scan_login_forms();
         }
         if let Some((origin, username, password)) = fill_request {
+            self.password_vault.touch();
             self.fill_login_form(&origin, username, password);
         }
         if !open {
@@ -1979,6 +1997,8 @@ ${sections}</body></html>"#);
             self.vault_show_passwords.set(false);
             self.vault_master_password.borrow_mut().zeroize();
             self.vault_confirm_password.borrow_mut().zeroize();
+            self.vault_new_master_password.borrow_mut().zeroize();
+            self.vault_confirm_new_master_password.borrow_mut().zeroize();
             self.vault_username.borrow_mut().zeroize();
             self.vault_password.borrow_mut().zeroize();
             self.vault_notes.borrow_mut().zeroize();
@@ -2009,10 +2029,26 @@ ${sections}</body></html>"#);
             self.vault_show_passwords.set(false);
             self.vault_master_password.borrow_mut().zeroize();
             self.vault_confirm_password.borrow_mut().zeroize();
+            self.vault_new_master_password.borrow_mut().zeroize();
+            self.vault_confirm_new_master_password.borrow_mut().zeroize();
             self.vault_username.borrow_mut().zeroize();
             self.vault_password.borrow_mut().zeroize();
             self.vault_notes.borrow_mut().zeroize();
             *self.vault_message.borrow_mut() = "Сховище заблоковано.".to_owned();
+        }
+        if change_master_password {
+            let new_master = Zeroizing::new(self.vault_new_master_password.borrow().clone());
+            let confirmation = Zeroizing::new(self.vault_confirm_new_master_password.borrow().clone());
+            let result = if new_master != confirmation {
+                Err("Нові майстер-паролі не збігаються".to_owned())
+            } else {
+                self.password_vault.change_master_password(&self.storage, new_master.as_str())
+            };
+            self.vault_new_master_password.borrow_mut().zeroize();
+            self.vault_confirm_new_master_password.borrow_mut().zeroize();
+            *self.vault_message.borrow_mut() = result
+                .map(|_| "Майстер-пароль змінено. Усі записи повторно зашифровано.".to_owned())
+                .unwrap_or_else(|error| error);
         }
         if save {
             let origin = self.vault_origin.borrow().clone();
@@ -2657,6 +2693,8 @@ impl VertexApp {
             password_vault_open: Cell::new(false),
             vault_master_password: RefCell::new(String::new()),
             vault_confirm_password: RefCell::new(String::new()),
+            vault_new_master_password: RefCell::new(String::new()),
+            vault_confirm_new_master_password: RefCell::new(String::new()),
             vault_origin: RefCell::new(String::new()),
             vault_title: RefCell::new(String::new()),
             vault_username: RefCell::new(String::new()),
@@ -2977,7 +3015,22 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 state.threat_feed_next_refresh.set(now + Duration::from_secs(12 * 60 * 60));
                 state.request_openphish_update();
             }
-            event_loop.set_control_flow(ControlFlow::WaitUntil(state.adblock_next_refresh.get().min(state.threat_feed_next_refresh.get())));
+            if state.password_vault.expire_if_idle() {
+                state.vault_show_passwords.set(false);
+                state.vault_master_password.borrow_mut().zeroize();
+                state.vault_confirm_password.borrow_mut().zeroize();
+                state.vault_new_master_password.borrow_mut().zeroize();
+                state.vault_confirm_new_master_password.borrow_mut().zeroize();
+                state.vault_username.borrow_mut().zeroize();
+                state.vault_password.borrow_mut().zeroize();
+                state.vault_notes.borrow_mut().zeroize();
+                *state.vault_message.borrow_mut() = "Сховище автоматично заблоковано після 5 хвилин бездіяльності.".to_owned();
+                state.window.request_redraw();
+            }
+            let vault_check = now + Duration::from_secs(30);
+            event_loop.set_control_flow(ControlFlow::WaitUntil(
+                state.adblock_next_refresh.get().min(state.threat_feed_next_refresh.get()).min(vault_check)
+            ));
         }
     }
 

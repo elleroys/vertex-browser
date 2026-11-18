@@ -82,3 +82,6 @@ All browser UI and browser services must be native Rust components around Servo.
 
 
 The page surface is an offscreen framebuffer attached to the window's Servo rendering context. Its height excludes the 82-logical-pixel toolbar area, and a framebuffer blit places it below the toolbar before the native chrome is drawn.
+
+
+- Password vault security: auto-lock after five minutes without explicit interaction; master-password changes re-encrypt all credentials with a fresh Argon2id salt and update ciphertext plus verifier metadata in one SQLite transaction.

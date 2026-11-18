@@ -303,6 +303,27 @@ impl BrowserStorage {
         Ok(())
     }
 
+    /// Atomically replace encrypted credentials and verifier metadata.
+    pub fn replace_vault_data(&self, rows: &[EncryptedVaultRow], salt_b64: &str, verifier_enc: &str, kdf_params: &str) -> rusqlite::Result<()> {
+        let mut connection = self.connection.lock().expect("database mutex poisoned");
+        let transaction = connection.transaction()?;
+        transaction.execute("DELETE FROM password_entries", [])?;
+        {
+            let mut statement = transaction.prepare(
+                "INSERT INTO password_entries(id,origin,title,username_enc,password_enc,notes_enc,created_at,updated_at)
+                 VALUES(?1,?2,?3,?4,?5,?6,?7,?8)"
+            )?;
+            for row in rows {
+                statement.execute(params![row.id,row.origin,row.title,row.username_enc,row.password_enc,row.notes_enc,row.created_at,row.updated_at])?;
+            }
+        }
+        transaction.execute(
+            "INSERT OR REPLACE INTO vault_meta(id,salt_b64,verifier_enc,kdf_params,created_at) VALUES(1,?1,?2,?3,?4)",
+            params![salt_b64,verifier_enc,kdf_params,unix_time_ms()],
+        )?;
+        transaction.commit()
+    }
+
     pub fn upsert_password_row(&self, row: &EncryptedVaultRow) -> rusqlite::Result<()> {
         self.connection.lock().expect("database mutex poisoned").execute(
             "INSERT INTO password_entries(id,origin,title,username_enc,password_enc,notes_enc,created_at,updated_at)
