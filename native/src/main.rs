@@ -123,6 +123,58 @@ impl BrowserState {
         self.window.set_title(&format!("{title} — Vertex Browser"));
     }
 
+    fn open_internal_page(&self, html: String) {
+        let encoded: String = url::form_urlencoded::byte_serialize(html.as_bytes()).collect();
+        let url = Url::parse(&format!("data:text/html;charset=utf-8,{encoded}"))
+            .expect("generated internal page URL is valid");
+        if let Some(view) = self.active_webview() {
+            view.load(url);
+            self.servo.spin_event_loop();
+        }
+    }
+
+    fn open_history_page(&self) {
+        let entries = match self.storage.recent_history(500) {
+            Ok(entries) => entries,
+            Err(error) => {
+                log::error!("could not read browsing history: {error}");
+                return;
+            }
+        };
+        let mut items = String::new();
+        for entry in entries {
+            let title = html_escape(if entry.title.trim().is_empty() { &entry.url } else { &entry.title });
+            let url_text = html_escape(&entry.url);
+            let href = html_escape(&entry.url);
+            items.push_str(&format!(
+                "<article><a href=\"{href}\">{title}</a><small>{url_text} · {count} visits</small></article>",
+                count = entry.visit_count
+            ));
+        }
+        if items.is_empty() { items.push_str("<p class=\"empty\">Історія поки порожня</p>"); }
+        let html = internal_page("Історія", &items, "<button onclick=\"fetch('/__clear_history')\">", false);
+        self.open_internal_page(html);
+    }
+
+    fn open_bookmarks_page(&self) {
+        let entries = match self.storage.all_bookmarks() {
+            Ok(entries) => entries,
+            Err(error) => {
+                log::error!("could not read bookmarks: {error}");
+                return;
+            }
+        };
+        let mut items = String::new();
+        for entry in entries {
+            let title = html_escape(if entry.title.trim().is_empty() { &entry.url } else { &entry.title });
+            let url_text = html_escape(&entry.url);
+            let href = html_escape(&entry.url);
+            items.push_str(&format!("<article><a href=\"{href}\">{title}</a><small>{url_text}</small></article>"));
+        }
+        if items.is_empty() { items.push_str("<p class=\"empty\">Закладок поки немає. Натисни Ctrl+D на сторінці, щоб додати її.</p>"); }
+        self.open_internal_page(internal_page("Закладки", &items, "", false));
+    }
+
     fn begin_address_edit(&self) {
         let current = self.active_webview().and_then(|view| view.url())
             .map(|url| url.to_string()).unwrap_or_default();
@@ -206,6 +258,16 @@ impl BrowserState {
                 return;
             }
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("w")) {
+                return;
+            }
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("h")) {
+                self.open_history_page();
+                return;
+            }
+            if is_control && modifiers.contains(Modifiers::SHIFT)
+                && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("b"))
+            {
+                self.open_bookmarks_page();
                 return;
             }
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("d")) {
@@ -401,6 +463,28 @@ impl VertexApp {
             state.window.request_redraw();
         }
     }
+}
+
+fn html_escape(value: &str) -> String {
+    value.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}
+
+fn internal_page(title: &str, items: &str, _unused: &str, _flag: bool) -> String {
+    format!(r#"<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{title} — Vertex</title><style>
+:root{{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#111318;color:#e8eaf0}}
+*{{box-sizing:border-box}}body{{margin:0;padding:48px max(24px,calc((100vw - 900px)/2));}}
+h1{{font-size:30px;font-weight:650;margin:0 0 28px}}.brand{{color:#8b9cff;font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}}
+article{{padding:16px 18px;margin:10px 0;background:#1b1e26;border:1px solid #292d38;border-radius:12px}}
+a{{color:#e6e9ff;text-decoration:none;font-size:15px}}a:hover{{color:#9eacff}}
+small{{display:block;color:#858b9b;font-size:12px;margin-top:7px;overflow-wrap:anywhere}}
+.empty{{color:#858b9b;padding:24px 0}}
+</style></head><body><div class="brand">VERTEX BROWSER</div><h1>{title}</h1>{items}</body></html>"#)
 }
 
 fn parse_navigation_input(input: &str) -> Url {
