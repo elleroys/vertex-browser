@@ -262,6 +262,36 @@ ${sections}</body></html>"#);
         self.open_internal_page(internal_page("Закладки", &items));
     }
 
+    fn open_downloads_page(&self) {
+        let entries = match self.storage.recent_downloads(500) {
+            Ok(entries) => entries,
+            Err(error) => {
+                log::error!("could not read downloads: {error}");
+                return;
+            }
+        };
+        let mut items = String::new();
+        for entry in entries {
+            let name = html_escape(&entry.file_name);
+            let url = html_escape(&entry.url);
+            let path = html_escape(&entry.file_path);
+            let (status, progress) = match entry.status.as_str() {
+                "queued" => ("У черзі", "Очікує початку".to_owned()),
+                "downloading" => ("Завантажується", format_download_progress(entry.received_bytes, entry.total_bytes)),
+                "completed" => ("Завершено", format_download_progress(entry.received_bytes, entry.total_bytes)),
+                "cancelled" => ("Скасовано", "Завантаження скасовано".to_owned()),
+                _ => ("Помилка", "Не вдалося завершити завантаження".to_owned()),
+            };
+            items.push_str(&format!(
+                "<article><strong>{name}</strong><small>{status} · {progress}</small><small>{path}</small><small>{url}</small></article>"
+            ));
+        }
+        if items.is_empty() {
+            items.push_str("<p class=\"empty\">Завантажень поки немає.</p>");
+        }
+        self.open_internal_page(internal_page("Завантаження", &items));
+    }
+
     fn begin_address_edit(&self) {
         let current = self.active_webview().and_then(|view| view.url())
             .filter(|url| matches!(url.scheme(), "http" | "https"))
@@ -413,6 +443,10 @@ ${sections}</body></html>"#);
                         address.clear();
                         self.open_history_page();
                     }
+                    if ui.button("Завантаження").clicked() {
+                        address.clear();
+                        self.open_downloads_page();
+                    }
                     if ui.button("Закладки").clicked() {
                         address.clear();
                         self.open_bookmarks_page();
@@ -504,6 +538,10 @@ ${sections}</body></html>"#);
             }
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("h")) {
                 self.open_history_page();
+                return;
+            }
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("j")) {
+                self.open_downloads_page();
                 return;
             }
             if is_control && modifiers.contains(Modifiers::SHIFT)
@@ -775,6 +813,18 @@ a{{color:#e6e9ff;text-decoration:none;font-size:15px}}a:hover{{color:#9eacff}}
 small{{display:block;color:#858b9b;font-size:12px;margin-top:7px;overflow-wrap:anywhere}}
 .empty{{color:#858b9b;padding:24px 0}}
 </style></head><body><div class="brand">VERTEX BROWSER</div><h1>{title}</h1>{items}</body></html>"#)
+}
+
+fn format_download_progress(received: u64, total: Option<u64>) -> String {
+    match total.filter(|total| *total > 0) {
+        Some(total) => format!(
+            "{}% · {} / {} bytes",
+            ((received as f64 / total as f64) * 100.0).clamp(0.0, 100.0).round() as u32,
+            received,
+            total
+        ),
+        None => format!("{received} bytes"),
+    }
 }
 
 fn parse_navigation_input(input: &str) -> Url {
@@ -1142,6 +1192,13 @@ mod tests {
         assert!(page.contains("color-scheme:dark"));
         assert!(page.contains("<article>Example</article>"));
         assert!(page.contains("<h1>Історія</h1>"));
+    }
+
+    #[test]
+    fn formats_download_progress_with_and_without_total() {
+        assert_eq!(format_download_progress(512, Some(1024)), "50% · 512 / 1024 bytes");
+        assert_eq!(format_download_progress(2048, None), "2048 bytes");
+        assert_eq!(format_download_progress(1200, Some(1000)), "100% · 1200 / 1000 bytes");
     }
 
     #[test]
