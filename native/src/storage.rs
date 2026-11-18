@@ -5,6 +5,21 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HistoryEntry {
+    pub url: String,
+    pub title: String,
+    pub visited_at: i64,
+    pub visit_count: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BookmarkEntry {
+    pub url: String,
+    pub title: String,
+    pub created_at: i64,
+}
+
 pub struct BrowserStorage {
     connection: Mutex<Connection>,
 }
@@ -109,6 +124,53 @@ impl BrowserStorage {
         ).optional()
     }
 
+    /// Return the newest history entries first. The caller controls the maximum result count.
+    pub fn recent_history(&self, limit: u32) -> rusqlite::Result<Vec<HistoryEntry>> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let mut statement = connection.prepare(
+            "SELECT url,title,visited_at,visit_count FROM history
+             ORDER BY visited_at DESC LIMIT ?1",
+        )?;
+        let rows = statement.query_map(params![limit], |row| {
+            Ok(HistoryEntry {
+                url: row.get(0)?,
+                title: row.get(1)?,
+                visited_at: row.get(2)?,
+                visit_count: row.get::<_, i64>(3)? as u64,
+            })
+        })?;
+        rows.collect()
+    }
+
+    /// Return saved pages ordered by most recently bookmarked first.
+    pub fn all_bookmarks(&self) -> rusqlite::Result<Vec<BookmarkEntry>> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let mut statement = connection.prepare(
+            "SELECT url,title,created_at FROM bookmarks ORDER BY created_at DESC",
+        )?;
+        let rows = statement.query_map([], |row| {
+            Ok(BookmarkEntry {
+                url: row.get(0)?,
+                title: row.get(1)?,
+                created_at: row.get(2)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn delete_history_entry(&self, url: &str) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "DELETE FROM history WHERE url=?1", params![url],
+        )?;
+        Ok(())
+    }
+
+    pub fn clear_history(&self) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned")
+            .execute("DELETE FROM history", [])?;
+        Ok(())
+    }
+
     pub fn history_count(&self) -> rusqlite::Result<u64> {
         let count: i64 = self.connection.lock().expect("database mutex poisoned")
             .query_row("SELECT COUNT(*) FROM history", [], |row| row.get(0))?;
@@ -154,6 +216,24 @@ mod tests {
         assert_eq!(storage.get_setting("theme").unwrap().as_deref(), Some("dark"));
         storage.remove_bookmark("https://example.com/").unwrap();
         assert!(!storage.is_bookmarked("https://example.com/").unwrap());
+    }
+
+    #[test]
+    fn returns_recent_history_and_bookmarks() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        storage.record_visit("https://one.example/", "One").unwrap();
+        storage.record_visit("https://two.example/", "Two").unwrap();
+        let history = storage.recent_history(10).unwrap();
+        assert_eq!(history.len(), 2);
+        assert!(history.iter().any(|entry| entry.url == "https://one.example/"));
+        storage.add_bookmark("https://one.example/", "One").unwrap();
+        let bookmarks = storage.all_bookmarks().unwrap();
+        assert_eq!(bookmarks.len(), 1);
+        assert_eq!(bookmarks[0].title, "One");
+        storage.delete_history_entry("https://one.example/").unwrap();
+        assert_eq!(storage.history_count().unwrap(), 1);
+        storage.clear_history().unwrap();
+        assert_eq!(storage.history_count().unwrap(), 0);
     }
 
     #[test]
