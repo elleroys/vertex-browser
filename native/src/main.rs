@@ -1239,14 +1239,37 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                             }
                                         });
                                     });
-                                    ui.label(format!("{} · {}", match entry.status.as_str() {
+                                    let status = match entry.status.as_str() {
                                         "queued" => "У черзі",
                                         "downloading" => "Завантажується",
                                         "completed" => "Завершено",
                                         "cancelled" => "Скасовано",
                                         _ => "Помилка",
-                                    }, format_download_progress(entry.received_bytes, entry.total_bytes)));
-                                    ui.small(&entry.file_path);
+                                    };
+                                    let progress_text = format_download_progress(entry.received_bytes, entry.total_bytes);
+                                    ui.horizontal(|ui| {
+                                        ui.label(egui::RichText::new(status).color(match entry.status.as_str() {
+                                            "completed" => egui::Color32::LIGHT_GREEN,
+                                            "failed" => egui::Color32::LIGHT_RED,
+                                            "cancelled" => egui::Color32::GRAY,
+                                            _ => ui.visuals().text_color(),
+                                        }));
+                                        ui.label(egui::RichText::new(progress_text).monospace());
+                                    });
+                                    if entry.status == "downloading" || entry.status == "completed" {
+                                        if let Some(total) = entry.total_bytes.filter(|total| *total > 0) {
+                                            let fraction = (entry.received_bytes as f32 / total as f32).clamp(0.0, 1.0);
+                                            ui.add(egui::ProgressBar::new(fraction)
+                                                .desired_width(f32::INFINITY)
+                                                .text(format!("{}%", (fraction * 100.0).round() as u32)));
+                                        } else if entry.status == "downloading" {
+                                            ui.add(egui::ProgressBar::new(0.0)
+                                                .desired_width(f32::INFINITY)
+                                                .text("Розмір файлу невідомий"));
+                                        }
+                                    }
+                                    ui.add(egui::Label::new(egui::RichText::new(&entry.file_path).weak()).truncate());
+                                    ui.add(egui::Label::new(egui::RichText::new(&entry.url).small().weak()).truncate());
                                 });
                             }
                             if entries.is_empty() {
@@ -3017,15 +3040,30 @@ fn active_index_after_close(active_index: usize, closed_index: usize, tab_count:
     })
 }
 
+fn format_bytes(bytes: u64) -> String {
+    const UNITS: [&str; 5] = ["Б", "КБ", "МБ", "ГБ", "ТБ"];
+    let mut value = bytes as f64;
+    let mut unit = 0usize;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        format!("{bytes} {}", UNITS[unit])
+    } else {
+        format!("{value:.1} {}", UNITS[unit])
+    }
+}
+
 fn format_download_progress(received: u64, total: Option<u64>) -> String {
     match total.filter(|total| *total > 0) {
         Some(total) => format!(
-            "{}% · {} / {} bytes",
+            "{}% · {} з {}",
             ((received as f64 / total as f64) * 100.0).clamp(0.0, 100.0).round() as u32,
-            received,
-            total
+            format_bytes(received),
+            format_bytes(total)
         ),
-        None => format!("{received} bytes"),
+        None => format!("Завантажено {}", format_bytes(received)),
     }
 }
 
@@ -3598,10 +3636,17 @@ mod tests {
     }
 
     #[test]
+    fn formats_download_sizes_with_binary_units() {
+        assert_eq!(format_bytes(0), "0 Б");
+        assert_eq!(format_bytes(1024), "1.0 КБ");
+        assert_eq!(format_bytes(1_572_864), "1.5 МБ");
+    }
+
+    #[test]
     fn formats_download_progress_with_and_without_total() {
-        assert_eq!(format_download_progress(512, Some(1024)), "50% · 512 / 1024 bytes");
-        assert_eq!(format_download_progress(2048, None), "2048 bytes");
-        assert_eq!(format_download_progress(1200, Some(1000)), "100% · 1200 / 1000 bytes");
+        assert_eq!(format_download_progress(512, Some(1024)), "50% · 512 Б з 1.0 КБ");
+        assert_eq!(format_download_progress(2048, None), "Завантажено 2.0 КБ");
+        assert_eq!(format_download_progress(1200, Some(1000)), "100% · 1.2 КБ з 1000 Б");
     }
 
     #[test]
