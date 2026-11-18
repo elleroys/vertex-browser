@@ -718,12 +718,15 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                 } else {
                                     egui::Color32::from_rgb(37, 40, 49)
                                 };
-                                if ui.add_sized(
+                                let tab_response = ui.add_sized(
                                     [170.0, 29.0],
                                     egui::Button::new(egui::RichText::new(label).size(12.0))
                                         .fill(fill)
                                         .corner_radius(egui::CornerRadius::same(7)),
-                                ).clicked() {
+                                ).on_hover_text(title);
+                                if tab_response.clicked_by(egui::PointerButton::Middle) {
+                                    self.close_tab_at(*index);
+                                } else if tab_response.clicked() {
                                     self.activate_tab(*index);
                                 }
                                 if ui.small_button("×").on_hover_text("Закрити вкладку").clicked() {
@@ -777,6 +780,11 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                             self.servo.spin_event_loop();
                         }
                     }
+                    ui.ctx().memory_mut(|memory| memory.surrender_focus(response.id));
+                } else if response.has_focus() && ui.input(|input| input.key_pressed(egui::Key::Escape)) {
+                    address = active.as_ref().and_then(|view| view.url())
+                        .filter(|url| matches!(url.scheme(), "http" | "https"))
+                        .map(|url| url.to_string()).unwrap_or_default();
                     ui.ctx().memory_mut(|memory| memory.surrender_focus(response.id));
                 }
                 response.context_menu(|ui| {
@@ -2361,6 +2369,10 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                 webview.go_forward(1);
                 return;
             }
+            if is_alt && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::Home)) {
+                webview.load(self.home_url());
+                return;
+            }
             if matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::F5)) {
                 webview.reload();
                 return;
@@ -3250,7 +3262,11 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                             return;
                         }
                         if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("w")) {
-                            state.close_active_tab();
+                            if state.tab_count() <= 1 {
+                                event_loop.exit();
+                            } else {
+                                state.close_active_tab();
+                            }
                             return;
                         }
                         if control {
@@ -3265,11 +3281,15 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                                 }
                             }
                         }
-                        if control && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::Tab)) {
+                        let cycle_back = matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::PageUp))
+                            || (matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::Tab)) && shift);
+                        let cycle_forward = matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::PageDown))
+                            || (matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::Tab)) && !shift);
+                        if control && (cycle_back || cycle_forward) {
                             let count = state.tab_count();
                             if count > 1 {
                                 let current = state.active_tab.get();
-                                let next = if shift {
+                                let next = if cycle_back {
                                     (current + count - 1) % count
                                 } else {
                                     (current + 1) % count
@@ -3285,20 +3305,6 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     let address_has_focus = state.egui.borrow().egui_ctx.memory(|memory| {
                         memory.focused() == Some(egui::Id::new("vertex-address-bar"))
                     });
-                    if address_has_focus
-                        && event.state == ElementState::Pressed
-                        && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::Escape))
-                    {
-                        let current = state.active_webview().and_then(|view| view.url())
-                            .filter(|url| matches!(url.scheme(), "http" | "https"))
-                            .map(|url| url.to_string()).unwrap_or_default();
-                        *state.address_bar.borrow_mut() = current;
-                        state.egui.borrow().egui_ctx.memory_mut(|memory| {
-                            memory.surrender_focus(egui::Id::new("vertex-address-bar"));
-                        });
-                        state.window.request_redraw();
-                        return;
-                    }
                     let control = state.modifiers.get().contains(Modifiers::CONTROL);
                     if address_has_focus && control && event.state == ElementState::Pressed {
                         if let WinitKey::Character(key) = &event.logical_key {
