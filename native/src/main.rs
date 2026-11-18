@@ -58,6 +58,7 @@ struct BrowserState {
     modifiers: Cell<Modifiers>,
     storage: Arc<BrowserStorage>,
     active_profile_name: String,
+    profile_selection: RefCell<String>,
     event_loop_proxy: EventLoopProxy<ServoWakeup>,
     downloads_manager_open: Cell<bool>,
     download_url: RefCell<String>,
@@ -1082,7 +1083,7 @@ ${sections}</body></html>"#);
             if self.settings_open.get() {
                 let mut open = true;
                 let mut selected_engine = self.search_engine.borrow().clone();
-                let mut selected_profile = self.active_profile_name.clone();
+                let mut selected_profile = self.profile_selection.borrow().clone();
                 let mut new_profile_name = String::new();
                 let mut profile_message = String::new();
                 let mut selected_home_page = self.home_page.borrow().clone();
@@ -1202,6 +1203,7 @@ ${sections}</body></html>"#);
                         ui.separator();
                         ui.label("Дозволені лише адреси HTTP та HTTPS. Дані кожного профілю зберігаються окремо локально в SQLite.");
                     });
+                *self.profile_selection.borrow_mut() = selected_profile.clone();
                 if changed_engine {
                     *self.search_engine.borrow_mut() = selected_engine.clone();
                     if let Err(error) = self.storage.set_setting("search_engine", &selected_engine) {
@@ -2553,6 +2555,7 @@ impl VertexApp {
             closed_tabs: RefCell::new(closed_tabs),
             storage,
             active_profile_name: storage::active_profile_name(),
+            profile_selection: RefCell::new(storage::active_profile_name()),
             event_loop_proxy: waker.0.clone(),
             downloads_manager_open: Cell::new(false),
             download_url: RefCell::new(String::new()),
