@@ -169,6 +169,14 @@ mod tests {
     }
 
     #[test]
+    fn host_matching_is_case_insensitive_and_label_bounded() {
+        let rules = "||Ads.Example.COM^";
+        assert!(is_blocked_url_with_rules(&url("https://ADS.EXAMPLE.COM/"), rules));
+        assert!(is_blocked_url_with_rules(&url("https://sub.ads.example.com/"), rules));
+        assert!(!is_blocked_url_with_rules(&url("https://notads.example.com/"), rules));
+    }
+
+    #[test]
     fn path_separator_does_not_match_longer_words() {
         let rules = "||example.com/ads^";
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads"), rules));
