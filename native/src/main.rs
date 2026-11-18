@@ -217,6 +217,38 @@ impl BrowserState {
         self.close_tab_at(self.active_tab.get());
     }
 
+    fn close_other_tabs(&self, keep_index: usize) {
+        let keep_id = {
+            let tabs = self.webviews.borrow();
+            let Some(keep) = tabs.get(keep_index) else { return; };
+            keep.id()
+        };
+
+        loop {
+            let (count, keep_position, close_position) = {
+                let tabs = self.webviews.borrow();
+                let Some(keep_position) = tabs.iter().position(|tab| tab.id() == keep_id) else {
+                    return;
+                };
+                let count = tabs.len();
+                if count <= 1 {
+                    break;
+                }
+                let close_position = (0..count).rev().find(|index| *index != keep_position);
+                (count, keep_position, close_position)
+            };
+            let _ = count;
+            let Some(close_position) = close_position else { break; };
+            self.close_tab_at(close_position);
+        }
+
+        let keep_position = self.webviews.borrow().iter()
+            .position(|tab| tab.id() == keep_id);
+        if let Some(index) = keep_position {
+            self.activate_tab(index);
+        }
+    }
+
     fn reopen_closed_tab(self: &Rc<Self>) {
         let url = self.closed_tabs.borrow_mut().pop();
         if let Some(url) = url {
@@ -743,15 +775,42 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                         .fill(fill)
                                         .corner_radius(egui::CornerRadius::same(7)),
                                 ).on_hover_text(title);
+                                let mut close_this_tab = false;
+                                let mut close_other_tabs = false;
+                                let mut restore_tab = false;
                                 if tab_response.clicked_by(egui::PointerButton::Middle) {
-                                    self.close_tab_at(*index);
+                                    close_this_tab = true;
                                 } else if tab_response.clicked() {
                                     self.activate_tab(*index);
                                 }
+                                tab_response.context_menu(|ui| {
+                                    ui.label(egui::RichText::new(title).strong());
+                                    ui.separator();
+                                    if ui.button("Закрити вкладку").clicked() {
+                                        close_this_tab = true;
+                                        ui.close();
+                                    }
+                                    if ui.add_enabled(tab_labels.len() > 1, egui::Button::new("Закрити інші вкладки")).clicked() {
+                                        close_other_tabs = true;
+                                        ui.close();
+                                    }
+                                    if ui.add_enabled(!self.closed_tabs.borrow().is_empty(), egui::Button::new("Відновити закриту вкладку")).clicked() {
+                                        restore_tab = true;
+                                        ui.close();
+                                    }
+                                });
                                 if tab_labels.len() > 1
                                     && ui.small_button("×").on_hover_text("Закрити вкладку").clicked()
                                 {
+                                    close_this_tab = true;
+                                }
+                                if close_other_tabs {
+                                    self.close_other_tabs(*index);
+                                } else if close_this_tab {
                                     self.close_tab_at(*index);
+                                }
+                                if restore_tab {
+                                    self.reopen_closed_tab();
                                 }
                             }
                         });
@@ -1785,12 +1844,24 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                     .show(ui.ctx(), |ui| {
                         ui.label(link.host_str().unwrap_or("Посилання"));
                         ui.separator();
-                        if ui.button("Завантажити посилання…").clicked() {
-                            download_link = Some(link.to_string());
+                        if ui.button("Відкрити в поточній вкладці").clicked() {
+                            if let Some(view) = self.active_webview() {
+                                view.load(link.clone());
+                            }
                             close_menu = true;
                         }
                         if ui.button("Відкрити в новій вкладці").clicked() {
                             open_link = Some(link.clone());
+                            close_menu = true;
+                        }
+                        if ui.button("Копіювати адресу посилання").clicked() {
+                            if let Err(error) = write_system_clipboard(link.as_str()) {
+                                log::warn!("{error}");
+                            }
+                            close_menu = true;
+                        }
+                        if ui.button("Завантажити посилання…").clicked() {
+                            download_link = Some(link.to_string());
                             close_menu = true;
                         }
                         if ui.button("Скасувати").clicked() {
