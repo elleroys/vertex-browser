@@ -319,7 +319,7 @@ impl BrowserState {
         };
         let html = format!(r#"<!doctype html>
 <html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Нова вкладка — Vertex</title><style>
+<title>Нова вкладка — Vortex</title><style>
 :root{{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#111318;color:#e8eaf0}}
 *{{box-sizing:border-box}}body{{margin:0;padding:12vh max(24px,calc((100vw - 900px)/2));}}
 .brand{{color:#9aa8ff;font-size:12px;letter-spacing:3px;font-weight:700;text-align:center}}
@@ -789,43 +789,93 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                         }
                     }
                 }
-                ui.menu_button("Меню ☰", |ui| {
-                    ui.label(egui::RichText::new("VORTEX").strong());
+                ui.menu_button("Меню", |ui| {
+                    ui.set_min_width(245.0);
+                    ui.label(egui::RichText::new("VORTEX").strong().size(13.0));
                     ui.separator();
-                    if ui.button("＋ Нова вкладка").clicked() { self.create_tab(self.new_tab_url()); ui.close(); }
-                    if ui.button("↶ Відновити закриту вкладку").clicked() { self.reopen_closed_tab(); ui.close(); }
-                    ui.separator();
-                    if ui.button("Завантаження").clicked() { self.downloads_manager_open.set(true); ui.close(); }
-                    if ui.button("Закладки").clicked() { self.bookmarks_manager_open.set(true); ui.close(); }
-                    if ui.button("Історія").clicked() { self.history_manager_open.set(true); ui.close(); }
-                    if ui.button("Паролі").clicked() {
-                        if let Some(url) = active.as_ref().and_then(|v| v.url()) {
-                            if matches!(url.scheme(), "http" | "https") { *self.vault_origin.borrow_mut() = url.origin().ascii_serialization(); }
-                        }
-                        self.password_vault_open.set(true); ui.close();
+                    if ui.button("＋  Нова вкладка").clicked() {
+                        self.create_tab(self.new_tab_url());
+                        ui.close();
+                    }
+                    if ui.button("↶  Відновити закриту вкладку").clicked() {
+                        self.reopen_closed_tab();
+                        ui.close();
                     }
                     ui.separator();
-                    ui.menu_button("Блокування реклами", |ui| {
-                        let enabled = self.adblock_enabled();
-                        if ui.button(if enabled { "✓ Увімкнено" } else { "Увімкнути" }).clicked() { self.toggle_adblock(); ui.close(); }
-                        let site_enabled = active.as_ref().is_some_and(|v| self.site_adblock_enabled(v));
-                        if ui.button(if site_enabled { "✓ Для цього сайту" } else { "Увімкнути для цього сайту" }).clicked() { self.toggle_site_adblock(); ui.close(); }
-                        if ui.button("Списки та правила…").clicked() {
-                            *self.adblock_rules_draft.borrow_mut() = self.adblock_custom_rules.borrow().clone();
-                            self.adblock_rules_open.set(true); ui.close();
+                    ui.menu_button("Бібліотека", |ui| {
+                        if ui.button("Завантаження").clicked() {
+                            self.downloads_manager_open.set(true);
+                            ui.close();
+                        }
+                        if ui.button("Закладки").clicked() {
+                            self.bookmarks_manager_open.set(true);
+                            ui.close();
+                        }
+                        if ui.button("Історія").clicked() {
+                            self.history_manager_open.set(true);
+                            ui.close();
+                        }
+                        if ui.button("Паролі").clicked() {
+                            if let Some(url) = active.as_ref().and_then(|v| v.url()) {
+                                if matches!(url.scheme(), "http" | "https") {
+                                    *self.vault_origin.borrow_mut() = url.origin().ascii_serialization();
+                                }
+                            }
+                            self.password_vault_open.set(true);
+                            ui.close();
                         }
                     });
-                    if ui.button("Керування вкладками").clicked() { self.tab_manager_open.set(true); ui.close(); }
-                    if ui.button("Дані сайтів").clicked() { self.site_data_manager_open.set(true); ui.close(); }
-                    if ui.button("Дозволи сайтів").clicked() { self.site_permissions_manager_open.set(true); ui.close(); }
-                    if ui.button("Налаштування").clicked() { self.settings_open.set(true); ui.close(); }
+                    ui.menu_button("Приватність і безпека", |ui| {
+                        ui.menu_button("Блокування реклами", |ui| {
+                            let enabled = self.adblock_enabled();
+                            if ui.button(if enabled { "✓ Блокувальник увімкнено" } else { "Увімкнути блокувальник" }).clicked() {
+                                self.toggle_adblock();
+                                ui.close();
+                            }
+                            let site_enabled = active.as_ref().is_some_and(|v| self.site_adblock_enabled(v));
+                            if ui.button(if site_enabled { "✓ Для цього сайту увімкнено" } else { "Увімкнути для цього сайту" }).clicked() {
+                                self.toggle_site_adblock();
+                                ui.close();
+                            }
+                            if ui.button("Списки та власні правила…").clicked() {
+                                *self.adblock_rules_draft.borrow_mut() = self.adblock_custom_rules.borrow().clone();
+                                self.adblock_rules_open.set(true);
+                                ui.close();
+                            }
+                        });
+                        if ui.button("Дані сайтів…").clicked() {
+                            self.site_data_manager_open.set(true);
+                            ui.close();
+                        }
+                        if ui.button("Дозволи сайтів…").clicked() {
+                            self.site_permissions_manager_open.set(true);
+                            ui.close();
+                        }
+                    });
+                    ui.menu_button("Вкладки та вікна", |ui| {
+                        if ui.button("Керування вкладками…").clicked() {
+                            self.tab_manager_open.set(true);
+                            ui.close();
+                        }
+                    });
+                    if ui.button("Налаштування…").clicked() {
+                        self.settings_open.set(true);
+                        ui.close();
+                    }
                     ui.separator();
                     let zoom = active.as_ref().map(|v| v.page_zoom()).unwrap_or(1.0);
                     ui.horizontal(|ui| {
-                        if ui.button("−").clicked() { if let Some(v) = &active { v.set_page_zoom((v.page_zoom()-0.1).max(0.1)); } }
-                        ui.label(format!("Масштаб: {}%", (zoom*100.0).round() as u32));
-                        if ui.button("+").clicked() { if let Some(v) = &active { v.set_page_zoom((v.page_zoom()+0.1).min(5.0)); } }
-                        if ui.button("100%").clicked() { if let Some(v) = &active { v.set_page_zoom(1.0); } }
+                        ui.label("Масштаб");
+                        if ui.button("−").clicked() {
+                            if let Some(view) = &active { view.set_page_zoom((view.page_zoom() - 0.1).max(0.1)); }
+                        }
+                        ui.label(format!("{}%", (zoom * 100.0).round() as u32));
+                        if ui.button("+").clicked() {
+                            if let Some(view) = &active { view.set_page_zoom((view.page_zoom() + 0.1).min(5.0)); }
+                        }
+                        if ui.button("Скинути").clicked() {
+                            if let Some(view) = &active { view.set_page_zoom(1.0); }
+                        }
                     });
                 });
             });
