@@ -738,6 +738,20 @@ mod tests {
     }
 
     #[test]
+    fn bulk_cleanup_removes_only_completed_download_records() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let completed = storage.create_download("https://example.com/done", "done", "done").unwrap();
+        let active = storage.create_download("https://example.com/active", "active", "active").unwrap();
+        storage.finish_download(completed, 10).unwrap();
+        storage.update_download_progress(active, 5, Some(10), Path::new("active.part"), None, None).unwrap();
+        assert_eq!(storage.delete_completed_downloads().unwrap(), 1);
+        let remaining = storage.recent_downloads(10).unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].id, active);
+        assert_eq!(remaining[0].status, "downloading");
+    }
+
+    #[test]
     fn persists_download_lifecycle_and_progress() {
         let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
         let id = storage.create_download(
