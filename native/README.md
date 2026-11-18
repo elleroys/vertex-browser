@@ -1,22 +1,29 @@
-# Vertex Native — Servo prototype
+# Vertex Native — Servo browser runtime
 
-This directory is the isolated native-engine proof of concept. It does not replace or delete the existing Tauri application.
+This directory contains the native browser runtime prototype. The rendering engine is Servo embedded directly in the Rust process. The native path must not use Tauri, WebView2, or another system webview.
 
-## Current scope
+## Implemented in this prototype
 
-- Native desktop window created by `winit`.
-- Servo is embedded in-process through its current `ServoBuilder` / `WebViewBuilder` API.
-- Initial page can be supplied as the first command-line argument; defaults to `https://example.com`.
-- Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation are wired.
-- Mouse movement, clicks, leaving the viewport and wheel scrolling are forwarded to Servo.
+- Native desktop window created with `winit`.
+- Servo embedded in-process through `ServoBuilder` and `WebViewBuilder`.
+- Initial navigation from the first command-line argument.
+- Input parsing for HTTP(S) URLs, dotted hostnames, and search queries.
+- Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation.
+- Mouse movement, clicks, leaving the viewport and wheel scrolling forwarded to Servo.
+- Keyboard down/up events, common named keys, and modifier state forwarded to Servo.
+- Window focus is synchronized with the active Servo WebView.
+- IME committed text is forwarded to Servo.
+- Native shortcuts: Ctrl+R / F5 reload, Alt+Left back, Alt+Right forward.
 
-This is an engine integration spike, **not yet the full Vertex browser**. Keyboard input, navigation controls, multiple tabs, downloads, permissions, profile storage, ad blocking and the browser chrome are not implemented here yet.
+## Still missing
+
+This is an engine shell, not yet a complete consumer browser. It does not yet have native browser chrome/address bar, tabs, bookmarks/history UI, download integration, password autofill, ad-block network interception, profile settings, installer or production hardening. Do not claim those features are implemented.
+
+The keyboard physical `Code` is currently reported as `Unidentified`; logical key values are forwarded for common keys. Full physical-key mapping and IME composition/preedit support remain follow-up work.
 
 ## Toolchain and Windows
 
-Servo's current main branch requires a recent Rust toolchain. The upstream toolchain file currently pins Rust 1.99.1, which is also pinned for this native prototype.
-
-Servo's Windows build has native dependencies and platform-specific rendering configuration. In particular, the Windows dependency enables Servo's `no-wgl` feature. Media support requires the matching GStreamer development/runtime libraries; this initial prototype intentionally does not enable the media feature.
+Servo's pinned source revision requires a recent Rust toolchain. The exact toolchain is declared in the workspace/native configuration. Servo's Windows build has native dependencies and platform-specific rendering configuration. Media support is not enabled in this initial prototype.
 
 From the repository root:
 
@@ -25,13 +32,15 @@ cd native
 cargo run -- https://example.com
 ```
 
-Rustup will install the pinned toolchain if it is not already present. The first build is expected to be large and may take a long time because Servo compiles a substantial engine and JavaScript runtime.
+The first build is expected to be large and may take a long time because Servo compiles a substantial engine and JavaScript runtime. A successful GitHub source update does not prove that the project compiles: validate with `cargo check` and `cargo run` on Windows x64.
 
-## Upstream API references
+## Architecture rule
+
+All browser UI and browser services must be native Rust components around Servo. Do not reintroduce Tauri, WebView2, Edge WebView, CEF, or a second embedded browser engine as a shortcut. Reuse existing database and cryptographic logic only after removing Tauri-specific runtime dependencies.
+
+## Upstream references
 
 - Servo crate API: https://doc.servo.org/servo/
 - Servo embedding overview: https://book.servo.org/embedding/overview.html
 - Upstream minimal winit embedder: https://github.com/servo/servo/blob/main/components/servo/examples/winit_minimal.rs
-- Servo source revision pinned by this prototype: `32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17`
-
-The embedding API is still evolving. Keep the Servo revision pinned and update it deliberately after checking upstream API changes.
+- Pinned Servo source revision: `32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17`
