@@ -412,3 +412,40 @@ impl EventLoopWaker for ServoWaker {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::parse_navigation_input;
+
+    #[test]
+    fn accepts_explicit_https_url() {
+        let url = parse_navigation_input("https://example.org/path");
+        assert_eq!(url.as_str(), "https://example.org/path");
+    }
+
+    #[test]
+    fn upgrades_plain_hostname_to_https() {
+        let url = parse_navigation_input("example.org");
+        assert_eq!(url.as_str(), "https://example.org/");
+    }
+
+    #[test]
+    fn turns_plain_text_into_search() {
+        let url = parse_navigation_input("servo browser engine");
+        assert_eq!(url.host_str(), Some("www.google.com"));
+        assert_eq!(
+            url.query_pairs().find(|(key, _)| key == "q").map(|(_, value)| value.into_owned()),
+            Some("servo browser engine".to_owned())
+        );
+    }
+
+    #[test]
+    fn encodes_unicode_search_terms() {
+        let url = parse_navigation_input("браузер");
+        assert_eq!(
+            url.query_pairs().find(|(key, _)| key == "q").map(|(_, value)| value.into_owned()),
+            Some("браузер".to_owned())
+        );
+    }
+}
