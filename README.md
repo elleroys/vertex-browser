@@ -1,37 +1,56 @@
-# Vortex Browser — native Servo migration
+# Vortex Browser — native Servo runtime
 
-Vortex is being migrated to a **native Rust desktop browser** with Servo as its web engine. The migration is developed on the `servo-migration` branch; the legacy `main` branch is intentionally preserved until the native implementation is validated.
+Vortex is a Windows desktop browser built around **Servo embedded directly in a native Rust process**. The active implementation is in `native/` on the `servo-migration` branch. The target runtime does not use Tauri, WebView2, Edge WebView, CEF, or another system webview.
 
-## Architecture target
+> **Status:** development/testing build. Core browser features are implemented in source, but the native Windows build and runtime still require successful CI and hands-on validation. Do not treat this branch as a production-ready browser yet.
 
-- **Runtime:** native Rust process; no Tauri runtime, WebView2, Edge WebView, CEF, or other system webview.
-- **Web engine:** Servo embedded in-process.
-- **Window and input:** `winit`.
-- **Browser chrome:** native Rust UI using egui/Glow on Servo's shared OpenGL context.
-- **Persistence:** SQLite, reusing the existing schema and SQL logic after removing Tauri-specific coupling.
-- **Ad blocking:** retain filter-list parsing and per-site rules; replace WebView2 request interception with a Servo-supported network integration.
-- **Passwords:** retain the Argon2id/XChaCha20-Poly1305 vault core; rebuild page-aware save/autofill integration around supported Servo APIs.
-- **Downloads:** adapt the existing transfer manager to native events and Servo download requests.
+## Current native features
 
-## Current status
+- Servo rendering in a native `winit` window, with egui/Glow browser chrome.
+- Tabs, address/search bar, navigation controls, keyboard shortcuts, new-tab page, session restore and recently closed tabs.
+- SQLite profile, browsing history, bookmarks and configurable search/homepage.
+- Download manager for direct HTTP(S) URLs, with progress, cancellation and safe resume when server validators permit it.
+- Encrypted local password vault using Argon2id and XChaCha20-Poly1305, with explicit same-origin autofill.
+- Native AdBlock subset: custom rules, per-site exceptions, local/remote lists and scheduled refresh. This is not full EasyList/uBlock compatibility.
+- Site permission prompts and persistent per-origin decisions.
+- Site-data management for cookies, localStorage and sessionStorage. IndexedDB, Cache Storage and service-worker cleanup are not yet covered.
+- Navigation safety checks, IDN/Punycode and mixed-script warnings, plus optional local OpenPhish Community URL matching.
+- Configurable privacy settings and persistent profile data.
 
-The native prototype in `native/` creates a desktop window, embeds Servo, paints frames, handles resizing/DPI, and forwards mouse, wheel, keyboard, focus, and committed IME input. It has a first egui/Glow browser-chrome overlay with a visible tab strip, address/search field and navigation controls, plus multi-tab shortcuts, a SQLite profile, history/bookmarks pages and a Servo-rendered new-tab page.
+See [native/README.md](native/README.md) for the detailed feature inventory and known limitations.
 
-This is an **early engine proof of concept, not yet a complete browser**. The chrome is currently an overlay and the page viewport has not yet been inset below it. Download integration, password autofill, ad blocking, settings, session restore, installer and production hardening remain to be implemented and tested. No performance improvement is claimed until measured against Chrome on the same machine.
+## Build on Windows 11 x64
 
-See:
-- [Servo migration plan](docs/SERVO_MIGRATION.md)
-- [Migration audit and implementation order](docs/SERVO_MIGRATION_AUDIT.md)
-- [Native runtime instructions](native/README.md)
+### Requirements
 
-## Build the native prototype on Windows 11 x64
+- Windows 11 x64.
+- Visual Studio 2022 Build Tools or Visual Studio with **Desktop development with C++** workload.
+- Git.
+- Rust toolchain from [native/rust-toolchain.toml](native/rust-toolchain.toml). Rustup will select it automatically when you enter `native/`.
 
-Prerequisites:
-- Windows 11 x64
-- Visual Studio 2022 Build Tools with **Desktop development with C++**
-- Git and the Rust toolchain specified in `native/rust-toolchain.toml`
+### Build and run
 
-From the repository root, in PowerShell:
+Open PowerShell in the repository root:
+
+```powershell
+.\scripts\build-windows.ps1
+```
+
+The script builds the optimized native executable and creates `dist\Vortex-Windows-x64.zip`.
+
+To build and immediately launch it:
+
+```powershell
+.\scripts\build-windows.ps1 -Launch
+```
+
+To launch a specific page:
+
+```powershell
+.\scripts\build-windows.ps1 -Launch -Url "https://example.com"
+```
+
+Manual development commands:
 
 ```powershell
 cd native
@@ -40,8 +59,34 @@ cargo test
 cargo run -- https://example.com
 ```
 
-The first Servo build is large and can take a substantial amount of time. The Windows GitHub Actions workflow also runs `cargo check` and the navigation parser tests on pushes and pull requests to `servo-migration`.
+The first Servo build downloads and compiles a large engine and may take a long time. Ensure that the Visual C++ build tools are installed and that the machine has sufficient free disk space.
 
-## Existing browser services
+## Downloading a CI build
 
-The old implementation remains in `src-tauri/` and `src/` for reference during migration. Do not launch it as the target browser and do not add new WebView2 dependencies to the native runtime. Portable service logic should be extracted deliberately and covered by tests before the legacy runtime is retired.
+After the Windows GitHub Actions workflow succeeds, download the `Vortex-Windows-x64` artifact from the workflow run:
+
+[GitHub Actions — servo-migration](https://github.com/elleroys/vertex-browser/actions/workflows/servo-windows.yml?query=branch%3Aservo-migration)
+
+The artifact is a portable ZIP containing `Vortex.exe` and a short run guide. It is a development build and may still have platform/runtime limitations.
+
+## Security and privacy notes
+
+- OpenPhish Community integration is disabled by default and is restricted by the provider to personal/academic/independent non-commercial use. Commercial product use requires a separately licensed source and written permission where applicable.
+- OpenPhish checks are local: visited page URLs are not sent to the feed provider. Downloading the feed itself exposes the client's network connection to OpenPhish.
+- IDN, mixed-script and HTTP warnings are risk signals, not proof that a site is malicious. Users can encounter false positives.
+- The native AdBlock parser intentionally supports only a documented subset of filter-list syntax.
+
+## Architecture
+
+- Runtime and browser services: Rust.
+- Web engine: pinned Servo revision.
+- Window/input: winit.
+- Browser chrome: egui/Glow.
+- Profile persistence: SQLite.
+- Security-sensitive secrets: Argon2id + XChaCha20-Poly1305.
+
+The legacy Tauri/React implementation remains in the repository for reference only. New browser-runtime work belongs in `native/`.
+
+## Validation policy
+
+Source commits are not proof that the app compiles or works. The Windows CI workflow runs `cargo check`, `cargo test` and a release build. Real Windows startup, browsing, downloads, media, password autofill, site compatibility and performance still need hands-on testing.

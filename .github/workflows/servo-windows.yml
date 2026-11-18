@@ -20,7 +20,7 @@ jobs:
   check:
     name: Build native Servo shell (Windows x64)
     runs-on: windows-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,3 +53,40 @@ jobs:
         shell: pwsh
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+
+      - name: Build optimized Windows executable
+        working-directory: native
+        run: cargo build --release
+        shell: pwsh
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+
+      - name: Package portable browser
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $package = Join-Path $env:RUNNER_TEMP "Vortex-Windows-x64"
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          $exe = "native/target/release/vertex-native.exe"
+          if (!(Test-Path $exe -PathType Leaf)) { throw "Release executable not found: $exe" }
+          Copy-Item $exe (Join-Path $package "Vortex.exe")
+          @'
+          Vortex Browser — Windows x64 development build
+
+          Run Vortex.exe, or pass a URL as its first argument:
+            Vortex.exe https://example.com
+
+          Profile: %APPDATA%\VertexBrowser\profile.sqlite3
+
+          This is a development build, not a production release.
+          OpenPhish Community is optional and restricted to non-commercial use.
+          '@ | Set-Content -Encoding UTF8 (Join-Path $package "RUN-WINDOWS.txt")
+          Compress-Archive -Path (Join-Path $package "*") -DestinationPath (Join-Path $env:RUNNER_TEMP "Vortex-Windows-x64.zip") -CompressionLevel Optimal
+
+      - name: Upload portable Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vortex-Windows-x64
+          path: ${{ runner.temp }}/Vortex-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
