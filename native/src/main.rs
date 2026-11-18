@@ -103,21 +103,37 @@ impl BrowserState {
     }
 
     fn close_active_tab(&self) {
+        self.close_tab_at(self.active_tab.get());
+    }
+
+    fn close_tab_at(&self, index: usize) {
         let mut tabs = self.webviews.borrow_mut();
-        if tabs.len() <= 1 {
+        if tabs.len() <= 1 || index >= tabs.len() {
             return;
         }
-        let index = self.active_tab.get().min(tabs.len() - 1);
+        let was_active = index == self.active_tab.get();
         tabs[index].set_focused(false);
         tabs[index].hide();
         tabs.remove(index);
-        let next = index.min(tabs.len() - 1);
+
+        let next = if index < self.active_tab.get() {
+            self.active_tab.get() - 1
+        } else if was_active {
+            index.min(tabs.len() - 1)
+        } else {
+            self.active_tab.get()
+        };
         self.active_tab.set(next);
+
         if let Some(active) = tabs.get(next) {
             active.show();
             active.set_focused(true);
-            self.update_window_title(active);
-            *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
+            if was_active {
+                self.update_window_title(active);
+                *self.address_bar.borrow_mut() = active.url()
+                    .filter(|url| matches!(url.scheme(), "http" | "https"))
+                    .map(|url| url.to_string()).unwrap_or_default();
+            }
         }
         drop(tabs);
         self.window.request_redraw();
@@ -263,19 +279,24 @@ ${sections}</body></html>"#);
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
                     for (index, title, selected) in &tab_labels {
-                        let short_title: String = title.chars().take(20).collect();
-                        let label = if *selected {
-                            egui::RichText::new(format!("● {short_title}")).strong()
-                        } else {
-                            egui::RichText::new(short_title)
-                        };
-                        if ui.add(egui::Button::new(label).fill(if *selected {
-                            egui::Color32::from_rgb(54, 62, 91)
-                        } else {
-                            egui::Color32::from_rgb(35, 38, 48)
-                        })).clicked() {
-                            self.activate_tab(*index);
-                        }
+                        let short_title: String = title.chars().take(18).collect();
+                        ui.horizontal(|ui| {
+                            let label = if *selected {
+                                egui::RichText::new(format!("● {short_title}")).strong()
+                            } else {
+                                egui::RichText::new(short_title)
+                            };
+                            if ui.add(egui::Button::new(label).fill(if *selected {
+                                egui::Color32::from_rgb(54, 62, 91)
+                            } else {
+                                egui::Color32::from_rgb(35, 38, 48)
+                            })).clicked() {
+                                self.activate_tab(*index);
+                            }
+                            if ui.small_button("×").clicked() {
+                                self.close_tab_at(*index);
+                            }
+                        });
                     }
                     if ui.button("+").clicked() {
                         self.create_tab(self.new_tab_url());
