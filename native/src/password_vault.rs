@@ -306,6 +306,162 @@ impl PasswordVault {
     }
 }
 
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CsvImportIssue {
+    pub row: usize,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CsvImportPreview {
+    pub entries: Vec<CsvImportEntry>,
+    pub issues: Vec<CsvImportIssue>,
+    pub duplicates: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CsvImportEntry {
+    pub origin: String,
+    pub title: String,
+    pub username: String,
+    pub password: String,
+    pub notes: Option<String>,
+}
+
+impl Drop for CsvImportEntry {
+    fn drop(&mut self) {
+        self.username.zeroize();
+        self.password.zeroize();
+        if let Some(notes) = &mut self.notes {
+            notes.zeroize();
+        }
+    }
+}
+
+impl PasswordVault {
+    /// Export decrypted credentials as RFC 4180 CSV. The caller must treat the returned
+    /// string as highly sensitive and write it only to a user-selected location.
+    pub fn export_csv(&self, storage: &BrowserStorage) -> Result<String, String> {
+        let credentials = self.list_credentials(storage, None)?;
+        let mut writer = csv::WriterBuilder::new()
+            .has_headers(false)
+            .from_writer(Vec::new());
+        writer.write_record(["origin", "title", "username", "password", "notes"])
+            .map_err(|error| error.to_string())?;
+        for item in &credentials {
+            writer.write_record([
+                item.origin.as_str(),
+                item.title.as_str(),
+                item.username.as_str(),
+                item.password.as_str(),
+                item.notes.as_deref().unwrap_or(""),
+            ]).map_err(|error| error.to_string())?;
+        }
+        let bytes = writer.into_inner().map_err(|error| error.to_string())?;
+        String::from_utf8(bytes).map_err(|error| error.to_string())
+    }
+
+    /// Parse and validate a CSV without changing the vault. Import is deliberately a
+    /// two-step operation: callers show this preview and ask for confirmation first.
+    pub fn preview_csv_import(
+        &self,
+        storage: &BrowserStorage,
+        input: &str,
+    ) -> Result<CsvImportPreview, String> {
+        const MAX_BYTES: usize = 10 * 1024 * 1024;
+        const MAX_ROWS: usize = 5_000;
+        if input.len() > MAX_BYTES {
+            return Err("CSV-файл завеликий (максимум 10 МБ)".to_owned());
+        }
+        let mut reader = csv::ReaderBuilder::new()
+            .trim(csv::Trim::All)
+            .flexible(false)
+            .from_reader(input.as_bytes());
+        let headers = reader.headers().map_err(|error| format!("Некоректний CSV: {error}"))?.clone();
+        for required in ["origin", "username", "password"] {
+            if !headers.iter().any(|header| header.eq_ignore_ascii_case(required)) {
+                return Err(format!("У CSV відсутня обов'язкова колонка: {required}"));
+            }
+        }
+        let column = |name: &str| headers.iter().position(|header| header.eq_ignore_ascii_case(name));
+        let origin_col = column("origin").expect("required header checked");
+        let username_col = column("username").expect("required header checked");
+        let password_col = column("password").expect("required header checked");
+        let title_col = column("title");
+        let notes_col = column("notes");
+
+        let existing = self.list_credentials(storage, None)?;
+        let mut known = std::collections::HashSet::new();
+        for item in &existing {
+            known.insert((item.origin.to_ascii_lowercase(), item.username.to_lowercase()));
+        }
+
+        let mut preview = CsvImportPreview { entries: Vec::new(), issues: Vec::new(), duplicates: 0 };
+        for (index, record) in reader.records().enumerate() {
+            if index >= MAX_ROWS {
+                return Err(format!("CSV містить більше ніж {MAX_ROWS} рядків"));
+            }
+            let row_number = index + 2;
+            let record = match record {
+                Ok(record) => record,
+                Err(error) => {
+                    preview.issues.push(CsvImportIssue { row: row_number, message: format!("Некоректний рядок CSV: {error}") });
+                    continue;
+                }
+            };
+            let raw_origin = record.get(origin_col).unwrap_or_default();
+            let origin = match normalize_origin(raw_origin) {
+                Ok(origin) => origin,
+                Err(error) => {
+                    preview.issues.push(CsvImportIssue { row: row_number, message: error });
+                    continue;
+                }
+            };
+            let username = record.get(username_col).unwrap_or_default().to_owned();
+            let password = record.get(password_col).unwrap_or_default().to_owned();
+            if password.is_empty() {
+                preview.issues.push(CsvImportIssue { row: row_number, message: "Порожній пароль — запис пропущено".to_owned() });
+                continue;
+            }
+            let duplicate_key = (origin.to_ascii_lowercase(), username.to_lowercase());
+            if !known.insert(duplicate_key) {
+                preview.duplicates += 1;
+                continue;
+            }
+            preview.entries.push(CsvImportEntry {
+                origin,
+                title: title_col.and_then(|column| record.get(column)).unwrap_or_default().to_owned(),
+                username,
+                password,
+                notes: notes_col.and_then(|column| record.get(column)).filter(|value| !value.is_empty()).map(str::to_owned),
+            });
+        }
+        Ok(preview)
+    }
+
+    /// Persist only entries from a preview after explicit user confirmation.
+    pub fn confirm_csv_import(
+        &self,
+        storage: &BrowserStorage,
+        preview: CsvImportPreview,
+    ) -> Result<usize, String> {
+        let mut imported = 0;
+        for entry in preview.entries {
+            self.save_credential(
+                storage,
+                &entry.origin,
+                &entry.title,
+                &entry.username,
+                &entry.password,
+                entry.notes.as_deref(),
+            )?;
+            imported += 1;
+        }
+        Ok(imported)
+    }
+}
+
 pub fn generate_password(length: usize) -> Result<String, String> {
     if !(12..=128).contains(&length) {
         return Err("Довжина пароля має бути від 12 до 128 символів".to_owned());
