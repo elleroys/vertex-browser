@@ -1150,6 +1150,8 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                 let entries = self.storage.recent_downloads(100).unwrap_or_default();
                 let mut requested_url = None;
                 let mut retry_download_id: Option<i64> = None;
+                let mut pause_download_id: Option<i64> = None;
+                let mut cancel_download_id: Option<i64> = None;
                 let mut open_file: Option<PathBuf> = None;
                 let mut open_folder: Option<PathBuf> = None;
                 let mut delete_record: Option<i64> = None;
@@ -1190,12 +1192,11 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                         ui.label(egui::RichText::new(&entry.file_name).strong());
                                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                             if matches!(entry.status.as_str(), "queued" | "downloading") {
+                                                if ui.small_button("Пауза").clicked() {
+                                                    pause_download_id = Some(entry.id);
+                                                }
                                                 if ui.small_button("Скасувати").clicked() {
-                                                    if let Some(token) = self.active_downloads.borrow().get(&entry.id) {
-                                                        token.store(true, Ordering::Relaxed);
-                                                    } else {
-                                                        let _ = self.storage.cancel_download(entry.id);
-                                                    }
+                                                    cancel_download_id = Some(entry.id);
                                                 }
                                             } else {
                                                 if entry.status == "completed" {
@@ -1205,8 +1206,9 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                                     if ui.small_button("Папка").clicked() {
                                                         open_folder = PathBuf::from(&entry.file_path).parent().map(PathBuf::from);
                                                     }
-                                                } else if matches!(entry.status.as_str(), "failed" | "cancelled") {
-                                                    if ui.small_button("Відновити").clicked() {
+                                                } else if matches!(entry.status.as_str(), "paused" | "failed" | "cancelled") {
+                                                    let label = if entry.status == "paused" { "Продовжити" } else { "Повторити" };
+                                                    if ui.small_button(label).clicked() {
                                                         retry_download_id = Some(entry.id);
                                                     }
                                                 }
@@ -1220,6 +1222,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                         "queued" => "У черзі",
                                         "downloading" => "Завантажується",
                                         "completed" => "Завершено",
+                                        "paused" => "Призупинено",
                                         "cancelled" => "Скасовано",
                                         _ => "Помилка",
                                     };
@@ -1228,7 +1231,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                         ui.label(egui::RichText::new(status).color(match entry.status.as_str() {
                                             "completed" => egui::Color32::LIGHT_GREEN,
                                             "failed" => egui::Color32::LIGHT_RED,
-                                            "cancelled" => egui::Color32::GRAY,
+                                            "cancelled" | "paused" => egui::Color32::GRAY,
                                             _ => ui.visuals().text_color(),
                                         }));
                                         ui.label(egui::RichText::new(progress_text).monospace());
@@ -1255,6 +1258,22 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                         });
                     });
                 if !open { self.downloads_manager_open.set(false); }
+                if let Some(id) = pause_download_id {
+                    if let Some(token) = self.active_downloads.borrow().get(&id) {
+                        token.store(true, Ordering::Relaxed);
+                    }
+                    if let Err(error) = self.storage.pause_download(id) {
+                        log::error!("could not pause download {id}: {error}");
+                    }
+                }
+                if let Some(id) = cancel_download_id {
+                    if let Some(token) = self.active_downloads.borrow().get(&id) {
+                        token.store(true, Ordering::Relaxed);
+                    }
+                    if let Err(error) = self.storage.cancel_download(id) {
+                        log::error!("could not cancel download {id}: {error}");
+                    }
+                }
                 if let Some(url) = requested_url { self.start_download(url); }
                 if let Some(id) = retry_download_id {
                     if let Some(entry) = entries.iter().find(|entry| entry.id == id) {
