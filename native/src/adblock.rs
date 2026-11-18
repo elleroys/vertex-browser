@@ -145,6 +145,33 @@ impl RuleSet {
     }
 }
 
+/// Merge imported filter-list text into the editable custom rules.
+/// Only rules understood by this matcher are counted as supported; comments and
+/// unsupported EasyList syntax are retained in the editor but do not affect matching.
+pub fn merge_imported_rules(existing: &str, imported: &str) -> (String, usize, usize) {
+    use std::collections::HashSet;
+
+    let mut merged = existing.lines().map(str::to_owned).collect::<Vec<_>>();
+    let mut seen = merged.iter().map(|line| line.trim().to_owned()).collect::<HashSet<_>>();
+    let mut supported = 0usize;
+    let mut ignored = 0usize;
+
+    for line in imported.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || !seen.insert(trimmed.to_owned()) {
+            continue;
+        }
+        if parse_rule(trimmed).is_some() {
+            supported += 1;
+        } else if !trimmed.starts_with('!') && !trimmed.starts_with('#') {
+            ignored += 1;
+        }
+        merged.push(trimmed.to_owned());
+    }
+
+    (merged.join("\n"), supported, ignored)
+}
+
 /// Returns true when a URL matches the built-in ad/tracker rules.
 pub fn is_blocked_url(url: &url::Url) -> bool {
     RuleSet::new("").is_blocked(url)
@@ -161,6 +188,19 @@ mod tests {
 
     fn url(value: &str) -> url::Url {
         url::Url::parse(value).unwrap()
+    }
+
+    #[test]
+    fn imported_rules_are_merged_without_duplicates_and_report_unsupported_syntax() {
+        let (merged, supported, ignored) = merge_imported_rules(
+            "||existing.example^",
+            "! EasyList comment\n||ads.example.com^\n||existing.example^\n||ads.example.com^$script\n",
+        );
+        assert_eq!(supported, 1);
+        assert_eq!(ignored, 1);
+        assert_eq!(merged.lines().filter(|line| *line == "||existing.example^").count(), 1);
+        assert_eq!(merged.lines().filter(|line| *line == "||ads.example.com^").count(), 1);
+        assert!(RuleSet::new(&merged).is_blocked(&url("https://ads.example.com/banner")));
     }
 
     #[test]
