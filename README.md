@@ -1,53 +1,47 @@
-# Vortex Browser (Windows 11 — Rust + Tauri 2 + WebView2 + SQLite)
+# Vortex Browser — native Servo migration
 
-**Vortex Browser** — це незалежний браузер для Windows 11, орієнтований на мінімальне споживання RAM, високу швидкодію, приватність та зручність роботи з великою кількістю вкладок.
+Vortex is being migrated to a **native Rust desktop browser** with Servo as its web engine. The migration is developed on the `servo-migration` branch; the legacy `main` branch is intentionally preserved until the native implementation is validated.
 
-## Архітектура проєкту
+## Architecture target
 
-- `src-tauri/` — Backend на Rust (Tauri 2):
-  - `src/webview_manager.rs` — керування кількома незалежними дочірніми екземплярами **Microsoft WebView2** (`tauri::webview::WebviewBuilder` + `ICoreWebView2`) всередині єдиного вікна без використання `iframe`.
-  - `src/adblock.rs` — двигун `adblock-rust` з підтримкою **EasyList** та **EasyPrivacy**, перехопленням мережевих запитів на рівні `ICoreWebView2::WebResourceRequested`, автооновленням списків та домено-специфічним білим списком (Whitelist).
-  - `src/password_manager.rs` — локальне сховище паролів із виведенням ключа через **Argon2id** (`m=65536 KiB, t=3, p=1`), шифруванням **XChaCha20-Poly1305**, затиранням ключів у пам'яті (`zeroize`) та імпортом CSV із Google Password Manager.
-  - `src/memory_saver.rs` — призупинення (`ICoreWebView2_13::TrySuspend`) та вивантаження (`Tab Discarding`) неактивних вкладок із захистом вкладок зі звуком, активних завантажень і закріплених вкладок.
-  - `src/downloads.rs` — потоковий менеджер завантажень з підтримкою HTTP `Range` (пауза/відновлення).
-  - `src/db.rs` — локальна БД **SQLite** (`rusqlite`, режим `WAL`) для сесії вкладок, закладок, історії, завантажень, винятків AdBlock та налаштувань.
-  - `capabilities/default.json` — суворий ACL Tauri 2: доступ до IPC-команд має виключно головне вікно (`main`), зовнішні сайти у `tab-*` повністю ізольовані.
-- `src/` — інтерфейс браузера на React + TypeScript + Tailwind CSS (українська мова, темна тема).
-- `server.ts` — локальний HTTP-сервер та проксі з SQLite (`node:sqlite`) для тестування та роботи інтерфейсу поза середовищем Windows WebView2.
-- `benchmarks/compare_vortex_vs_chrome.ps1` — PowerShell-скрипт для порівняльного вимірювання Vortex vs Chrome на Windows 11 (1, 5, 10, 20, 30 вкладок).
+- **Runtime:** native Rust process; no Tauri runtime, WebView2, Edge WebView, CEF, or other system webview.
+- **Web engine:** Servo embedded in-process.
+- **Window and input:** `winit`.
+- **Browser chrome:** native Rust UI (planned; not yet implemented).
+- **Persistence:** SQLite, reusing the existing schema and SQL logic after removing Tauri-specific coupling.
+- **Ad blocking:** retain filter-list parsing and per-site rules; replace WebView2 request interception with a Servo-supported network integration.
+- **Passwords:** retain the Argon2id/XChaCha20-Poly1305 vault core; rebuild page-aware save/autofill integration around supported Servo APIs.
+- **Downloads:** adapt the existing transfer manager to native events and Servo download requests.
 
-## Збірка інсталятора для Windows 11
+## Current status
 
-### Передумови
-1. Windows 11 (x64) з установленим **Microsoft Edge WebView2 Runtime** (вбудовано у Windows 11).
-2. **Rust** (`rustup` stable-x86_64-pc-windows-msvc) + **Visual Studio Build Tools 2022** (Desktop development with C++).
-3. **Node.js 20+**.
+The native prototype in `native/` creates a Windows desktop window, embeds Servo, loads an initial URL, paints frames, handles resizing/DPI, and forwards mouse, wheel, keyboard, focus, and committed IME input. It supports initial URL/search parsing and basic reload/back/forward shortcuts.
 
-### Команди розробки та збірки
+This is an **engine proof of concept, not yet a complete browser**. The address bar, browser toolbar, tabs, bookmarks/history UI, settings, download UI, password autofill, ad blocking, session restore, installer, and production hardening remain to be implemented and tested. No performance improvement is claimed until measured against Chrome on the same machine.
 
-```bash
-# 1. Встановлення залежностей frontend та Tauri CLI
-npm install
-npm install -D @tauri-apps/cli
+See:
+- [Servo migration plan](docs/SERVO_MIGRATION.md)
+- [Migration audit and implementation order](docs/SERVO_MIGRATION_AUDIT.md)
+- [Native runtime instructions](native/README.md)
 
-# 2. Перевірка компіляції Rust backend
-cd src-tauri && cargo check && cd ..
+## Build the native prototype on Windows 11 x64
 
-# 3. Запуск у режимі розробки (Windows 11 + WebView2)
-npx tauri dev
+Prerequisites:
+- Windows 11 x64
+- Visual Studio 2022 Build Tools with **Desktop development with C++**
+- Git and the Rust toolchain specified in `native/rust-toolchain.toml`
 
-# 4. Збірка релізного інсталятора (.exe NSIS та .msi) для Windows 11
-npx tauri build
-```
-
-Готові інсталятори будуть створені у:
-- `src-tauri/target/release/bundle/nsis/Vortex Browser_1.0.0_x64-setup.exe`
-- `src-tauri/target/release/bundle/msi/Vortex Browser_1.0.0_x64_en-US.msi`
-
-## Порівняльне тестування Vortex vs Chrome
+From the repository root, in PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\benchmarks\compare_vortex_vs_chrome.ps1
+cd native
+cargo check
+cargo test
+cargo run -- https://example.com
 ```
 
-Отриманий файл `benchmarks/vortex_vs_chrome_report.json` можна безпосередньо імпортувати на сторінці `vortex://benchmarks` у браузері.
+The first Servo build is large and can take a substantial amount of time. The Windows GitHub Actions workflow also runs `cargo check` and the navigation parser tests on pushes and pull requests to `servo-migration`.
+
+## Existing browser services
+
+The old implementation remains in `src-tauri/` and `src/` for reference during migration. Do not launch it as the target browser and do not add new WebView2 dependencies to the native runtime. Portable service logic should be extracted deliberately and covered by tests before the legacy runtime is retired.
