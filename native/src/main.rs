@@ -925,8 +925,14 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 if let Self::Running(state) = self {
                     let window_size = state.window.inner_size();
                     state.rendering_context.resize(window_size);
-                    if let Some(webview) = state.active_webview() {
+                    // Every tab shares the same offscreen surface, but each WebView
+                    // keeps its own device scale factor. Update all tabs after a DPI
+                    // transition so switching to a background tab cannot restore a
+                    // stale scale factor.
+                    for webview in state.webviews.borrow().iter() {
                         webview.set_hidpi_scale_factor(euclid::Scale::new(scale_factor as f32));
+                    }
+                    if let Some(webview) = state.active_webview() {
                         webview.resize(state.page_size(window_size));
                     }
                 }
@@ -976,13 +982,15 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     if event.state == ElementState::Pressed {
                         let control = state.modifiers.get().contains(Modifiers::CONTROL);
                         let shift = state.modifiers.get().contains(Modifiers::SHIFT);
+                        // Check the more specific shortcut first: Ctrl+Shift+T
+                        // must restore a closed tab, not create a new one.
+                        if control && shift && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
+                            state.reopen_closed_tab();
+                            return;
+                        }
                         if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
                             let new_tab = state.new_tab_url();
                             state.create_tab(new_tab);
-                            return;
-                        }
-                        if control && shift && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
-                            state.reopen_closed_tab();
                             return;
                         }
                         if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("w")) {
