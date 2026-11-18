@@ -179,7 +179,7 @@ fn is_filter_separator(character: char) -> bool {
 // and URL paths are percent-encoded ASCII, so byte offsets are safe here.
 fn wildcard_prefix_end(value: &str, pattern: &str) -> Option<usize> {
     if !pattern.contains('*') {
-        return value.strip_prefix(pattern).map(str::len);
+        return value.strip_prefix(pattern).map(|_| pattern.len());
     }
 
     let parts = pattern.split('*').collect::<Vec<_>>();
