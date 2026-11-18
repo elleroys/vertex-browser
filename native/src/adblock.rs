@@ -373,4 +373,34 @@ mod tests {
         let rules = "! comment\n# heading\n||ads.example.com^$script";
         assert!(!is_blocked_url_with_rules(&url("https://ads.example.com/"), rules));
     }
+
+    #[test]
+    fn path_exceptions_override_only_the_matching_path() {
+        let rules = "||cdn.example.net/ads/*/banner^\\n@@||cdn.example.net/ads/safe/banner^";
+        assert!(is_blocked_url_with_rules(
+            &url("https://cdn.example.net/ads/mobile/banner.js"), rules
+        ));
+        assert!(!is_blocked_url_with_rules(
+            &url("https://cdn.example.net/ads/safe/banner.js"), rules
+        ));
+        assert!(is_blocked_url_with_rules(
+            &url("https://cdn.example.net/ads/safe/other.js"), rules
+        ));
+    }
+
+    #[test]
+    fn wildcard_path_exceptions_take_precedence_independent_of_rule_order() {
+        let blocked_then_allowed =
+            "||cdn.example.net/ads/*\\n@@||cdn.example.net/ads/*/trusted^";
+        let allowed_then_blocked =
+            "@@||cdn.example.net/ads/*/trusted^\\n||cdn.example.net/ads/*";
+        for rules in [blocked_then_allowed, allowed_then_blocked] {
+            assert!(!is_blocked_url_with_rules(
+                &url("https://cdn.example.net/ads/mobile/trusted.js"), rules
+            ));
+            assert!(is_blocked_url_with_rules(
+                &url("https://cdn.example.net/ads/mobile/banner.js"), rules
+            ));
+        }
+    }
 }
