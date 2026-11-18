@@ -22,7 +22,7 @@ use servo::{
 };
 use url::Url;
 use zeroize::{Zeroize, Zeroizing};
-use storage::{default_profile_dir, BrowserStorage};
+use storage::{default_profile_dir, BrowserStorage, DownloadEntry};
 use winit::{
     application::ApplicationHandler,
     dpi::PhysicalPosition,
@@ -341,14 +341,10 @@ ${sections}</body></html>"#);
     }
 
     fn start_download(&self, raw_url: String) {
-        let Ok(url) = Url::parse(raw_url.trim()) else {
-            return;
-        };
+        let Ok(url) = Url::parse(raw_url.trim()) else { return; };
         if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none()
             || !url.username().is_empty() || url.password().is_some()
-        {
-            return;
-        }
+        { return; }
 
         let url_text = url.to_string();
         let suggested_name = downloads::suggested_file_name(&url_text);
@@ -361,35 +357,65 @@ ${sections}</body></html>"#);
             .set_directory(&download_dir)
             .set_file_name(&suggested_name)
             .save_file()
-        else {
-            return;
-        };
+        else { return; };
         let file_name = destination.file_name()
             .and_then(|name| name.to_str())
-            .unwrap_or(&suggested_name)
-            .to_owned();
+            .unwrap_or(&suggested_name).to_owned();
         let id = match self.storage.create_download(&url_text, &destination.display().to_string(), &file_name) {
             Ok(id) => id,
-            Err(error) => {
-                log::error!("could not create download record: {error}");
-                return;
-            }
+            Err(error) => { log::error!("could not create download record: {error}"); return; }
         };
+        let partial_path = destination.with_file_name(format!(".{file_name}.{id}.vertex-part"));
+        self.spawn_download(id, url_text, destination, partial_path, downloads::ResumeInfo {
+            etag: None, last_modified: None,
+        });
+    }
 
+    fn retry_download(&self, entry: DownloadEntry) {
+        let destination = PathBuf::from(&entry.file_path);
+        let partial_path = entry.partial_path.as_deref().map(PathBuf::from)
+            .unwrap_or_else(|| destination.with_file_name(format!(".{}.{}.vertex-part", entry.file_name, entry.id)));
+        if destination.exists() {
+            log::warn!("cannot retry download because destination already exists: {}", destination.display());
+            return;
+        }
+        let has_partial = partial_path.is_file();
+        let resume = if has_partial {
+            downloads::ResumeInfo { etag: entry.etag.clone(), last_modified: entry.last_modified.clone() }
+        } else {
+            downloads::ResumeInfo { etag: None, last_modified: None }
+        };
+        if let Err(error) = self.storage.reset_download_for_retry(entry.id) {
+            log::error!("could not reset download {} for retry: {error}", entry.id);
+            return;
+        }
+        self.spawn_download(entry.id, entry.url, destination, partial_path, resume);
+    }
+
+    fn spawn_download(
+        &self, id: i64, url_text: String, destination: PathBuf, partial_path: PathBuf,
+        resume: downloads::ResumeInfo,
+    ) {
         let cancelled = Arc::new(AtomicBool::new(false));
         self.active_downloads.borrow_mut().insert(id, cancelled.clone());
         let storage = self.storage.clone();
         let proxy = self.event_loop_proxy.clone();
         thread::spawn(move || {
-            let result = downloads::download_to_path(&url_text, &destination, |received, total| {
-                if cancelled.load(Ordering::Relaxed) {
-                    let _ = storage.cancel_download(id);
-                    return false;
-                }
-                let _ = storage.update_download_progress(id, received, total);
-                let _ = proxy.send_event(ServoWakeup);
-                !cancelled.load(Ordering::Relaxed)
-            });
+            let result = downloads::download_to_path(
+                &url_text, &destination, &partial_path, resume,
+                |received, total, validators| {
+                    if cancelled.load(Ordering::Relaxed) {
+                        let _ = storage.cancel_download(id);
+                        return false;
+                    }
+                    let _ = storage.update_download_progress(
+                        id, received, total, &partial_path,
+                        validators.etag.as_deref(), validators.last_modified.as_deref(),
+                    );
+                    let _ = proxy.send_event(ServoWakeup);
+                    !cancelled.load(Ordering::Relaxed)
+                },
+            );
             match result {
                 Ok(download) => {
                     if let Err(error) = storage.finish_download(id, download.bytes_received) {
