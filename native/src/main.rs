@@ -3197,7 +3197,13 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                             return;
                         }
                     }
-                    state.handle_keyboard(event, !egui_consumed);
+                    // Keep keyboard shortcuts and text editing inside browser chrome when an egui
+                    // widget (most importantly the address bar) owns keyboard focus. Without this
+                    // guard, the same Ctrl+C/Ctrl+V key events can also leak into the web page.
+                    let chrome_has_focus = state.egui.borrow().egui_ctx.memory(|memory| {
+                        memory.focused().is_some()
+                    });
+                    state.handle_keyboard(event, !egui_consumed && !chrome_has_focus);
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
