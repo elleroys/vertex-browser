@@ -11,7 +11,7 @@ use servo::{
     MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
     ImeEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, Servo, ServoBuilder,
     WebView, WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
-    WindowRenderingContext, KeyboardEvent,
+    WindowRenderingContext, RenderingContext, KeyboardEvent,
 };
 use url::Url;
 use storage::{default_profile_dir, BrowserStorage};
@@ -45,8 +45,8 @@ struct BrowserState {
     cursor_position: Cell<PhysicalPosition<f64>>,
     modifiers: Cell<Modifiers>,
     storage: BrowserStorage,
-    address_editing: Cell<bool>,
-    address_text: RefCell<String>,
+    egui: RefCell<egui_glow::winit::EguiGlow>,
+    address_bar: RefCell<String>,
 }
 
 impl BrowserState {
@@ -71,6 +71,7 @@ impl BrowserState {
         if let Some(active) = tabs.get(index) {
             active.set_focused(true);
             self.update_window_title(active);
+            *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
         }
         self.window.request_redraw();
     }
@@ -91,6 +92,7 @@ impl BrowserState {
         if let Some(active) = tabs.get(index) {
             active.set_focused(true);
             self.update_window_title(active);
+            *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
         }
         drop(tabs);
         self.window.request_redraw();
@@ -109,6 +111,7 @@ impl BrowserState {
         if let Some(active) = tabs.get(next) {
             active.set_focused(true);
             self.update_window_title(active);
+            *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
         }
         drop(tabs);
         self.window.request_redraw();
@@ -224,55 +227,90 @@ ${sections}</body></html>"#);
     fn begin_address_edit(&self) {
         let current = self.active_webview().and_then(|view| view.url())
             .map(|url| url.to_string()).unwrap_or_default();
-        *self.address_text.borrow_mut() = current;
-        self.address_editing.set(true);
-        self.window.set_title(&format!("{} — Vertex Browser", self.address_text.borrow()));
+        *self.address_bar.borrow_mut() = current;
+        self.egui.borrow().egui_ctx.memory_mut(|memory| {
+            memory.request_focus(egui::Id::new("vertex-address-bar"));
+        });
+        self.window.request_redraw();
     }
 
-    fn handle_address_key(&self, event: &winit::event::KeyEvent) {
-        if event.state != ElementState::Pressed { return; }
-        if self.modifiers.get().contains(Modifiers::CONTROL)
-            && matches!(&event.logical_key, WinitKey::Character(value) if value.eq_ignore_ascii_case("a"))
-        {
-            self.address_text.borrow_mut().clear();
-            self.window.set_title(" — Vertex Browser");
-            return;
+    fn draw_chrome(self: &Rc<Self>) {
+        let active = self.active_webview();
+        let current_url = active.as_ref()
+            .and_then(|view| view.url())
+            .map(|url| url.to_string())
+            .unwrap_or_default();
+        let tab_labels: Vec<(usize, String, bool)> = self.webviews.borrow().iter().enumerate()
+            .map(|(index, view)| {
+                let title = view.page_title()
+                    .filter(|title| !title.trim().is_empty())
+                    .or_else(|| view.url().and_then(|url| url.host_str().map(str::to_owned)))
+                    .unwrap_or_else(|| "Нова вкладка".to_owned());
+                (index, title, index == self.active_tab.get())
+            })
+            .collect();
+
+        let mut address = self.address_bar.borrow_mut();
+        if address.is_empty() && !current_url.is_empty() {
+            *address = current_url;
         }
-        match &event.logical_key {
-            WinitKey::Named(WinitNamedKey::Escape) => {
-                self.address_editing.set(false);
-                if let Some(view) = self.active_webview() { self.update_window_title(&view); }
-            }
-            WinitKey::Named(WinitNamedKey::Enter) => {
-                let input = self.address_text.borrow().clone();
-                self.address_editing.set(false);
-                if !input.trim().is_empty() {
-                    if let Some(view) = self.active_webview() {
-                        view.load(parse_navigation_input(&input));
-                        self.servo.spin_event_loop();
-                    }
-                } else if let Some(view) = self.active_webview() {
-                    self.update_window_title(&view);
-                }
-            }
-            WinitKey::Named(WinitNamedKey::Backspace) => {
-                self.address_text.borrow_mut().pop();
-                self.window.set_title(&format!("{} — Vertex Browser", self.address_text.borrow()));
-            }
-            _ => {
-                if !self.modifiers.get().contains(Modifiers::CONTROL)
-                    && !self.modifiers.get().contains(Modifiers::ALT)
-                {
-                    if let Some(text) = event.text.as_ref() {
-                        let mut value = self.address_text.borrow_mut();
-                        for character in text.chars().filter(|ch| !ch.is_control()) {
-                            value.push(character);
+
+        let mut egui = self.egui.borrow_mut();
+        egui.run(&self.window, |ui| {
+            ui.style_mut().visuals.dark_mode = true;
+            ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
+            ui.vertical(|ui| {
+                ui.horizontal(|ui| {
+                    for (index, title, selected) in &tab_labels {
+                        let short_title: String = title.chars().take(20).collect();
+                        let label = if *selected {
+                            egui::RichText::new(format!("● {short_title}")).strong()
+                        } else {
+                            egui::RichText::new(short_title)
+                        };
+                        if ui.add(egui::Button::new(label).fill(if *selected {
+                            egui::Color32::from_rgb(54, 62, 91)
+                        } else {
+                            egui::Color32::from_rgb(35, 38, 48)
+                        })).clicked() {
+                            self.activate_tab(*index);
                         }
-                        self.window.set_title(&format!("{} — Vertex Browser", value));
                     }
-                }
-            }
-        }
+                    if ui.button("+").clicked() {
+                        self.create_tab(self.new_tab_url());
+                    }
+                });
+                ui.horizontal(|ui| {
+                    if ui.button("←").clicked() {
+                        if let Some(view) = &active { view.go_back(1); }
+                    }
+                    if ui.button("→").clicked() {
+                        if let Some(view) = &active { view.go_forward(1); }
+                    }
+                    if ui.button("⟳").clicked() {
+                        if let Some(view) = &active { view.reload(); }
+                    }
+                    if ui.button("⌂").clicked() {
+                        if let Some(view) = &active { view.load(self.new_tab_url()); }
+                    }
+                    let response = ui.add(
+                        egui::TextEdit::singleline(&mut *address)
+                            .id(egui::Id::new("vertex-address-bar"))
+                            .desired_width(ui.available_width() - 8.0)
+                            .hint_text("Введи адресу або пошуковий запит"),
+                    );
+                    if response.has_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter)) {
+                        if !address.trim().is_empty() {
+                            if let Some(view) = &active {
+                                view.load(parse_navigation_input(&address));
+                                self.servo.spin_event_loop();
+                            }
+                    }
+                    }
+                });
+            });
+        });
+        egui.paint(&self.window);
     }
 
     fn cursor_point(&self) -> WebViewPoint {
@@ -417,6 +455,7 @@ impl servo::WebViewDelegate for BrowserState {
 
     fn notify_url_changed(&self, webview: WebView, url: Url) {
         self.update_window_title(&webview);
+        *self.address_bar.borrow_mut() = url.to_string();
         let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("New page").to_owned());
         if let Err(error) = self.storage.record_visit(url.as_str(), &title) {
             log::error!("could not record browsing history: {error}");
@@ -643,12 +682,23 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             state.servo.spin_event_loop();
         }
 
+        let egui_consumed = if let Self::Running(state) = self {
+            let response = state.egui.borrow_mut().on_window_event(&state.window, &event);
+            if response.repaint {
+                state.window.request_redraw();
+            }
+            response.consumed
+        } else {
+            false
+        };
+
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::RedrawRequested => {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.active_webview() {
                         webview.paint();
+                        state.draw_chrome();
                         state.rendering_context.present();
                     }
                 }
@@ -699,11 +749,8 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 }
             }
             WindowEvent::KeyboardInput { event, .. } => {
+                if egui_consumed { return; }
                 if let Self::Running(state) = self {
-                    if state.address_editing.get() {
-                        state.handle_address_key(&event);
-                        return;
-                    }
                     if event.state == ElementState::Pressed {
                         let control = state.modifiers.get().contains(Modifiers::CONTROL);
                         let shift = state.modifiers.get().contains(Modifiers::SHIFT);
@@ -746,6 +793,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
+                if egui_consumed { return; }
                 if let Self::Running(state) = self {
                     state.cursor_position.set(position);
                     if let Some(webview) = state.active_webview() {
@@ -769,6 +817,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 button,
                 ..
             } => {
+                if egui_consumed { return; }
                 if let Self::Running(state) = self {
                     let servo_button = match button {
                         winit::event::MouseButton::Left => ServoMouseButton::Left,
@@ -790,6 +839,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 }
             }
             WindowEvent::MouseWheel { delta, .. } => {
+                if egui_consumed { return; }
                 if let Self::Running(state) = self {
                     let (dx, dy, mode) = match delta {
                         MouseScrollDelta::LineDelta(x, y) => {
