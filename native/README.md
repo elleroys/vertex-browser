@@ -10,7 +10,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Input parsing for HTTP(S) URLs, dotted hostnames, and search queries.
 - Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation.
 - Mouse movement, clicks, leaving the viewport and wheel scrolling forwarded to Servo.
-- Keyboard down/up events, common named keys, and modifier state forwarded to Servo.
+- Keyboard down/up events, logical keys, common physical key codes, and modifier state forwarded to Servo.
 - Window focus is synchronized with the active Servo WebView.
 - IME committed text is forwarded to Servo.
 - Native shortcuts: Ctrl+R / F5 reload, Alt+Left back, Alt+Right forward.
@@ -19,7 +19,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 
 This is an engine shell, not yet a complete consumer browser. It does not yet have native browser chrome/address bar, tabs, bookmarks/history UI, download integration, password autofill, ad-block network interception, profile settings, installer or production hardening. Do not claim those features are implemented.
 
-The keyboard physical `Code` is currently reported as `Unidentified`; logical key values are forwarded for common keys. Full physical-key mapping and IME composition/preedit support remain follow-up work.
+Physical-key mapping currently covers letters, digits, navigation keys, modifiers and F1–F12; uncommon keys still fall back to `Unidentified`. IME committed text is supported, while composition/preedit events remain follow-up work.
 
 ## Toolchain and Windows
 
