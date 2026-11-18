@@ -369,12 +369,16 @@ impl BrowserStorage {
         Ok(())
     }
 
-    pub fn reset_download_for_retry(&self, id: i64) -> rusqlite::Result<()> {
+    pub fn prepare_download_retry(
+        &self, id: i64, received: u64, total: Option<u64>, partial_path: &Path,
+        etag: Option<&str>, last_modified: Option<&str>,
+    ) -> rusqlite::Result<()> {
         self.connection.lock().expect("database mutex poisoned").execute(
-            "UPDATE downloads SET status='queued',received_bytes=0,total_bytes=NULL,
-             partial_path=NULL,etag=NULL,last_modified=NULL,updated_at=?1
-             WHERE id=?2 AND status IN ('failed','cancelled')",
-            params![unix_time_ms(), id],
+            "UPDATE downloads SET status='queued',received_bytes=?1,total_bytes=?2,
+             partial_path=?3,etag=?4,last_modified=?5,updated_at=?6
+             WHERE id=?7 AND status IN ('failed','cancelled')",
+            params![received as i64, total.map(|value| value as i64), partial_path.display().to_string(),
+                etag, last_modified, unix_time_ms(), id],
         )?;
         Ok(())
     }
@@ -589,7 +593,7 @@ mod tests {
             id, 500, Some(1000), Path::new("file.part"), Some("\"etag\""), None,
         ).unwrap();
         storage.fail_download(id).unwrap();
-        storage.reset_download_for_retry(id).unwrap();
+        storage.prepare_download_retry(id, 0, None, Path::new("file.part"), None, None).unwrap();
         let entry = storage.recent_downloads(1).unwrap().remove(0);
         assert_eq!(entry.status, "queued");
         assert_eq!(entry.received_bytes, 0);
