@@ -37,7 +37,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 ## Still missing
 
 This remains a development browser, not a release-ready consumer browser. The following work is still required:
-- Actual download transfers, progress updates, cancellation, destination selection and opening completed files. The current downloads page is only a persistent-record UI; it is not a working download manager.
+- A native download manager for explicitly supplied HTTP(S) URLs: save-as destination selection, streamed writes to a temporary sibling file before publishing the completed file, byte progress persisted in SQLite, cancellation between received chunks, and redirect restrictions (HTTP(S)-only, no HTTPS downgrade). It does not yet automatically capture attachment links clicked inside web pages because the pinned Servo WebView delegate exposes request metadata but not the completed response headers.
 - A complete settings/profile interface (privacy controls and cookie/site-data management). Search provider, HTTP(S) homepage, persistent download-directory selection and startup session-restore preference are implemented, but the broader settings surface is not.
 - Richer session metadata (scroll position and per-tab navigation history). Current session restore stores only HTTP(S) URLs and the active tab index; recently closed URLs are separately persisted.
 - Broader AdBlock compatibility: filter-list updates, cosmetic filters, resource modifiers, scriptlets, and full EasyList/uBlock syntax.
