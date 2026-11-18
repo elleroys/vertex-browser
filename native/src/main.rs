@@ -1112,7 +1112,8 @@ ${sections}</body></html>"#);
                 }
                 if !open { self.bookmarks_manager_open.set(false); }
             }
-            if let Some(link) = self.context_menu_link.borrow().clone() {
+            let pending_context_link = self.context_menu_link.borrow().clone();
+            if let Some(link) = pending_context_link {
                 let scale = self.window.scale_factor() as f32;
                 let cursor = self.cursor_position.get();
                 let position = egui::pos2((cursor.x as f32 / scale).max(8.0), (cursor.y as f32 / scale).max(8.0));
