@@ -82,6 +82,24 @@ impl BrowserState {
         self.webviews.borrow().len()
     }
 
+    fn persist_session(&self) {
+        let tabs = self.webviews.borrow();
+        let mut urls = Vec::new();
+        let mut active_index = 0usize;
+        for (index, tab) in tabs.iter().enumerate() {
+            let Some(url) = tab.url().filter(|url| matches!(url.scheme(), "http" | "https")) else {
+                continue;
+            };
+            if index == self.active_tab.get() {
+                active_index = urls.len();
+            }
+            urls.push(url.to_string());
+        }
+        if let Err(error) = self.storage.save_session(&urls, active_index) {
+            log::error!("could not persist browser session: {error}");
+        }
+    }
+
     fn activate_tab(&self, index: usize) {
         let mut tabs = self.webviews.borrow_mut();
         if index >= tabs.len() {
@@ -124,6 +142,7 @@ impl BrowserState {
                 .map(|url| url.to_string()).unwrap_or_default();
         }
         drop(tabs);
+        self.persist_session();
         self.window.request_redraw();
     }
 
@@ -173,6 +192,7 @@ impl BrowserState {
             }
         }
         drop(tabs);
+        self.persist_session();
         self.window.request_redraw();
     }
 
@@ -1251,6 +1271,7 @@ impl servo::WebViewDelegate for BrowserState {
                 String::new()
             };
         }
+        self.persist_session();
         let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("New page").to_owned());
         if let Err(error) = self.storage.record_visit(url.as_str(), &title) {
             log::error!("could not record browsing history: {error}");
@@ -1367,13 +1388,24 @@ impl VertexApp {
             vault_csv_preview: RefCell::new(None),
         });
 
-        let url = match std::env::args().nth(1) {
-            Some(start_url) => parse_navigation_input(&start_url),
-            None => state.new_tab_url(),
+        let explicit_start_url = std::env::args().nth(1);
+        let (startup_urls, restore_active_index) = if let Some(start_url) = explicit_start_url {
+            (vec![parse_navigation_input(&start_url)], 0)
+        } else if let Ok(Some((urls, active_index))) = state.storage.load_session() {
+            let parsed = urls.into_iter().filter_map(|value| Url::parse(&value).ok()).collect::<Vec<_>>();
+            if parsed.is_empty() {
+                (vec![state.new_tab_url()], 0)
+            } else {
+                (parsed, active_index)
+            }
+        } else {
+            (vec![state.new_tab_url()], 0)
         };
 
+        let mut startup_urls = startup_urls.into_iter();
+        let first_url = startup_urls.next().unwrap_or_else(|| state.new_tab_url());
         let webview = WebViewBuilder::new(&state.servo, state.page_context.clone())
-            .url(url)
+            .url(first_url)
             .hidpi_scale_factor(euclid::Scale::new(state.window.scale_factor() as f32))
             .delegate(state.clone())
             .build();
@@ -1383,6 +1415,13 @@ impl VertexApp {
             .map(|url| url.to_string())
             .unwrap_or_default();
         state.webviews.borrow_mut().push(webview);
+
+        for url in startup_urls {
+            state.create_tab(url);
+        }
+        let restored_index = restore_active_index.min(state.tab_count().saturating_sub(1));
+        state.activate_tab(restored_index);
+        state.persist_session();
 
         *self = Self::Running(state);
         if let Self::Running(state) = self {
