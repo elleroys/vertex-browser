@@ -5,8 +5,12 @@ mod storage;
 
 use std::{
     cell::{Cell, RefCell},
+    collections::HashMap,
     error::Error,
+    path::PathBuf,
     rc::Rc,
+    sync::{atomic::{AtomicBool, Ordering}, Arc},
+    thread,
 };
 
 use servo::{
@@ -51,6 +55,11 @@ struct BrowserState {
     cursor_position: Cell<PhysicalPosition<f64>>,
     modifiers: Cell<Modifiers>,
     storage: BrowserStorage,
+    profile_db_path: PathBuf,
+    event_loop_proxy: EventLoopProxy<ServoWakeup>,
+    downloads_manager_open: Cell<bool>,
+    download_url: RefCell<String>,
+    active_downloads: RefCell<HashMap<i64, Arc<AtomicBool>>>,
     egui: RefCell<egui_glow::winit::EguiGlow>,
     address_bar: RefCell<String>,
     adblock_custom_rules: RefCell<String>,
@@ -332,6 +341,82 @@ ${sections}</body></html>"#);
         self.open_internal_page(internal_page("Закладки", &items));
     }
 
+    fn start_download(&self, raw_url: String) {
+        let Ok(url) = Url::parse(raw_url.trim()) else {
+            return;
+        };
+        if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none()
+            || !url.username().is_empty() || url.password().is_some()
+        {
+            return;
+        }
+
+        let url_text = url.to_string();
+        let suggested_name = downloads::suggested_file_name(&url_text);
+        let download_dir = self.storage.get_setting("download_directory")
+            .ok().flatten()
+            .unwrap_or_else(|| std::env::var("USERPROFILE")
+                .map(|home| format!("{home}\\Downloads"))
+                .unwrap_or_else(|_| ".".to_owned()));
+        let Some(destination) = rfd::FileDialog::new()
+            .set_directory(&download_dir)
+            .set_file_name(&suggested_name)
+            .save_file()
+        else {
+            return;
+        };
+        let file_name = destination.file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or(&suggested_name)
+            .to_owned();
+        let id = match self.storage.create_download(&url_text, &destination.display().to_string(), &file_name) {
+            Ok(id) => id,
+            Err(error) => {
+                log::error!("could not create download record: {error}");
+                return;
+            }
+        };
+
+        let cancelled = Arc::new(AtomicBool::new(false));
+        self.active_downloads.borrow_mut().insert(id, cancelled.clone());
+        let database_path = self.profile_db_path.clone();
+        let proxy = self.event_loop_proxy.clone();
+        thread::spawn(move || {
+            let storage = match BrowserStorage::open(&database_path) {
+                Ok(storage) => storage,
+                Err(error) => {
+                    log::error!("download worker could not open profile database: {error}");
+                    return;
+                }
+            };
+            let result = downloads::download_to_path(&url_text, &destination, |received, total| {
+                if cancelled.load(Ordering::Relaxed) {
+                    let _ = storage.cancel_download(id);
+                    return false;
+                }
+                let _ = storage.update_download_progress(id, received, total);
+                let _ = proxy.send_event(ServoWakeup);
+                !cancelled.load(Ordering::Relaxed)
+            });
+            match result {
+                Ok(download) => {
+                    if let Err(error) = storage.finish_download(id, download.bytes_received) {
+                        log::error!("could not finish download record: {error}");
+                    }
+                }
+                Err(error) => {
+                    if cancelled.load(Ordering::Relaxed) {
+                        let _ = storage.cancel_download(id);
+                    } else {
+                        log::error!("download failed: {error}");
+                        let _ = storage.fail_download(id);
+                    }
+                }
+            }
+            let _ = proxy.send_event(ServoWakeup);
+        });
+    }
+
     fn open_downloads_page(&self) {
         let entries = match self.storage.recent_downloads(500) {
             Ok(entries) => entries,
@@ -585,7 +670,7 @@ ${sections}</body></html>"#);
                     }
                     if ui.button("Завантаження").clicked() {
                         address.clear();
-                        self.open_downloads_page();
+                        self.downloads_manager_open.set(true);
                     }
                     if ui.button("Закладки").clicked() {
                         self.bookmarks_manager_open.set(true);
@@ -637,6 +722,67 @@ ${sections}</body></html>"#);
                         Err(error) => log::error!("could not save custom AdBlock rules: {error}"),
                     }
                 }
+            }
+            if self.downloads_manager_open.get() {
+                let mut open = true;
+                let entries = self.storage.recent_downloads(100).unwrap_or_default();
+                let mut requested_url = None;
+                egui::Window::new("Менеджер завантажень")
+                    .open(&mut open)
+                    .resizable(true)
+                    .default_width(560.0)
+                    .show(ui.ctx(), |ui| {
+                        ui.label("Завантажити файл за прямим HTTP(S)-посиланням");
+                        ui.horizontal(|ui| {
+                            ui.add(egui::TextEdit::singleline(&mut *self.download_url.borrow_mut())
+                                .desired_width(f32::INFINITY)
+                                .hint_text("https://example.com/file.zip"));
+                            if ui.button("Завантажити…").clicked() {
+                                let value = self.download_url.borrow().trim().to_owned();
+                                if !value.is_empty() {
+                                    requested_url = Some(value);
+                                    self.download_url.borrow_mut().clear();
+                                }
+                            }
+                        });
+                        ui.separator();
+                        egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
+                            for entry in &entries {
+                                ui.group(|ui| {
+                                    ui.horizontal(|ui| {
+                                        ui.label(egui::RichText::new(&entry.file_name).strong());
+                                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                            if matches!(entry.status.as_str(), "queued" | "downloading") {
+                                                if ui.small_button("Скасувати").clicked() {
+                                                    if let Some(token) = self.active_downloads.borrow().get(&entry.id) {
+                                                        token.store(true, Ordering::Relaxed);
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    });
+                                    ui.label(format!("{} · {}", match entry.status.as_str() {
+                                        "queued" => "У черзі",
+                                        "downloading" => "Завантажується",
+                                        "completed" => "Завершено",
+                                        "cancelled" => "Скасовано",
+                                        _ => "Помилка",
+                                    }, format_download_progress(entry.received_bytes, entry.total_bytes)));
+                                    ui.small(&entry.file_path);
+                                });
+                            }
+                            if entries.is_empty() {
+                                ui.label("Завантажень поки немає.");
+                            }
+                        });
+                    });
+                if !open { self.downloads_manager_open.set(false); }
+                if let Some(url) = requested_url { self.start_download(url); }
+                let active_ids: std::collections::HashSet<i64> = entries.iter()
+                    .filter(|entry| matches!(entry.status.as_str(), "queued" | "downloading"))
+                    .map(|entry| entry.id)
+                    .collect();
+                self.active_downloads.borrow_mut().retain(|id, _| active_ids.contains(id));
             }
             if self.settings_open.get() {
                 let mut open = true;
@@ -1691,6 +1837,11 @@ impl VertexApp {
             active_tab: Cell::new(0),
             closed_tabs: RefCell::new(closed_tabs),
             storage,
+            profile_db_path: profile_dir.join("profile.sqlite3"),
+            event_loop_proxy: waker.0.clone(),
+            downloads_manager_open: Cell::new(false),
+            download_url: RefCell::new(String::new()),
+            active_downloads: RefCell::new(HashMap::new()),
             egui: RefCell::new(chrome),
             address_bar: RefCell::new(String::new()),
             adblock_rules: RefCell::new(adblock::RuleSet::new(&custom_adblock_rules)),
@@ -1918,6 +2069,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, _event: ServoWakeup) {
         if let Self::Running(state) = self {
             state.servo.spin_event_loop();
+            state.window.request_redraw();
         }
     }
 
