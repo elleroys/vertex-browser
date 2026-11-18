@@ -31,6 +31,10 @@ jobs:
           workspaces: |
             native -> target
 
+      - name: Enable long Git paths
+        run: git config --global core.longpaths true
+        shell: pwsh
+
       - name: Show toolchain
         working-directory: native
         run: rustc --version && cargo --version
@@ -40,8 +44,12 @@ jobs:
         working-directory: native
         run: cargo check
         shell: pwsh
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
       - name: Run native unit tests
         working-directory: native
         run: cargo test
         shell: pwsh
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
