@@ -35,6 +35,7 @@ where
     F: FnMut(u64, Option<u64>, &ResumeInfo) -> bool,
 {
     let url = url::Url::parse(raw_url)?;
+    let mut resume = resume;
     if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none()
         || !url.username().is_empty() || url.password().is_some()
     {
@@ -91,6 +92,7 @@ where
     if response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE && existing > 0 {
         fs::remove_file(partial_path)?;
         existing = 0;
+        resume = ResumeInfo { etag: None, last_modified: None };
         response = client.get(url).send()?;
     }
     let status = response.status();
@@ -98,6 +100,10 @@ where
         return Err(format!("Download server returned HTTP {status}").into());
     }
     let append = existing > 0 && status == reqwest::StatusCode::PARTIAL_CONTENT;
+    if existing > 0 && !append && status == reqwest::StatusCode::OK {
+        // If-Range failed or the server ignored Range: this is a fresh representation.
+        resume = ResumeInfo { etag: None, last_modified: None };
+    }
     if append {
         let range = response.headers().get(reqwest::header::CONTENT_RANGE)
             .and_then(|v| v.to_str().ok())
