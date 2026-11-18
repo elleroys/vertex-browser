@@ -745,6 +745,13 @@ ${sections}</body></html>"#);
         }
         if !open {
             self.password_vault_open.set(false);
+            self.password_vault.lock();
+            self.vault_show_passwords.set(false);
+            self.vault_master_password.borrow_mut().zeroize();
+            self.vault_confirm_password.borrow_mut().zeroize();
+            self.vault_username.borrow_mut().zeroize();
+            self.vault_password.borrow_mut().zeroize();
+            self.vault_notes.borrow_mut().zeroize();
         }
         if setup {
             let master = Zeroizing::new(self.vault_master_password.borrow().clone());
@@ -772,7 +779,9 @@ ${sections}</body></html>"#);
             self.vault_show_passwords.set(false);
             self.vault_master_password.borrow_mut().zeroize();
             self.vault_confirm_password.borrow_mut().zeroize();
+            self.vault_username.borrow_mut().zeroize();
             self.vault_password.borrow_mut().zeroize();
+            self.vault_notes.borrow_mut().zeroize();
             *self.vault_message.borrow_mut() = "Сховище заблоковано.".to_owned();
         }
         if save {
