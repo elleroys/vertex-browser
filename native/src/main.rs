@@ -69,6 +69,7 @@ struct BrowserState {
     vault_show_passwords: Cell<bool>,
     vault_message: RefCell<String>,
     vault_form_scan_result: RefCell<String>,
+    vault_csv_preview: RefCell<Option<password_vault::CsvImportPreview>>,
 }
 
 impl BrowserState {
@@ -618,6 +619,10 @@ ${sections}</body></html>"#);
         let mut delete_id: Option<String> = None;
         let mut clipboard_text: Option<String> = None;
         let mut scan_forms = false;
+        let mut import_csv = false;
+        let mut export_csv = false;
+        let mut confirm_csv_import = false;
+        let mut cancel_csv_import = false;
         let mut fill_request: Option<(String, String, String)> = None;
 
         egui::Window::new("Менеджер паролів")
@@ -679,6 +684,31 @@ ${sections}</body></html>"#);
                                     save = true;
                                 }
                             });
+                        ui.horizontal(|ui| {
+                            if ui.button("Імпорт CSV…").clicked() { import_csv = true; }
+                            if ui.button("Експорт CSV…").clicked() { export_csv = true; }
+                        });
+                        if let Some(preview) = self.vault_csv_preview.borrow().as_ref() {
+                            ui.group(|ui| {
+                                ui.strong("Попередній перегляд імпорту");
+                                ui.label(format!("До імпорту: {} записів · Дублікатів: {} · Проблемних рядків: {}",
+                                    preview.entries.len(), preview.duplicates, preview.issues.len()));
+                                egui::ScrollArea::vertical().max_height(120.0).show(ui, |ui| {
+                                    for entry in preview.entries.iter().take(20) {
+                                        ui.label(format!("{} — {} ({})", entry.title, entry.username, entry.origin));
+                                    }
+                                    for issue in preview.issues.iter().take(10) {
+                                        ui.colored_label(egui::Color32::LIGHT_RED, format!("Рядок {}: {}", issue.row, issue.message));
+                                    }
+                                });
+                                ui.horizontal(|ui| {
+                                    if ui.button(format!("Імпортувати {} записів", preview.entries.len())).clicked() {
+                                        confirm_csv_import = true;
+                                    }
+                                    if ui.button("Скасувати").clicked() { cancel_csv_import = true; }
+                                });
+                            });
+                        }
                         ui.separator();
                         if ui.button("Знайти форми входу на цій сторінці").clicked() {
                             scan_forms = true;
@@ -756,6 +786,55 @@ ${sections}</body></html>"#);
         if let Some(value) = clipboard_text {
             ctx.copy_text(value);
             *self.vault_message.borrow_mut() = "Скопійовано в буфер обміну.".to_owned();
+        }
+        if import_csv {
+            let selected = rfd::FileDialog::new()
+                .add_filter("CSV", &["csv"])
+                .pick_file();
+            if let Some(path) = selected {
+                let result = std::fs::read_to_string(&path)
+                    .map_err(|error| format!("Не вдалося прочитати CSV: {error}"))
+                    .and_then(|contents| self.password_vault.preview_csv_import(&self.storage, &contents));
+                match result {
+                    Ok(preview) => {
+                        let count = preview.entries.len();
+                        *self.vault_csv_preview.borrow_mut() = Some(preview);
+                        *self.vault_message.borrow_mut() = format!("Перевір CSV. До імпорту підготовлено {count} записів.");
+                    }
+                    Err(error) => *self.vault_message.borrow_mut() = error,
+                }
+            }
+        }
+        if export_csv {
+            match self.password_vault.export_csv(&self.storage) {
+                Ok(contents) => {
+                    let selected = rfd::FileDialog::new()
+                        .add_filter("CSV", &["csv"])
+                        .set_file_name("vertex-passwords.csv")
+                        .save_file();
+                    if let Some(path) = selected {
+                        let result = std::fs::write(&path, contents.as_bytes());
+                        *self.vault_message.borrow_mut() = match result {
+                            Ok(()) => format!("CSV експортовано: {}", path.display()),
+                            Err(error) => format!("Не вдалося записати CSV: {error}"),
+                        };
+                    }
+                }
+                Err(error) => *self.vault_message.borrow_mut() = error,
+            }
+        }
+        if confirm_csv_import {
+            let preview = self.vault_csv_preview.borrow_mut().take();
+            if let Some(preview) = preview {
+                let result = self.password_vault.confirm_csv_import(&self.storage, preview);
+                *self.vault_message.borrow_mut() = result
+                    .map(|count| format!("Імпортовано записів: {count}."))
+                    .unwrap_or_else(|error| format!("Помилка імпорту: {error}"));
+            }
+        }
+        if cancel_csv_import {
+            self.vault_csv_preview.borrow_mut().take();
+            *self.vault_message.borrow_mut() = "Імпорт скасовано.".to_owned();
         }
         if scan_forms {
             self.scan_login_forms();
@@ -1281,6 +1360,7 @@ impl VertexApp {
             vault_show_passwords: Cell::new(false),
             vault_message: RefCell::new(String::new()),
             vault_form_scan_result: RefCell::new(String::new()),
+            vault_csv_preview: RefCell::new(None),
         });
 
         let url = match std::env::args().nth(1) {
