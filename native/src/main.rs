@@ -317,10 +317,10 @@ ${sections}</body></html>"#);
                     }
                 });
                 ui.horizontal(|ui| {
-                    if ui.button("←").clicked() {
+                    if ui.add_enabled(active.as_ref().is_some_and(|view| view.can_go_back()), egui::Button::new("←")).clicked() {
                         if let Some(view) = &active { view.go_back(1); }
                     }
-                    if ui.button("→").clicked() {
+                    if ui.add_enabled(active.as_ref().is_some_and(|view| view.can_go_forward()), egui::Button::new("→")).clicked() {
                         if let Some(view) = &active { view.go_forward(1); }
                     }
                     if ui.button("⟳").clicked() {
@@ -353,6 +353,18 @@ ${sections}</body></html>"#);
                                 }
                             }
                         }
+                    }
+                    let zoom = active.as_ref().map(|view| view.page_zoom()).unwrap_or(1.0);
+                    if ui.button("−").on_hover_text("Зменшити масштаб (Ctrl+-)").clicked() {
+                        if let Some(view) = &active { view.set_page_zoom((view.page_zoom() - 0.1).max(0.1)); }
+                    }
+                    if ui.button(format!("{}%", (zoom * 100.0).round() as u32))
+                        .on_hover_text("Скинути масштаб (Ctrl+0)").clicked()
+                    {
+                        if let Some(view) = &active { view.set_page_zoom(1.0); }
+                    }
+                    if ui.button("+").on_hover_text("Збільшити масштаб (Ctrl++)").clicked() {
+                        if let Some(view) = &active { view.set_page_zoom((view.page_zoom() + 0.1).min(5.0)); }
                     }
                     if ui.button("Історія").clicked() {
                         address.clear();
@@ -407,6 +419,21 @@ ${sections}</body></html>"#);
             }
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("r")) {
                 webview.reload();
+                return;
+            }
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s == "0") {
+                webview.set_page_zoom(1.0);
+                self.window.request_redraw();
+                return;
+            }
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s == "-" || s == "_") {
+                webview.set_page_zoom((webview.page_zoom() - 0.1).max(0.1));
+                self.window.request_redraw();
+                return;
+            }
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s == "+" || s == "=") {
+                webview.set_page_zoom((webview.page_zoom() + 0.1).min(5.0));
+                self.window.request_redraw();
                 return;
             }
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
