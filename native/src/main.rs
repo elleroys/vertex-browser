@@ -794,7 +794,10 @@ ${sections}</body></html>"#);
             if let Some(path) = selected {
                 let result = std::fs::read_to_string(&path)
                     .map_err(|error| format!("Не вдалося прочитати CSV: {error}"))
-                    .and_then(|contents| self.password_vault.preview_csv_import(&self.storage, &contents));
+                    .and_then(|contents| {
+                        let contents = Zeroizing::new(contents);
+                        self.password_vault.preview_csv_import(&self.storage, contents.as_str())
+                    });
                 match result {
                     Ok(preview) => {
                         let count = preview.entries.len();
@@ -808,6 +811,7 @@ ${sections}</body></html>"#);
         if export_csv {
             match self.password_vault.export_csv(&self.storage) {
                 Ok(contents) => {
+                    let contents = Zeroizing::new(contents);
                     let selected = rfd::FileDialog::new()
                         .add_filter("CSV", &["csv"])
                         .set_file_name("vertex-passwords.csv")
