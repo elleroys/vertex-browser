@@ -51,6 +51,7 @@ struct BrowserState {
     egui: RefCell<egui_glow::winit::EguiGlow>,
     address_bar: RefCell<String>,
     adblock_custom_rules: RefCell<String>,
+    adblock_rules: RefCell<adblock::RuleSet>,
     adblock_rules_draft: RefCell<String>,
     adblock_rules_open: Cell<bool>,
 }
@@ -553,7 +554,8 @@ ${sections}</body></html>"#);
                     let rules = self.adblock_rules_draft.borrow().clone();
                     match self.storage.set_setting("adblock_custom_rules", &rules) {
                         Ok(()) => {
-                            *self.adblock_custom_rules.borrow_mut() = rules;
+                            *self.adblock_custom_rules.borrow_mut() = rules.clone();
+                            *self.adblock_rules.borrow_mut() = adblock::RuleSet::new(&rules);
                             self.adblock_rules_open.set(false);
                             if let Some(view) = self.active_webview() { view.reload(); }
                             self.servo.spin_event_loop();
@@ -749,7 +751,7 @@ impl servo::WebViewDelegate for BrowserState {
         let Ok(url) = Url::parse(&load.request().url.to_string()) else {
             return;
         };
-        if adblock::is_blocked_url_with_rules(&url, self.adblock_custom_rules.borrow().as_str()) {
+        if self.adblock_rules.borrow().is_blocked(&url) {
             log::debug!("AdBlock blocked resource: {url}");
             // An empty successful response prevents the blocked resource from reaching the page.
             // Dropping the interception sends FinishLoad to Servo.
@@ -873,6 +875,7 @@ impl VertexApp {
             storage,
             egui: RefCell::new(chrome),
             address_bar: RefCell::new(String::new()),
+            adblock_rules: RefCell::new(adblock::RuleSet::new(&custom_adblock_rules)),
             adblock_custom_rules: RefCell::new(custom_adblock_rules),
             adblock_rules_draft: RefCell::new(String::new()),
             adblock_rules_open: Cell::new(false),
