@@ -7,7 +7,7 @@ publish = false
 description = "Native Rust shell prototype for Vertex Browser using Servo"
 
 [dependencies]
-servo = { git = "https://github.com/servo/servo", rev = "32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17", default-features = false, features = ["bundled", "clipboard", "js_jit", "subtlecrypto", "brotli-compression-stream", "webgl", "webgpu", "media-gstreamer"] }
+vortex-engine = { path = "crates/vortex-engine" }
 winit = "0.30.13"
 euclid = "0.22"
 url = "2.5"
@@ -31,9 +31,6 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
 open = "5"
 
-[target.'cfg(target_os = "windows")'.dependencies]
-servo = { git = "https://github.com/servo/servo", rev = "32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17", features = ["no-wgl"] }
-
 [profile.dev.package."*"]
 opt-level = 2
 
@@ -41,3 +38,7 @@ opt-level = 2
 opt-level = 3
 lto = "thin"
 codegen-units = 1
+
+[workspace]
+members = ["crates/vortex-engine"]
+resolver = "3"
