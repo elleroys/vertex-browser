@@ -70,7 +70,8 @@ where
     }
 
     let mut existing = fs::metadata(partial_path).map(|m| m.len()).unwrap_or(0);
-    let validator = resume.etag.as_deref().or(resume.last_modified.as_deref());
+    let validator = resume.etag.as_deref().filter(|tag| !tag.trim_start().starts_with("W/"))
+        .or(resume.last_modified.as_deref());
     if existing > 0 && validator.is_none() {
         fs::remove_file(partial_path)?;
         existing = 0;
@@ -193,9 +194,9 @@ pub fn suggested_file_name(raw_url: &str) -> String {
 }
 
 pub fn sanitize_file_name(input: &str) -> String {
-    let leaf = input.rsplit(['/', '\\\\']).next().unwrap_or(input);
+    let leaf = input.rsplit(['/', '\\']).next().unwrap_or(input);
     let cleaned: String = leaf.chars()
-        .filter(|character| !character.is_control() && !matches!(character, '<' | '>' | ':' | '"' | '/' | '\\\\' | '|' | '?' | '*'))
+        .filter(|character| !character.is_control() && !matches!(character, '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*'))
         .collect();
     let cleaned = cleaned.trim().trim_matches('.');
     if cleaned.is_empty() { "download".to_owned() } else { cleaned.chars().take(180).collect() }
