@@ -23,8 +23,8 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Active page title is reflected in the native window title.
 - A per-user SQLite profile is created under `%APPDATA%\\VertexBrowser\\profile.sqlite3` on Windows (or a home-directory fallback elsewhere).
 - Browsing history is recorded on navigation and updated when the page title arrives; internal `about:` pages are excluded.
-- Ctrl+H opens a dark, Servo-rendered browsing history page (up to 500 recent URLs).
-- Ctrl+Shift+B opens a dark, Servo-rendered bookmarks page; links navigate directly in the active WebView.
+- Ctrl+H opens a dark, Servo-rendered browsing history page (up to 500 recent URLs); the native history manager supports opening entries, deleting individual entries and confirmed full-history clearing.
+- Ctrl+Shift+B opens a dark, Servo-rendered bookmarks page; the native bookmarks manager supports opening and deleting saved bookmarks.
 - Ctrl+D toggles a bookmark for the current HTTP(S) page. Bookmark/history/settings storage is implemented as an engine-independent native service, with APIs for recent history, listing bookmarks, deleting one history entry and clearing history.
 - A persistent browser session snapshot stores up to 50 HTTP(S) tab URLs and the active-tab index in SQLite. On startup without an explicit URL argument, the browser restores that session; malformed, obsolete and non-HTTP(S) entries are ignored.
 - Up to ten recently closed HTTP(S) tabs are persisted across restarts and can be reopened with Ctrl+Shift+T or the toolbar recovery control.
