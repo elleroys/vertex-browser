@@ -14,8 +14,8 @@ However, source presence is not proof of a working executable. The pinned Servo 
 
 | Subsystem | Current implementation | Remaining validation or work |
 |---|---|---|
-| Engine/window | Servo embedded in winit; egui/Glow toolbar; offscreen page rendering | Windows startup, resize, DPI, shutdown and GPU compatibility |
-| Navigation/input | HTTP(S) navigation, search parsing, keyboard/mouse/wheel/focus and committed IME | Broader key mapping, IME composition and real-site checks |
+| Engine/window | Servo embedded in winit; direct `WindowRenderingContext` page rendering; egui/Glow browser chrome | Windows startup, resize, DPI, shutdown and GPU compatibility |
+| Navigation/input | HTTP(S) navigation, search parsing, keyboard/mouse/wheel/focus and committed IME; egui owns focused chrome text editing | Verify Ctrl+C/Ctrl+V in address bar and page forms, broader key mapping, IME composition and real-site checks |
 | Tabs | Multiple WebViews, tab switching/closing, shortcuts, auxiliary windows, recently closed tabs | Full per-tab history and scroll/session metadata |
 | Profile | SQLite settings, bookmarks, history, sessions and downloads | Migration/backup/restore UX and profile management |
 | Downloads | Native HTTP(S) streaming, progress, cancellation, retries, partial-file persistence and conditional resume | Automatic page attachment integration and runtime testing |
@@ -26,6 +26,10 @@ However, source presence is not proof of a working executable. The pinned Servo 
 | Navigation security | Scheme/credential/downgrade hard blocks; IDN, mixed-script, invisible-control, IP, deep-subdomain and HTTP warnings | False-positive tuning and more threat intelligence |
 | Threat feed | Optional OpenPhish Community exact-URL matching, strict parsing, local cache, 12-hour refresh | Commercially licensed source for commercial distribution; provider feed has limited coverage |
 | Packaging | PowerShell build/package script and CI portable ZIP workflow | CI success, Windows smoke test, installer, signing and updater |
+
+## Browser chrome and usability status
+
+The native toolbar now uses a compact two-row layout: tabs and tab recovery on the first row; navigation, address/search, bookmark and the main menu on the second. The main menu groups features into Library, Privacy & Security, Tabs & Windows and Settings instead of presenting every manager as a top-level command. The new-tab HTML interpolates the generated bookmark/history sections into the page and uses Vortex branding. These UI changes are source-level changes; Windows rendering, clipboard behavior and usability still require hands-on verification.
 
 ## Security boundaries and caveats
 
