@@ -101,7 +101,8 @@ impl PasswordVault {
     }
 
     fn encrypt_bytes(key: &[u8; 32], plaintext: &[u8]) -> Result<String, String> {
-        let cipher = XChaCha20Poly1305::new(key.into());
+        let cipher = XChaCha20Poly1305::new_from_slice(key)
+            .map_err(|_| "Некоректний ключ шифрування".to_owned())?;
         let mut nonce_bytes = [0u8; 24];
         rand::thread_rng().fill_bytes(&mut nonce_bytes);
         let nonce = XNonce::from_slice(&nonce_bytes);
@@ -122,7 +123,8 @@ impl PasswordVault {
             return Err("Пошкоджені зашифровані дані сховища".to_owned());
         }
         let (nonce_bytes, ciphertext) = combined.split_at(24);
-        let cipher = XChaCha20Poly1305::new(key.into());
+        let cipher = XChaCha20Poly1305::new_from_slice(key)
+            .map_err(|_| "Некоректний ключ шифрування".to_owned())?;
         cipher
             .decrypt(XNonce::from_slice(nonce_bytes), ciphertext)
             .map_err(|_| "Неправильний майстер-пароль або пошкоджений запис".to_owned())
