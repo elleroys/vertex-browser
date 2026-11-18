@@ -2,6 +2,7 @@ mod adblock;
 mod downloads;
 mod password_vault;
 mod storage;
+mod threat_intel;
 
 use std::{
     cell::{Cell, RefCell},
@@ -101,6 +102,11 @@ struct BrowserState {
     pending_permissions: RefCell<Vec<PendingPermission>>,
     pending_navigation: RefCell<Option<PendingNavigation>>,
     navigation_security_notice: RefCell<String>,
+    openphish_enabled: Cell<bool>,
+    threat_feed_urls: RefCell<std::collections::HashSet<String>>,
+    threat_feed_status: RefCell<String>,
+    threat_feed_update_in_progress: Cell<bool>,
+    threat_feed_next_refresh: Cell<Instant>,
 }
 
 struct PendingPermission {
@@ -111,7 +117,8 @@ struct PendingPermission {
 
 struct PendingNavigation {
     url: Url,
-    reasons: Vec<&'static str>,
+    reasons: Vec<String>,
+    threat_match: bool,
     request: servo::NavigationRequest,
 }
 
@@ -568,6 +575,46 @@ ${sections}</body></html>"#);
                 log::warn!("browser event loop closed before AdBlock update completed");
             }
         });
+        self.window.request_redraw();
+    }
+
+    fn request_openphish_update(&self) {
+        if !self.openphish_enabled.get() || self.threat_feed_update_in_progress.replace(true) { return; }
+        *self.threat_feed_status.borrow_mut() = "Завантаження OpenPhish у фоновому режимі…".to_owned();
+        let proxy = self.event_loop_proxy.clone();
+        thread::spawn(move || {
+            let result = threat_intel::fetch_openphish_feed();
+            if proxy.send_event(ServoWakeup::ThreatFeedFetched(result)).is_err() {
+                log::warn!("browser event loop closed before threat-feed update completed");
+            }
+        });
+        self.window.request_redraw();
+    }
+
+    fn apply_openphish_update(&self, result: Result<threat_intel::ThreatFeed, String>) {
+        self.threat_feed_update_in_progress.set(false);
+        match result {
+            Ok(feed) => {
+                let previous_count = self.threat_feed_urls.borrow().len();
+                if previous_count >= 50 && feed.urls.len() < previous_count / 5 {
+                    *self.threat_feed_status.borrow_mut() = format!(
+                        "Оновлення відхилено: база різко зменшилася з {previous_count} до {} записів. Стару базу збережено.", feed.urls.len()
+                    );
+                    self.window.request_redraw();
+                    return;
+                }
+                let serialized = feed.urls.iter().cloned().collect::<Vec<_>>().join("\n");
+                match self.storage.set_setting("openphish_urls", &serialized) {
+                    Ok(()) => {
+                        let count = feed.urls.len();
+                        *self.threat_feed_urls.borrow_mut() = feed.urls;
+                        *self.threat_feed_status.borrow_mut() = format!("Базу оновлено: {count} унікальних URL; відкинуто некоректних рядків: {}", feed.ignored);
+                    }
+                    Err(error) => *self.threat_feed_status.borrow_mut() = format!("Не вдалося зберегти базу: {error}. Попередню базу залишено.")
+                }
+            }
+            Err(error) => *self.threat_feed_status.borrow_mut() = format!("Оновлення не вдалося; попередня база збережена. {error}"),
+        }
         self.window.request_redraw();
     }
 
@@ -1041,6 +1088,9 @@ ${sections}</body></html>"#);
                 let mut choose_download_dir = false;
                 let mut changed_download_dir = false;
                 let mut changed_restore_session = false;
+                let mut openphish_enabled = self.openphish_enabled.get();
+                let mut changed_openphish = false;
+                let mut update_openphish = false;
                 egui::Window::new("Налаштування Vertex")
                     .open(&mut open)
                     .resizable(false)
@@ -1089,6 +1139,22 @@ ${sections}</body></html>"#);
                         if ui.checkbox(&mut clear_closed_tabs_on_exit, "Очищати список нещодавно закритих вкладок після виходу").changed() {
                             changed_clear_closed_tabs = true;
                         }
+                        ui.separator();
+                        ui.heading("Захист від фішингу");
+                        if ui.checkbox(&mut openphish_enabled, "Увімкнути OpenPhish Community Feed").changed() {
+                            changed_openphish = true;
+                        }
+                        ui.small("Безкоштовний Community Feed OpenPhish призначений лише для особистого, академічного або незалежного дослідження, не для комерційного використання. Увімкнення означає, що ти приймаєш умови провайдера.");
+                        ui.small("Джерело: https://openphish.com/feed.txt · оновлення кожні 12 годин. Перевірка URL виконується локально; адреси відвідуваних сторінок провайдеру не надсилаються.");
+                        ui.horizontal(|ui| {
+                            ui.label(format!("Записів у локальній базі: {}", self.threat_feed_urls.borrow().len()));
+                            if ui.add_enabled(openphish_enabled && !self.threat_feed_update_in_progress.get(), egui::Button::new("Оновити зараз")).clicked() {
+                                update_openphish = true;
+                            }
+                        });
+                        ui.small(self.threat_feed_status.borrow().as_str());
+                        ui.label("Збіг із базою зупиняє перехід і показує попередження. Це не гарантує виявлення всіх фішингових сайтів.");
+                        ui.separator();
                         ui.label("Дозволені лише адреси HTTP та HTTPS. Профіль зберігається локально в SQLite.");
                     });
                 if changed_engine {
@@ -1150,10 +1216,18 @@ ${sections}</body></html>"#);
                         log::error!("could not save recently-closed-tabs preference: {error}");
                     }
                 }
+                if changed_openphish {
+                    self.openphish_enabled.set(openphish_enabled);
+                    if let Err(error) = self.storage.set_setting("openphish_enabled", if openphish_enabled { "true" } else { "false" }) {
+                        log::error!("could not save OpenPhish preference: {error}");
+                    }
+                    if openphish_enabled { self.request_openphish_update(); }
+                }
+                if update_openphish { self.request_openphish_update(); }
                 if !open { self.settings_open.set(false); }
             }
-            if let Some((url, reasons)) = self.pending_navigation.borrow().as_ref()
-                .map(|pending| (pending.url.clone(), pending.reasons.clone()))
+            if let Some((url, reasons, threat_match)) = self.pending_navigation.borrow().as_ref()
+                .map(|pending| (pending.url.clone(), pending.reasons.clone(), pending.threat_match))
             {
                 let mut decision: Option<bool> = None;
                 egui::Window::new("Попередження безпеки Vortex")
@@ -1161,15 +1235,15 @@ ${sections}</body></html>"#);
                     .collapsible(false)
                     .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
                     .show(ui.ctx(), |ui| {
-                        ui.colored_label(egui::Color32::YELLOW, "Адреса має ознаки, які часто трапляються у фішингових або ризикових посиланнях.");
+                        ui.colored_label(if threat_match { egui::Color32::RED } else { egui::Color32::YELLOW }, if threat_match { "НЕБЕЗПЕЧНО: адресу знайдено у фішинговій базі." } else { "Адреса має ознаки, які часто трапляються у фішингових або ризикових посиланнях." });
                         ui.label(egui::RichText::new(url.as_str()).strong());
                         ui.separator();
                         for reason in &reasons { ui.label(format!("• {reason}")); }
                         ui.separator();
-                        ui.label("Це локальна евристична перевірка, а не підтвердження наявності сайту в базі фішингу. Продовжуй лише якщо довіряєш адресі.");
+                        ui.label(if threat_match { "Збіг знайдено локально. Адреса сторінки не надсилалася провайдеру під час перевірки. База не гарантує виявлення всіх атак; можливі хибні спрацювання." } else { "Це локальна евристична перевірка. Вона не підтверджує наявність сайту у фішинговій базі." });
                         ui.horizontal(|ui| {
                             if ui.button("Повернутися назад").clicked() { decision = Some(false); }
-                            if ui.button("Все одно перейти").clicked() { decision = Some(true); }
+                            if ui.button(if threat_match { "Перейти попри ризик" } else { "Все одно перейти" }).clicked() { decision = Some(true); }
                         });
                     });
                 if let Some(allow) = decision {
@@ -2165,11 +2239,15 @@ impl servo::WebViewDelegate for BrowserState {
             self.window.request_redraw();
             return;
         }
-        let risks = suspicious_navigation_reasons(&request.url);
+        let threat_match = self.threat_feed_urls.borrow().contains(&threat_intel::canonical_url(&request.url));
+        let mut risks = suspicious_navigation_reasons(&request.url).into_iter().map(str::to_owned).collect::<Vec<_>>();
+        if threat_match {
+            risks.insert(0, "Ця точна URL-адреса присутня в OpenPhish Community — базі активних фішингових посилань.".to_owned());
+        }
         if !risks.is_empty() {
             let mut pending = self.pending_navigation.borrow_mut();
             if let Some(previous) = pending.take() { previous.request.deny(); }
-            *pending = Some(PendingNavigation { url: request.url.clone(), reasons: risks, request });
+            *pending = Some(PendingNavigation { url: request.url.clone(), reasons: risks, threat_match, request });
             self.window.request_redraw();
             return;
         }
@@ -2409,6 +2487,9 @@ impl VertexApp {
         );
         let adblock_list_url = storage.get_setting("adblock_list_url")
             .ok().flatten().unwrap_or_default();
+        let openphish_enabled = matches!(storage.get_setting("openphish_enabled"), Ok(Some(value)) if value == "true");
+        let stored_threat_feed = storage.get_setting("openphish_urls").ok().flatten().unwrap_or_default();
+        let threat_feed = threat_intel::parse_stored_feed(&stored_threat_feed).unwrap_or_default();
         let closed_tabs = storage.load_closed_tabs().unwrap_or_default()
             .into_iter()
             .rev()
@@ -2470,12 +2551,20 @@ impl VertexApp {
             pending_permissions: RefCell::new(Vec::new()),
             pending_navigation: RefCell::new(None),
             navigation_security_notice: RefCell::new(String::new()),
+            openphish_enabled: Cell::new(openphish_enabled),
+            threat_feed_urls: RefCell::new(threat_feed),
+            threat_feed_status: RefCell::new(String::new()),
+            threat_feed_update_in_progress: Cell::new(false),
+            threat_feed_next_refresh: Cell::new(Instant::now() + Duration::from_secs(12 * 60 * 60)),
         });
 
         let saved_filter_url = state.adblock_list_url.borrow().clone();
         if !saved_filter_url.trim().is_empty() {
             state.request_adblock_update(saved_filter_url);
         }
+        let saved_threat_count = state.threat_feed_urls.borrow().len();
+        *state.threat_feed_status.borrow_mut() = if saved_threat_count == 0 { "База ще не завантажена".to_owned() } else { format!("Локально збережено {saved_threat_count} URL") };
+        if state.openphish_enabled.get() { state.request_openphish_update(); }
 
         let explicit_start_url = std::env::args().nth(1);
         let (startup_urls, restore_active_index) = if let Some(start_url) = explicit_start_url {
@@ -2720,7 +2809,12 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     state.request_adblock_update(url);
                 }
             }
-            event_loop.set_control_flow(ControlFlow::WaitUntil(state.adblock_next_refresh.get()));
+            let threat_next = state.threat_feed_next_refresh.get();
+            if now >= threat_next {
+                state.threat_feed_next_refresh.set(now + Duration::from_secs(12 * 60 * 60));
+                state.request_openphish_update();
+            }
+            event_loop.set_control_flow(ControlFlow::WaitUntil(state.adblock_next_refresh.get().min(state.threat_feed_next_refresh.get())));
         }
     }
 
@@ -2730,8 +2824,10 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: ServoWakeup) {
         if let Self::Running(state) = self {
-            if let ServoWakeup::AdblockListFetched(result) = event {
-                state.apply_adblock_update(result);
+            match event {
+                ServoWakeup::AdblockListFetched(result) => state.apply_adblock_update(result),
+                ServoWakeup::ThreatFeedFetched(result) => state.apply_openphish_update(result),
+                ServoWakeup::Wake => {}
             }
             state.servo.spin_event_loop();
             state.window.request_redraw();
@@ -2989,6 +3085,7 @@ struct ServoWaker(EventLoopProxy<ServoWakeup>);
 enum ServoWakeup {
     Wake,
     AdblockListFetched(Result<String, String>),
+    ThreatFeedFetched(Result<threat_intel::ThreatFeed, String>),
 }
 
 impl EventLoopWaker for ServoWaker {
