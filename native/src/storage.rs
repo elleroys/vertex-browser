@@ -20,6 +20,18 @@ pub struct BookmarkEntry {
     pub created_at: i64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DownloadEntry {
+    pub id: i64,
+    pub url: String,
+    pub file_path: String,
+    pub file_name: String,
+    pub status: String,
+    pub received_bytes: u64,
+    pub total_bytes: Option<u64>,
+    pub created_at: i64,
+}
+
 pub struct BrowserStorage {
     connection: Mutex<Connection>,
 }
@@ -53,7 +65,19 @@ impl BrowserStorage {
              CREATE TABLE IF NOT EXISTS settings (
                  key TEXT PRIMARY KEY,
                  value TEXT NOT NULL
-             );",
+             );
+             CREATE TABLE IF NOT EXISTS downloads (
+                 id INTEGER PRIMARY KEY,
+                 url TEXT NOT NULL,
+                 file_path TEXT NOT NULL,
+                 file_name TEXT NOT NULL,
+                 status TEXT NOT NULL DEFAULT 'queued',
+                 received_bytes INTEGER NOT NULL DEFAULT 0,
+                 total_bytes INTEGER,
+                 created_at INTEGER NOT NULL,
+                 updated_at INTEGER NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_downloads_created ON downloads(created_at DESC);",
         )?;
         Ok(Self { connection: Mutex::new(connection) })
     }
@@ -122,6 +146,71 @@ impl BrowserStorage {
             params![key],
             |row| row.get(0),
         ).optional()
+    }
+
+    /// Create a persistent download record before starting the transfer.
+    pub fn create_download(&self, url: &str, file_path: &str, file_name: &str) -> rusqlite::Result<i64> {
+        let now = unix_time_ms();
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        connection.execute(
+            "INSERT INTO downloads(url,file_path,file_name,status,created_at,updated_at)
+             VALUES(?1,?2,?3,'queued',?4,?4)",
+            params![url, file_path, file_name, now],
+        )?;
+        Ok(connection.last_insert_rowid())
+    }
+
+    /// Update transfer progress. A missing total means the server did not provide a content length.
+    pub fn update_download_progress(&self, id: i64, received: u64, total: Option<u64>) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "UPDATE downloads SET status='downloading',received_bytes=?1,total_bytes=?2,updated_at=?3 WHERE id=?4",
+            params![received as i64, total.map(|value| value as i64), unix_time_ms(), id],
+        )?;
+        Ok(())
+    }
+
+    pub fn finish_download(&self, id: i64, received: u64) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "UPDATE downloads SET status='completed',received_bytes=?1,total_bytes=COALESCE(total_bytes,?1),updated_at=?2 WHERE id=?3",
+            params![received as i64, unix_time_ms(), id],
+        )?;
+        Ok(())
+    }
+
+    pub fn fail_download(&self, id: i64) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "UPDATE downloads SET status='failed',updated_at=?1 WHERE id=?2",
+            params![unix_time_ms(), id],
+        )?;
+        Ok(())
+    }
+
+    pub fn recent_downloads(&self, limit: u32) -> rusqlite::Result<Vec<DownloadEntry>> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let mut statement = connection.prepare(
+            "SELECT id,url,file_path,file_name,status,received_bytes,total_bytes,created_at
+             FROM downloads ORDER BY created_at DESC LIMIT ?1",
+        )?;
+        let rows = statement.query_map(params![limit], |row| {
+            Ok(DownloadEntry {
+                id: row.get(0)?,
+                url: row.get(1)?,
+                file_path: row.get(2)?,
+                file_name: row.get(3)?,
+                status: row.get(4)?,
+                received_bytes: row.get::<_, i64>(5)? as u64,
+                total_bytes: row.get::<_, Option<i64>>(6)?.map(|value| value as u64),
+                created_at: row.get(7)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn delete_download(&self, id: i64) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "DELETE FROM downloads WHERE id=?1", params![id],
+        )?;
+        Ok(())
     }
 
     /// Return the newest history entries first. The caller controls the maximum result count.
@@ -234,6 +323,27 @@ mod tests {
         assert_eq!(storage.history_count().unwrap(), 1);
         storage.clear_history().unwrap();
         assert_eq!(storage.history_count().unwrap(), 0);
+    }
+
+    #[test]
+    fn persists_download_lifecycle_and_progress() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let id = storage.create_download(
+            "https://example.com/file.zip",
+            "C:/Users/Test/Downloads/file.zip",
+            "file.zip",
+        ).unwrap();
+        let queued = storage.recent_downloads(10).unwrap();
+        assert_eq!(queued[0].status, "queued");
+        storage.update_download_progress(id, 512, Some(1024)).unwrap();
+        let downloading = storage.recent_downloads(10).unwrap();
+        assert_eq!(downloading[0].received_bytes, 512);
+        assert_eq!(downloading[0].total_bytes, Some(1024));
+        assert_eq!(downloading[0].status, "downloading");
+        storage.finish_download(id, 1024).unwrap();
+        assert_eq!(storage.recent_downloads(10).unwrap()[0].status, "completed");
+        storage.delete_download(id).unwrap();
+        assert!(storage.recent_downloads(10).unwrap().is_empty());
     }
 
     #[test]
