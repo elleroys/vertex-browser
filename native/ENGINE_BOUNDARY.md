@@ -13,6 +13,8 @@ This branch introduces a dedicated Cargo crate for the browser engine.
 
 Cargo builds the engine crate and its Servo dependency as a dependency of the shell. Once those artifacts are built, changes limited to shell source files should not invalidate/recompile Servo. Changes to the engine crate, Servo revision, enabled features, Rust toolchain, target, or build profile can still trigger engine recompilation.
 
+The old global `[profile.dev.package."*"] opt-level = 2` override has been removed: it forced every dependency (including Servo's large dependency graph) to compile optimized even in debug builds. The debug profile now explicitly enables incremental compilation and uses Cargo's normal unoptimized dependency settings for faster iteration.
+
 The engine is not literally compiled once forever: it is compiled once per relevant target/profile/toolchain cache and rebuilt when its inputs change. Do not run `cargo clean` during normal shell development.
 
 ## Current migration stage
