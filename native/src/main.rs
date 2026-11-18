@@ -66,9 +66,11 @@ impl BrowserState {
         }
         if let Some(previous) = tabs.get(self.active_tab.get()) {
             previous.set_focused(false);
+            previous.hide();
         }
         self.active_tab.set(index);
         if let Some(active) = tabs.get(index) {
+            active.show();
             active.set_focused(true);
             self.update_window_title(active);
             *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
@@ -79,6 +81,7 @@ impl BrowserState {
     fn create_tab(self: &Rc<Self>, url: Url) {
         if let Some(active) = self.active_webview() {
             active.set_focused(false);
+            active.hide();
         }
         let webview = WebViewBuilder::new(&self.servo, self.rendering_context.clone())
             .url(url)
@@ -90,6 +93,7 @@ impl BrowserState {
         let index = tabs.len() - 1;
         self.active_tab.set(index);
         if let Some(active) = tabs.get(index) {
+            active.show();
             active.set_focused(true);
             self.update_window_title(active);
             *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
@@ -105,10 +109,12 @@ impl BrowserState {
         }
         let index = self.active_tab.get().min(tabs.len() - 1);
         tabs[index].set_focused(false);
+        tabs[index].hide();
         tabs.remove(index);
         let next = index.min(tabs.len() - 1);
         self.active_tab.set(next);
         if let Some(active) = tabs.get(next) {
+            active.show();
             active.set_focused(true);
             self.update_window_title(active);
             *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
