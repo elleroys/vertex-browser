@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn compiled_rules_match_the_string_helper() {
-        let rules = "||ads.example.com^\\n@@||safe.ads.example.com^";
+        let rules = "||ads.example.com^\n@@||safe.ads.example.com^";
         let compiled = RuleSet::new(rules);
         for value in [
             "https://ads.example.com/banner.js",
