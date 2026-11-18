@@ -745,6 +745,7 @@ ${sections}</body></html>"#);
                 let mut open = true;
                 let entries = self.storage.recent_downloads(100).unwrap_or_default();
                 let mut requested_url = None;
+                let mut retry_download_id: Option<i64> = None;
                 let mut open_file: Option<PathBuf> = None;
                 let mut open_folder: Option<PathBuf> = None;
                 let mut delete_record: Option<i64> = None;
@@ -801,8 +802,8 @@ ${sections}</body></html>"#);
                                                         open_folder = PathBuf::from(&entry.file_path).parent().map(PathBuf::from);
                                                     }
                                                 } else if matches!(entry.status.as_str(), "failed" | "cancelled") {
-                                                    if ui.small_button("Повторити").clicked() {
-                                                        requested_url = Some(entry.url.clone());
+                                                    if ui.small_button("Відновити").clicked() {
+                                                        retry_download_id = Some(entry.id);
                                                     }
                                                 }
                                                 if ui.small_button("Прибрати зі списку").clicked() {
@@ -828,6 +829,11 @@ ${sections}</body></html>"#);
                     });
                 if !open { self.downloads_manager_open.set(false); }
                 if let Some(url) = requested_url { self.start_download(url); }
+                if let Some(id) = retry_download_id {
+                    if let Some(entry) = entries.iter().find(|entry| entry.id == id) {
+                        self.retry_download(entry.clone());
+                    }
+                }
                 if let Some(path) = open_file {
                     if path.is_file() {
                         if let Err(error) = open::that(&path) {
