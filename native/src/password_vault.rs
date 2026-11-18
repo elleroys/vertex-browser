@@ -375,7 +375,7 @@ impl PasswordVault {
             return Err("CSV-файл завеликий (максимум 10 МБ)".to_owned());
         }
         let mut reader = csv::ReaderBuilder::new()
-            .trim(csv::Trim::All)
+            .trim(csv::Trim::Headers)
             .flexible(false)
             .from_reader(input.as_bytes());
         let headers = reader.headers().map_err(|error| format!("Некоректний CSV: {error}"))?.clone();
@@ -534,6 +534,51 @@ mod tests {
         assert_eq!(found[0].password, "secret-value");
         vault.delete_credential(&storage, &saved_id).unwrap();
         assert!(vault.list_credentials(&storage, None).unwrap().is_empty());
+    }
+
+
+    #[test]
+    fn csv_export_round_trips_quotes_commas_and_whitespace() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let vault = PasswordVault::new();
+        vault.setup_master_password(&storage, "correct horse battery").unwrap();
+        vault.save_credential(
+            &storage,
+            "https://example.com/login",
+            "Example, Inc.",
+            " alice ",
+            " secret, \"quoted\" ",
+            Some("line 1\nline 2"),
+        ).unwrap();
+        let csv = vault.export_csv(&storage).unwrap();
+        let preview = vault.preview_csv_import(&storage, &csv).unwrap();
+        assert_eq!(preview.entries.len(), 0);
+        assert_eq!(preview.duplicates, 1);
+
+        let fresh_storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let fresh_vault = PasswordVault::new();
+        fresh_vault.setup_master_password(&fresh_storage, "correct horse battery").unwrap();
+        let preview = fresh_vault.preview_csv_import(&fresh_storage, &csv).unwrap();
+        assert_eq!(preview.entries.len(), 1);
+        assert_eq!(preview.entries[0].username, " alice ");
+        assert_eq!(preview.entries[0].password, " secret, \"quoted\" ");
+        assert_eq!(preview.entries[0].notes.as_deref(), Some("line 1\nline 2"));
+        assert_eq!(fresh_vault.confirm_csv_import(&fresh_storage, preview).unwrap(), 1);
+        assert_eq!(fresh_vault.list_credentials(&fresh_storage, None).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn csv_import_rejects_missing_columns_and_skips_unsafe_origins() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let vault = PasswordVault::new();
+        vault.setup_master_password(&storage, "correct horse battery").unwrap();
+        assert!(vault.preview_csv_import(&storage, "site,user,pass\n").is_err());
+        let preview = vault.preview_csv_import(
+            &storage,
+            "origin,title,username,password,notes\njavascript:alert(1),Bad,user,pw,\nhttps://ok.example,Good,user,pw,\n",
+        ).unwrap();
+        assert_eq!(preview.entries.len(), 1);
+        assert_eq!(preview.issues.len(), 1);
     }
 
     #[test]
