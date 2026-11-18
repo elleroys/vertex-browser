@@ -3285,6 +3285,20 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     let address_has_focus = state.egui.borrow().egui_ctx.memory(|memory| {
                         memory.focused() == Some(egui::Id::new("vertex-address-bar"))
                     });
+                    if address_has_focus
+                        && event.state == ElementState::Pressed
+                        && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::Escape))
+                    {
+                        let current = state.active_webview().and_then(|view| view.url())
+                            .filter(|url| matches!(url.scheme(), "http" | "https"))
+                            .map(|url| url.to_string()).unwrap_or_default();
+                        *state.address_bar.borrow_mut() = current;
+                        state.egui.borrow().egui_ctx.memory_mut(|memory| {
+                            memory.surrender_focus(egui::Id::new("vertex-address-bar"));
+                        });
+                        state.window.request_redraw();
+                        return;
+                    }
                     let control = state.modifiers.get().contains(Modifiers::CONTROL);
                     if address_has_focus && control && event.state == ElementState::Pressed {
                         if let WinitKey::Character(key) = &event.logical_key {
