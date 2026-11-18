@@ -25,6 +25,29 @@ pub fn parse_stored_feed(contents: &str) -> Result<HashSet<String>, String> {
     Ok(parse_feed(contents)?.urls)
 }
 
+pub fn serialize_cache(updated_at: u64, urls: &HashSet<String>) -> String {
+    let mut sorted = urls.iter().cloned().collect::<Vec<_>>();
+    sorted.sort();
+    serde_json::json!({ "updated_at": updated_at, "urls": sorted }).to_string()
+}
+
+pub fn parse_cache(contents: &str) -> (HashSet<String>, Option<u64>) {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(contents) else {
+        return (HashSet::new(), None);
+    };
+    let Some(updated_at) = value.get("updated_at").and_then(serde_json::Value::as_u64) else {
+        return (HashSet::new(), None);
+    };
+    let Some(entries) = value.get("urls").and_then(serde_json::Value::as_array) else {
+        return (HashSet::new(), None);
+    };
+    let lines = entries.iter().filter_map(serde_json::Value::as_str).collect::<Vec<_>>().join("\n");
+    match parse_stored_feed(&lines) {
+        Ok(urls) => (urls, Some(updated_at)),
+        Err(_) => (HashSet::new(), None),
+    }
+}
+
 pub fn parse_feed(contents: &str) -> Result<ThreatFeed, String> {
     if contents.len() > MAX_FEED_BYTES as usize {
         return Err("Файл бази перевищує ліміт 20 MiB".to_owned());
@@ -120,6 +143,16 @@ mod tests {
         assert!(feed.urls.contains(&canonical_url(&listed)));
         assert!(!feed.urls.contains(&canonical_url(&other_path)));
         assert!(!feed.urls.contains(&canonical_url(&subdomain)));
+    }
+
+    #[test]
+    fn cache_round_trips_urls_and_timestamp_and_rejects_corruption() {
+        let feed = parse_feed("https://example.com/login\\nhttps://other.example/path\\n").unwrap();
+        let encoded = serialize_cache(1_800_000_000, &feed.urls);
+        let (decoded, timestamp) = parse_cache(&encoded);
+        assert_eq!(decoded, feed.urls);
+        assert_eq!(timestamp, Some(1_800_000_000));
+        assert_eq!(parse_cache("not json"), (HashSet::new(), None));
     }
 
     #[test]

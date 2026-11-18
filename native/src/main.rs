@@ -12,7 +12,7 @@ use std::{
     rc::Rc,
     sync::{atomic::{AtomicBool, Ordering}, Arc},
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use servo::{
@@ -107,6 +107,7 @@ struct BrowserState {
     threat_feed_status: RefCell<String>,
     threat_feed_update_in_progress: Cell<bool>,
     threat_feed_next_refresh: Cell<Instant>,
+    threat_feed_updated_at: Cell<Option<u64>>,
 }
 
 struct PendingPermission {
@@ -578,6 +579,12 @@ ${sections}</body></html>"#);
         self.window.request_redraw();
     }
 
+    fn threat_feed_is_fresh(&self) -> bool {
+        self.threat_feed_updated_at.get().is_some_and(|timestamp| {
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs().saturating_sub(timestamp) <= 48 * 60 * 60
+        })
+    }
+
     fn request_openphish_update(&self) {
         if !self.openphish_enabled.get() || self.threat_feed_update_in_progress.replace(true) { return; }
         *self.threat_feed_status.borrow_mut() = "Завантаження OpenPhish у фоновому режимі…".to_owned();
@@ -603,12 +610,14 @@ ${sections}</body></html>"#);
                     self.window.request_redraw();
                     return;
                 }
-                let serialized = feed.urls.iter().cloned().collect::<Vec<_>>().join("\n");
-                match self.storage.set_setting("openphish_urls", &serialized) {
+                let updated_at = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+                let serialized = threat_intel::serialize_cache(updated_at, &feed.urls);
+                match self.storage.set_setting("openphish_cache_v1", &serialized) {
                     Ok(()) => {
                         let count = feed.urls.len();
+                        self.threat_feed_updated_at.set(Some(updated_at));
                         *self.threat_feed_urls.borrow_mut() = feed.urls;
-                        *self.threat_feed_status.borrow_mut() = format!("Базу оновлено: {count} унікальних URL; відкинуто некоректних рядків: {}", feed.ignored);
+                        *self.threat_feed_status.borrow_mut() = format!("Базу оновлено: {count} URL; некоректних рядків: {}. Наступне оновлення через 12 годин.", feed.ignored);
                     }
                     Err(error) => *self.threat_feed_status.borrow_mut() = format!("Не вдалося зберегти базу: {error}. Попередню базу залишено.")
                 }
@@ -1153,6 +1162,9 @@ ${sections}</body></html>"#);
                             }
                         });
                         ui.small(self.threat_feed_status.borrow().as_str());
+                        if self.openphish_enabled.get() && !self.threat_feed_is_fresh() && !self.threat_feed_urls.borrow().is_empty() {
+                            ui.colored_label(egui::Color32::YELLOW, "Увага: кешована база старша за 48 годин і не використовується для блокування до успішного оновлення.");
+                        }
                         ui.label("Збіг із базою зупиняє перехід і показує попередження. Це не гарантує виявлення всіх фішингових сайтів.");
                         ui.separator();
                         ui.label("Дозволені лише адреси HTTP та HTTPS. Профіль зберігається локально в SQLite.");
@@ -2239,7 +2251,8 @@ impl servo::WebViewDelegate for BrowserState {
             self.window.request_redraw();
             return;
         }
-        let threat_match = self.threat_feed_urls.borrow().contains(&threat_intel::canonical_url(&request.url));
+        let threat_match = self.openphish_enabled.get() && self.threat_feed_is_fresh()
+            && self.threat_feed_urls.borrow().contains(&threat_intel::canonical_url(&request.url));
         let mut risks = suspicious_navigation_reasons(&request.url).into_iter().map(str::to_owned).collect::<Vec<_>>();
         if threat_match {
             risks.insert(0, "Ця точна URL-адреса присутня в OpenPhish Community — базі активних фішингових посилань.".to_owned());
@@ -2488,8 +2501,8 @@ impl VertexApp {
         let adblock_list_url = storage.get_setting("adblock_list_url")
             .ok().flatten().unwrap_or_default();
         let openphish_enabled = matches!(storage.get_setting("openphish_enabled"), Ok(Some(value)) if value == "true");
-        let stored_threat_feed = storage.get_setting("openphish_urls").ok().flatten().unwrap_or_default();
-        let threat_feed = threat_intel::parse_stored_feed(&stored_threat_feed).unwrap_or_default();
+        let stored_threat_cache = storage.get_setting("openphish_cache_v1").ok().flatten().unwrap_or_default();
+        let (threat_feed, threat_feed_updated_at) = threat_intel::parse_cache(&stored_threat_cache);
         let closed_tabs = storage.load_closed_tabs().unwrap_or_default()
             .into_iter()
             .rev()
@@ -2556,6 +2569,7 @@ impl VertexApp {
             threat_feed_status: RefCell::new(String::new()),
             threat_feed_update_in_progress: Cell::new(false),
             threat_feed_next_refresh: Cell::new(Instant::now() + Duration::from_secs(12 * 60 * 60)),
+            threat_feed_updated_at: Cell::new(threat_feed_updated_at),
         });
 
         let saved_filter_url = state.adblock_list_url.borrow().clone();
@@ -2563,7 +2577,13 @@ impl VertexApp {
             state.request_adblock_update(saved_filter_url);
         }
         let saved_threat_count = state.threat_feed_urls.borrow().len();
-        *state.threat_feed_status.borrow_mut() = if saved_threat_count == 0 { "База ще не завантажена".to_owned() } else { format!("Локально збережено {saved_threat_count} URL") };
+        *state.threat_feed_status.borrow_mut() = if saved_threat_count == 0 {
+            "База ще не завантажена".to_owned()
+        } else if state.threat_feed_is_fresh() {
+            format!("Локально збережено {saved_threat_count} URL; база свіжа")
+        } else {
+            format!("Локально збережено {saved_threat_count} URL; кеш застарів і тимчасово не використовується")
+        };
         if state.openphish_enabled.get() { state.request_openphish_update(); }
 
         let explicit_start_url = std::env::args().nth(1);
