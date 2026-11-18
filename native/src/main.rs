@@ -720,15 +720,47 @@ ${sections}</body></html>"#);
             if self.adblock_rules_open.get() {
                 let mut open = true;
                 let mut save = false;
+                let mut import_message = String::new();
                 egui::Window::new("Правила AdBlock")
                     .open(&mut open)
                     .resizable(true)
-                    .default_width(520.0)
+                    .default_width(560.0)
                     .show(ui.ctx(), |ui| {
-                        ui.label("По одному правилу на рядок. Підтримуються домени, шляхи та винятки @@||домен^. Не підтримуються косметичні правила й модифікатори.");
+                        ui.label("Власні правила та імпорт списків фільтрів. Підтримуються домени, шляхи й винятки @@||домен^. Косметичні правила та модифікатори EasyList поки ігноруються.");
+                        ui.horizontal(|ui| {
+                            if ui.button("Імпортувати список…").clicked() {
+                                if let Some(path) = rfd::FileDialog::new()
+                                    .add_filter("Списки фільтрів", &["txt", "dat", "list"])
+                                    .pick_file()
+                                {
+                                    match std::fs::metadata(&path) {
+                                        Ok(metadata) if metadata.len() <= 5 * 1024 * 1024 => {
+                                            match std::fs::read_to_string(&path) {
+                                                Ok(imported) => {
+                                                    let current = self.adblock_rules_draft.borrow().clone();
+                                                    let (merged, supported, ignored) =
+                                                        adblock::merge_imported_rules(&current, &imported);
+                                                    *self.adblock_rules_draft.borrow_mut() = merged;
+                                                    import_message = format!(
+                                                        "Імпортовано підтримуваних правил: {supported}; непідтримуваних: {ignored}"
+                                                    );
+                                                }
+                                                Err(error) => import_message = format!("Не вдалося прочитати файл: {error}"),
+                                            }
+                                        }
+                                        Ok(_) => import_message = "Файл завеликий: максимум 5 МБ".to_owned(),
+                                        Err(error) => import_message = format!("Не вдалося перевірити файл: {error}"),
+                                    }
+                                }
+                            }
+                            ui.label("Ліміт файлу — 5 МБ");
+                        });
                         ui.add(egui::TextEdit::multiline(&mut *self.adblock_rules_draft.borrow_mut())
                             .desired_rows(14)
                             .desired_width(f32::INFINITY));
+                        if !import_message.is_empty() {
+                            ui.label(import_message);
+                        }
                         ui.horizontal(|ui| {
                             if ui.button("Зберегти").clicked() { save = true; }
                             if ui.button("Скасувати").clicked() { self.adblock_rules_open.set(false); }
