@@ -14,7 +14,7 @@ use chacha20poly1305::{
     aead::{Aead, KeyInit},
     XChaCha20Poly1305, XNonce,
 };
-use rand::RngCore;
+use rand::{Rng, RngCore};
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::storage::{BrowserStorage, EncryptedVaultRow};
@@ -306,6 +306,19 @@ impl PasswordVault {
     }
 }
 
+pub fn generate_password(length: usize) -> Result<String, String> {
+    if !(12..=128).contains(&length) {
+        return Err("Довжина пароля має бути від 12 до 128 символів".to_owned());
+    }
+    const CHARSET: &[u8] =
+        b"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*()-_=+";
+    let mut rng = rand::thread_rng();
+    let password = (0..length)
+        .map(|_| CHARSET[rng.gen_range(0..CHARSET.len())] as char)
+        .collect();
+    Ok(password)
+}
+
 pub fn normalize_origin(raw: &str) -> Result<String, String> {
     let parsed = url::Url::parse(raw.trim())
         .map_err(|_| "Введи коректну адресу сайту з http:// або https://".to_owned())?;
@@ -365,6 +378,13 @@ mod tests {
         assert_eq!(found[0].password, "secret-value");
         vault.delete_credential(&storage, &saved_id).unwrap();
         assert!(vault.list_credentials(&storage, None).unwrap().is_empty());
+    }
+
+    #[test]
+    fn generated_password_has_requested_length_and_bounds() {
+        assert_eq!(generate_password(24).unwrap().len(), 24);
+        assert!(generate_password(11).is_err());
+        assert!(generate_password(129).is_err());
     }
 
     #[test]
