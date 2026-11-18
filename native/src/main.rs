@@ -11,6 +11,7 @@ use std::{
     rc::Rc,
     sync::{atomic::{AtomicBool, Ordering}, Arc},
     thread,
+    time::{Duration, Instant},
 };
 
 use servo::{
@@ -27,7 +28,7 @@ use winit::{
     application::ApplicationHandler,
     dpi::PhysicalPosition,
     event::{ElementState, Ime, MouseScrollDelta, WindowEvent},
-    event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy},
     keyboard::{Key as WinitKey, KeyCode, ModifiersState, NamedKey as WinitNamedKey, PhysicalKey},
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
     window::{Window, WindowId},
@@ -70,6 +71,7 @@ struct BrowserState {
     adblock_list_url: RefCell<String>,
     adblock_update_status: RefCell<String>,
     adblock_update_in_progress: Cell<bool>,
+    adblock_next_refresh: Cell<Instant>,
     settings_open: Cell<bool>,
     bookmarks_manager_open: Cell<bool>,
     history_manager_open: Cell<bool>,
@@ -2135,6 +2137,7 @@ impl VertexApp {
             adblock_list_url: RefCell::new(adblock_list_url),
             adblock_update_status: RefCell::new(String::new()),
             adblock_update_in_progress: Cell::new(false),
+            adblock_next_refresh: Cell::new(Instant::now() + Duration::from_secs(24 * 60 * 60)),
             settings_open: Cell::new(false),
             bookmarks_manager_open: Cell::new(false),
             history_manager_open: Cell::new(false),
@@ -2355,6 +2358,23 @@ fn modifiers_from_winit(mods: ModifiersState) -> Modifiers {
 }
 
 impl ApplicationHandler<ServoWakeup> for VertexApp {
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if let Self::Running(state) = self {
+            let now = Instant::now();
+            let next_refresh = state.adblock_next_refresh.get();
+            if now >= next_refresh {
+                // Schedule the next attempt before starting the worker so a failed
+                // request cannot cause a tight retry loop on the UI thread.
+                state.adblock_next_refresh.set(now + Duration::from_secs(24 * 60 * 60));
+                let url = state.adblock_list_url.borrow().clone();
+                if !url.is_empty() {
+                    state.request_adblock_update(url);
+                }
+            }
+            event_loop.set_control_flow(ControlFlow::WaitUntil(state.adblock_next_refresh.get()));
+        }
+    }
+
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.initialize(event_loop);
     }
