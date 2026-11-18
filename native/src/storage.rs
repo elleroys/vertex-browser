@@ -21,6 +21,18 @@ pub struct BookmarkEntry {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EncryptedVaultRow {
+    pub id: String,
+    pub origin: String,
+    pub title: String,
+    pub username_enc: String,
+    pub password_enc: String,
+    pub notes_enc: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DownloadEntry {
     pub id: i64,
     pub url: String,
@@ -77,7 +89,25 @@ impl BrowserStorage {
                  created_at INTEGER NOT NULL,
                  updated_at INTEGER NOT NULL
              );
-             CREATE INDEX IF NOT EXISTS idx_downloads_created ON downloads(created_at DESC);",
+             CREATE INDEX IF NOT EXISTS idx_downloads_created ON downloads(created_at DESC);
+             CREATE TABLE IF NOT EXISTS vault_meta (
+                 id INTEGER PRIMARY KEY CHECK (id = 1),
+                 salt_b64 TEXT NOT NULL,
+                 verifier_enc TEXT NOT NULL,
+                 kdf_params TEXT NOT NULL,
+                 created_at INTEGER NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS password_entries (
+                 id TEXT PRIMARY KEY,
+                 origin TEXT NOT NULL,
+                 title TEXT NOT NULL,
+                 username_enc TEXT NOT NULL,
+                 password_enc TEXT NOT NULL,
+                 notes_enc TEXT,
+                 created_at INTEGER NOT NULL,
+                 updated_at INTEGER NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_password_entries_origin ON password_entries(origin);",
         )?;
         Ok(Self { connection: Mutex::new(connection) })
     }
@@ -146,6 +176,63 @@ impl BrowserStorage {
             params![key],
             |row| row.get(0),
         ).optional()
+    }
+
+    pub fn get_vault_meta(&self) -> rusqlite::Result<Option<(String, String, String)>> {
+        self.connection.lock().expect("database mutex poisoned").query_row(
+            "SELECT salt_b64,verifier_enc,kdf_params FROM vault_meta WHERE id=1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).optional()
+    }
+
+    pub fn save_vault_meta(&self, salt_b64: &str, verifier_enc: &str, kdf_params: &str) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "INSERT OR REPLACE INTO vault_meta(id,salt_b64,verifier_enc,kdf_params,created_at)
+             VALUES(1,?1,?2,?3,?4)",
+            params![salt_b64, verifier_enc, kdf_params, unix_time_ms()],
+        )?;
+        Ok(())
+    }
+
+    pub fn upsert_password_row(&self, row: &EncryptedVaultRow) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "INSERT INTO password_entries(id,origin,title,username_enc,password_enc,notes_enc,created_at,updated_at)
+             VALUES(?1,?2,?3,?4,?5,?6,?7,?8)
+             ON CONFLICT(id) DO UPDATE SET origin=excluded.origin,title=excluded.title,
+             username_enc=excluded.username_enc,password_enc=excluded.password_enc,
+             notes_enc=excluded.notes_enc,updated_at=excluded.updated_at",
+            params![row.id,row.origin,row.title,row.username_enc,row.password_enc,row.notes_enc,row.created_at,row.updated_at],
+        )?;
+        Ok(())
+    }
+
+    pub fn list_password_rows(&self) -> rusqlite::Result<Vec<EncryptedVaultRow>> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let mut statement = connection.prepare(
+            "SELECT id,origin,title,username_enc,password_enc,notes_enc,created_at,updated_at
+             FROM password_entries ORDER BY updated_at DESC",
+        )?;
+        let rows = statement.query_map([], |row| {
+            Ok(EncryptedVaultRow {
+                id: row.get(0)?,
+                origin: row.get(1)?,
+                title: row.get(2)?,
+                username_enc: row.get(3)?,
+                password_enc: row.get(4)?,
+                notes_enc: row.get(5)?,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn delete_password_row(&self, id: &str) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "DELETE FROM password_entries WHERE id=?1", params![id],
+        )?;
+        Ok(())
     }
 
     /// Create a persistent download record before starting the transfer.
