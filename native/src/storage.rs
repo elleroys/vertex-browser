@@ -507,6 +507,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn migrates_legacy_download_table_for_resume_metadata() {
+        let path = std::env::temp_dir().join(format!("vertex-legacy-profile-{}.sqlite3", uuid::Uuid::new_v4()));
+        {
+            let connection = Connection::open(&path).unwrap();
+            connection.execute_batch(
+                "CREATE TABLE downloads (
+                    id INTEGER PRIMARY KEY,
+                    url TEXT NOT NULL,
+                    file_path TEXT NOT NULL,
+                    file_name TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'queued',
+                    received_bytes INTEGER NOT NULL DEFAULT 0,
+                    total_bytes INTEGER,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );"
+            ).unwrap();
+        }
+        let storage = BrowserStorage::open(&path).unwrap();
+        let id = storage.create_download("https://example.com/file", "file", "file").unwrap();
+        let entry = storage.recent_downloads(1).unwrap().remove(0);
+        assert_eq!(entry.id, id);
+        assert_eq!(entry.partial_path, None);
+        assert_eq!(entry.etag, None);
+        assert_eq!(entry.last_modified, None);
+        drop(storage);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
     fn stores_history_bookmarks_and_settings() {
         let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
         storage.record_visit("https://example.com/", "Example").unwrap();
