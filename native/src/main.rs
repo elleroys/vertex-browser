@@ -124,13 +124,59 @@ impl BrowserState {
     }
 
     fn open_internal_page(&self, html: String) {
-        let encoded: String = url::form_urlencoded::byte_serialize(html.as_bytes()).collect();
-        let url = Url::parse(&format!("data:text/html;charset=utf-8,{encoded}"))
-            .expect("generated internal page URL is valid");
+        let url = html_data_url(&html);
         if let Some(view) = self.active_webview() {
             view.load(url);
             self.servo.spin_event_loop();
         }
+    }
+
+    fn new_tab_url(&self) -> Url {
+        let bookmarks = self.storage.all_bookmarks().unwrap_or_default();
+        let history = self.storage.recent_history(8).unwrap_or_default();
+        let mut sections = String::new();
+
+        sections.push_str("<section><h2>Швидкий доступ</h2><div class=\"tiles\">");
+        for entry in bookmarks.iter().take(8) {
+            let title = html_escape(if entry.title.trim().is_empty() { &entry.url } else { &entry.title });
+            let href = html_escape(&entry.url);
+            sections.push_str(&format!("<a class=\"tile\" href=\"{href}\">{title}</a>"));
+        }
+        if bookmarks.is_empty() {
+            sections.push_str("<p class=\"muted\">Закріплені сайти з’являться тут після додавання закладок через Ctrl+D.</p>");
+        }
+        sections.push_str("</div></section>");
+
+        sections.push_str("<section><h2>Нещодавно відвідані</h2>");
+        for entry in history.iter() {
+            let title = html_escape(if entry.title.trim().is_empty() { &entry.url } else { &entry.title });
+            let href = html_escape(&entry.url);
+            sections.push_str(&format!("<article><a href=\"{href}\">{title}</a><small>{}</small></article>", html_escape(&entry.url)));
+        }
+        if history.is_empty() {
+            sections.push_str("<p class=\"muted\">Тут відображатимуться останні відвідані сторінки.</p>");
+        }
+        sections.push_str("</section>");
+
+        let html = format!(r#"<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Нова вкладка — Vertex</title><style>
+:root{{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#111318;color:#e8eaf0}}
+*{{box-sizing:border-box}}body{{margin:0;padding:12vh max(24px,calc((100vw - 900px)/2));}}
+.brand{{color:#9aa8ff;font-size:12px;letter-spacing:3px;font-weight:700;text-align:center}}
+h1{{font-size:42px;text-align:center;margin:12px 0 34px;font-weight:650}}
+form{{display:flex;gap:10px;margin:0 auto 48px;max-width:720px}}
+input{{flex:1;min-width:0;background:#20232d;border:1px solid #353a49;border-radius:14px;padding:17px 20px;color:#fff;font-size:16px;outline:none}}
+input:focus{{border-color:#8293ff}}button{{background:#6578ed;color:white;border:0;border-radius:12px;padding:0 22px;font-size:15px;cursor:pointer}}
+section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font-weight:600;margin:0 0 14px}}
+.tiles{{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}}
+.tile,article{{display:block;padding:16px;background:#1b1e26;border:1px solid #292d38;border-radius:12px;color:#e6e9ff;text-decoration:none;overflow-wrap:anywhere}}
+.tile:hover,article:hover{{border-color:#6578ed}}article{{margin:9px 0}}small{{display:block;color:#858b9b;font-size:12px;margin-top:6px;overflow-wrap:anywhere}}
+.muted{{color:#858b9b;font-size:13px}}
+</style></head><body><div class="brand">VERTEX BROWSER</div><h1>Нова вкладка</h1>
+<form action="https://www.google.com/search" method="get"><input name="q" type="search" placeholder="Шукати в інтернеті або ввести адресу" autofocus><button type="submit">Знайти</button></form>
+${sections}</body></html>"#);
+        html_data_url(&html)
     }
 
     fn open_history_page(&self) {
@@ -445,10 +491,10 @@ impl VertexApp {
             address_text: RefCell::new(String::new()),
         });
 
-        let start_url = std::env::args()
-            .nth(1)
-            .unwrap_or_else(|| "https://example.com".to_owned());
-        let url = parse_navigation_input(&start_url);
+        let url = match std::env::args().nth(1) {
+            Some(start_url) => parse_navigation_input(&start_url),
+            None => state.new_tab_url(),
+        };
 
         let webview = WebViewBuilder::new(&state.servo, state.rendering_context.clone())
             .url(url)
@@ -463,6 +509,12 @@ impl VertexApp {
             state.window.request_redraw();
         }
     }
+}
+
+fn html_data_url(html: &str) -> Url {
+    let encoded: String = url::form_urlencoded::byte_serialize(html.as_bytes()).collect();
+    Url::parse(&format!("data:text/html;charset=utf-8,{encoded}"))
+        .expect("generated internal page URL is valid")
 }
 
 fn html_escape(value: &str) -> String {
@@ -656,7 +708,8 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                         let control = state.modifiers.get().contains(Modifiers::CONTROL);
                         let shift = state.modifiers.get().contains(Modifiers::SHIFT);
                         if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
-                            state.create_tab(Url::parse("about:blank").expect("valid blank URL"));
+                            let new_tab = state.new_tab_url();
+                            state.create_tab(new_tab);
                             return;
                         }
                         if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("w")) {
