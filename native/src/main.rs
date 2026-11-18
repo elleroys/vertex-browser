@@ -150,9 +150,16 @@ impl BrowserState {
             }
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("d")) {
                 if let Some(url) = webview.url() {
-                    let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("Saved page").to_owned());
-                    if let Err(error) = self.storage.add_bookmark(url.as_str(), &title) {
-                        log::error!("could not save bookmark: {error}");
+                    let result = self.storage.is_bookmarked(url.as_str()).and_then(|saved| {
+                        if saved {
+                            self.storage.remove_bookmark(url.as_str())
+                        } else {
+                            let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("Saved page").to_owned());
+                            self.storage.add_bookmark(url.as_str(), &title)
+                        }
+                    });
+                    if let Err(error) = result {
+                        log::error!("could not toggle bookmark: {error}");
                     }
                 }
                 return;
