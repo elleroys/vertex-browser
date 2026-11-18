@@ -6,16 +6,17 @@ This directory contains the native browser runtime prototype. The rendering engi
 
 - Native desktop window created with `winit`.
 - Servo embedded in-process through `ServoBuilder` and `WebViewBuilder`.
-- Initial navigation from the first command-line argument.
+- Initial navigation from the first command-line argument; without an argument, the browser opens its Servo-rendered new-tab page.
+- New-tab page with a Google search form, up to eight bookmark shortcuts and eight recently visited pages.
 - Input parsing for HTTP(S) URLs, dotted hostnames, and search queries.
 - Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation.
 - Mouse movement, clicks, leaving the viewport and wheel scrolling forwarded to Servo.
 - Keyboard down/up events, logical keys, common physical key codes, and modifier state forwarded to Servo.
 - Window focus is synchronized with the active Servo WebView.
 - IME committed text is forwarded to Servo.
-- Native shortcuts: Ctrl+L enters an editable address/search field (type, Ctrl+A to select all, Enter to navigate, Escape to cancel), Ctrl+R / F5 reload, Alt+Left back, Alt+Right forward.
+- Native shortcuts: Ctrl+L enters an editable address/search field (type, Ctrl+A to clear/replace, Enter to navigate, Escape to cancel), Ctrl+R / F5 reload, Alt+Left back, Alt+Right forward.
 - Multiple Servo WebViews in one native window, with active-tab focus management.
-- Tab lifecycle shortcuts: Ctrl+T opens a blank tab, Ctrl+W closes the active tab (the final tab is kept open), Ctrl+Tab switches forward and Ctrl+Shift+Tab switches backward; Ctrl+1 through Ctrl+8 activate the corresponding tab and Ctrl+9 activates the last tab.
+- Tab lifecycle shortcuts: Ctrl+T opens the new-tab page, Ctrl+W closes the active tab (the final tab is kept open), Ctrl+Tab switches forward and Ctrl+Shift+Tab switches backward; Ctrl+1 through Ctrl+8 activate the corresponding tab and Ctrl+9 activates the last tab.
 - Active page title is reflected in the native window title.
 - A per-user SQLite profile is created under `%APPDATA%\\VertexBrowser\\profile.sqlite3` on Windows (or a home-directory fallback elsewhere).
 - Browsing history is recorded on navigation and updated when the page title arrives; internal `about:` pages are excluded.
