@@ -12,7 +12,7 @@ use servo::{
     Code, DevicePoint, EventLoopWaker, InputEvent, Key, KeyState, LoadStatus, Location, Modifiers,
     MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
     ImeEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, Servo, ServoBuilder,
-    WebView, WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
+    WebView, WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode, JSValue,
     WindowRenderingContext, OffscreenRenderingContext, RenderingContext, KeyboardEvent,
 };
 use url::Url;
@@ -68,6 +68,7 @@ struct BrowserState {
     vault_search: RefCell<String>,
     vault_show_passwords: Cell<bool>,
     vault_message: RefCell<String>,
+    vault_form_scan_result: RefCell<String>,
 }
 
 impl BrowserState {
@@ -616,6 +617,7 @@ ${sections}</body></html>"#);
         let mut show_passwords = self.vault_show_passwords.get();
         let mut delete_id: Option<String> = None;
         let mut clipboard_text: Option<String> = None;
+        let mut scan_forms = false;
 
         egui::Window::new("Менеджер паролів")
             .open(&mut open)
@@ -677,6 +679,14 @@ ${sections}</body></html>"#);
                                 }
                             });
                         ui.separator();
+                        if ui.button("Знайти форми входу на цій сторінці").clicked() {
+                            scan_forms = true;
+                        }
+                        let scan_result = self.vault_form_scan_result.borrow().clone();
+                        if !scan_result.is_empty() {
+                            ui.label("Знайдені поля:");
+                            ui.label(scan_result);
+                        }
                         ui.horizontal(|ui| {
                             ui.label("Пошук:");
                             ui.text_edit_singleline(&mut *self.vault_search.borrow_mut());
@@ -743,6 +753,9 @@ ${sections}</body></html>"#);
             ctx.copy_text(value);
             *self.vault_message.borrow_mut() = "Скопійовано в буфер обміну.".to_owned();
         }
+        if scan_forms {
+            self.scan_login_forms();
+        }
         if !open {
             self.password_vault_open.set(false);
             self.password_vault.lock();
@@ -807,6 +820,62 @@ ${sections}</body></html>"#);
             *self.vault_message.borrow_mut() = result.map(|_| "Запис видалено.".to_owned())
                 .unwrap_or_else(|error| error);
         }
+    }
+
+    fn scan_login_forms(self: &Rc<Self>) {
+        let Some(view) = self.active_webview() else {
+            return;
+        };
+        let Some(url) = view.url() else {
+            return;
+        };
+        if !matches!(url.scheme(), "http" | "https") {
+            *self.vault_form_scan_result.borrow_mut() =
+                "Автопошук доступний лише на HTTP/HTTPS сторінках.".to_owned();
+            return;
+        }
+
+        *self.vault_form_scan_result.borrow_mut() = "Сканування сторінки…".to_owned();
+        let state = self.clone();
+        view.evaluate_javascript(
+            r#"(() => {
+                const fields = Array.from(document.querySelectorAll('input'));
+                const passwords = fields.filter(el => el.type === 'password');
+                const candidates = passwords.map(password => {
+                    const form = password.form || password.closest('form');
+                    const controls = form ? Array.from(form.querySelectorAll('input')) : fields;
+                    const describe = el => {
+                        const type = (el.type || '').toLowerCase();
+                        const auto = (el.autocomplete || '').toLowerCase();
+                        const name = el.name || el.id || '';
+                        return [type, auto, name, el.placeholder || ''].join(' / ');
+                    };
+                    const username = controls.find(el =>
+                        el !== password &&
+                        ['text', 'email', 'tel'].includes((el.type || '').toLowerCase()) &&
+                        /user|login|email|account/i.test(
+                            [el.name, el.id, el.autocomplete, el.placeholder].join(' ')
+                        )
+                    );
+                    return 'Форма: ' + (form?.action || location.href) +
+                        '\nЛогін: ' + (username ? describe(username) : 'не визначено') +
+                        '\nПароль: ' + describe(password);
+                });
+                return candidates.length ? candidates : ['Полів пароля не знайдено.'];
+            })()"#,
+            move |result| {
+                let message = match result {
+                    Ok(JSValue::Array(values)) => values.into_iter().filter_map(|value| {
+                        if let JSValue::String(text) = value { Some(text) } else { None }
+                    }).collect::<Vec<_>>().join("\n\n"),
+                    Ok(other) => format!("Неочікувана відповідь Servo: {other:?}"),
+                    Err(error) => format!("Не вдалося просканувати сторінку: {error:?}"),
+                };
+                *state.vault_form_scan_result.borrow_mut() = message;
+                state.window.request_redraw();
+            },
+        );
+        self.servo.spin_event_loop();
     }
 
     fn toolbar_height_physical(&self) -> u32 {
@@ -1129,6 +1198,7 @@ impl VertexApp {
             vault_search: RefCell::new(String::new()),
             vault_show_passwords: Cell::new(false),
             vault_message: RefCell::new(String::new()),
+            vault_form_scan_result: RefCell::new(String::new()),
         });
 
         let url = match std::env::args().nth(1) {
