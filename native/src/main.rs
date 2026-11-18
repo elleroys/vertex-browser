@@ -24,6 +24,7 @@ use servo::{
 };
 use url::Url;
 use zeroize::{Zeroize, Zeroizing};
+use arboard::Clipboard;
 use storage::{default_profile_dir, BrowserStorage, DownloadEntry};
 use winit::{
     application::ApplicationHandler,
@@ -776,6 +777,28 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                         }
                     }
                 }
+                response.context_menu(|ui| {
+                    if ui.button("Вставити з буфера обміну").clicked() {
+                        match read_system_clipboard() {
+                            Ok(value) => address = value,
+                            Err(error) => log::warn!("{error}"),
+                        }
+                        ui.close();
+                    }
+                    if ui.button("Копіювати адресу").clicked() {
+                        if let Err(error) = write_system_clipboard(&address) { log::warn!("{error}"); }
+                        ui.close();
+                    }
+                    if ui.button("Вирізати адресу").clicked() {
+                        if let Err(error) = write_system_clipboard(&address) { log::warn!("{error}"); }
+                        address.clear();
+                        ui.close();
+                    }
+                    if ui.button("Виділити все").clicked() {
+                        ui.ctx().memory_mut(|memory| memory.request_focus(egui::Id::new("vertex-address-bar")));
+                        ui.close();
+                    }
+                });
                 if ui.button(if current_bookmarked { "★" } else { "☆" }).on_hover_text("Додати або прибрати закладку").clicked() {
                     if let Some(view) = &active {
                         if let Some(url) = view.url().filter(|url| matches!(url.scheme(), "http" | "https")) {
@@ -2802,6 +2825,17 @@ impl VertexApp {
     }
 }
 
+
+fn read_system_clipboard() -> Result<String, String> {
+    let mut clipboard = Clipboard::new().map_err(|error| format!("Не вдалося відкрити буфер обміну: {error}"))?;
+    clipboard.get_text().map_err(|error| format!("Не вдалося прочитати буфер обміну: {error}"))
+}
+
+fn write_system_clipboard(value: &str) -> Result<(), String> {
+    let mut clipboard = Clipboard::new().map_err(|error| format!("Не вдалося відкрити буфер обміну: {error}"))?;
+    clipboard.set_text(value.to_owned()).map_err(|error| format!("Не вдалося записати буфер обміну: {error}"))
+}
+
 fn html_data_url(html: &str) -> Url {
     let encoded: String = url::form_urlencoded::byte_serialize(html.as_bytes()).collect();
     Url::parse(&format!("data:text/html;charset=utf-8,{encoded}"))
@@ -3250,6 +3284,36 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     // Keep keyboard shortcuts and text editing inside browser chrome when an egui
                     // widget (most importantly the address bar) owns keyboard focus. Without this
                     // guard, the same Ctrl+C/Ctrl+V key events can also leak into the web page.
+                    let address_has_focus = state.egui.borrow().egui_ctx.memory(|memory| {
+                        memory.focused() == Some(egui::Id::new("vertex-address-bar"))
+                    });
+                    let control = state.modifiers.get().contains(Modifiers::CONTROL);
+                    if address_has_focus && control && event.state == ElementState::Pressed {
+                        if let WinitKey::Character(key) = &event.logical_key {
+                            match key.to_ascii_lowercase().as_str() {
+                                "c" => {
+                                    if let Err(error) = write_system_clipboard(&state.address_bar.borrow()) { log::warn!("{error}"); }
+                                    return;
+                                }
+                                "x" => {
+                                    let value = state.address_bar.borrow().clone();
+                                    if let Err(error) = write_system_clipboard(&value) { log::warn!("{error}"); }
+                                    state.address_bar.borrow_mut().clear();
+                                    state.window.request_redraw();
+                                    return;
+                                }
+                                "v" => {
+                                    match read_system_clipboard() {
+                                        Ok(value) => *state.address_bar.borrow_mut() = value,
+                                        Err(error) => log::warn!("{error}"),
+                                    }
+                                    state.window.request_redraw();
+                                    return;
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
                     let chrome_has_focus = state.egui.borrow().egui_ctx.memory(|memory| {
                         memory.focused().is_some()
                     });
