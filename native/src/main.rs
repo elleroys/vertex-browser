@@ -1706,19 +1706,6 @@ impl VertexApp {
             (vec![state.new_tab_url()], 0)
         };
 
-        /*
-        } else if let Ok(Some((urls, active_index))) = state.storage.load_session() {
-            let parsed = urls.into_iter().filter_map(|value| Url::parse(&value).ok()).collect::<Vec<_>>();
-            if parsed.is_empty() {
-                (vec![state.new_tab_url()], 0)
-            } else {
-                (parsed, active_index)
-            }
-        } else {
-            (vec![state.new_tab_url()], 0)
-        };
-        */
-
         let mut startup_urls = startup_urls.into_iter();
         let first_url = startup_urls.next().unwrap_or_else(|| state.new_tab_url());
         let webview = WebViewBuilder::new(&state.servo, state.page_context.clone())
