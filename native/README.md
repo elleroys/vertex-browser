@@ -27,6 +27,8 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Ctrl+Shift+B opens a dark, Servo-rendered bookmarks page; links navigate directly in the active WebView.
 - Ctrl+D toggles a bookmark for the current HTTP(S) page. Bookmark/history/settings storage is implemented as an engine-independent native service, with APIs for recent history, listing bookmarks, deleting one history entry and clearing history.
 - A persistent browser session snapshot stores up to 50 HTTP(S) tab URLs and the active-tab index in SQLite. On startup without an explicit URL argument, the browser restores that session; malformed, obsolete and non-HTTP(S) entries are ignored.
+- Up to ten recently closed HTTP(S) tabs are persisted across restarts and can be reopened with Ctrl+Shift+T or the toolbar recovery control.
+- A basic settings window lets the user select Google, DuckDuckGo or Bing as the address-bar search provider; the choice is stored in the local profile.
 - A local encrypted password vault using Argon2id and XChaCha20-Poly1305, with create/unlock/lock, search, save/delete, password generation and clipboard copy.
 - Servo-backed login-form detection and explicit user-triggered same-origin autofill. Autofill checks the current origin again immediately before filling, serializes values safely and does not submit the form.
 - Password vault CSV import/export with a preview/validation step before import confirmation, row/size limits and temporary-buffer zeroization. The supported CSV schema is Vertex's own `origin,title,username,password,notes` format; arbitrary Chrome/vendor exports are not guaranteed to import unchanged.
@@ -36,8 +38,8 @@ This directory contains the native browser runtime prototype. The rendering engi
 
 This remains a development browser, not a release-ready consumer browser. The following work is still required:
 - Actual download transfers, progress updates, cancellation, destination selection and opening completed files. The current downloads page is only a persistent-record UI; it is not a working download manager.
-- A complete settings/profile interface (home page, search provider, download directory, privacy controls and session preferences).
-- Persistent recovery of recently closed tabs and richer session metadata (scroll position and per-tab navigation history). Current session restore stores only HTTP(S) URLs and the active tab index.
+- A complete settings/profile interface (home page, download directory, privacy controls, cookie/site-data management and session preferences). Search-provider selection is implemented, but the broader settings surface is not.
+- Richer session metadata (scroll position and per-tab navigation history). Current session restore stores only HTTP(S) URLs and the active tab index; recently closed URLs are separately persisted.
 - Broader AdBlock compatibility: filter-list updates, cosmetic filters, resource modifiers, scriptlets, and full EasyList/uBlock syntax.
 - More complete browser security/privacy controls, permission prompts, cookie/site-data management and clipboard auto-clear policy.
 - Windows installer/update packaging, icons/signing, crash handling, accessibility and production hardening.
