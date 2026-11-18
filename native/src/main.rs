@@ -1755,7 +1755,7 @@ ${sections}</body></html>"#);
         let mut cancel_csv_import = false;
         let mut fill_request: Option<(String, String, String)> = None;
 
-        egui::Window::new("Менеджер паролів")
+        let window_response = egui::Window::new("Менеджер паролів")
             .open(&mut open)
             .resizable(true)
             .default_width(560.0)
@@ -1923,6 +1923,13 @@ ${sections}</body></html>"#);
                 }
             });
 
+        // Keyboard and pointer activity inside the vault window resets the
+        // inactivity timer; a stationary pointer alone does not.
+        if window_response.as_ref().is_some_and(|response| response.response.hovered())
+            && ctx.input(|input| !input.events.is_empty())
+        {
+            self.password_vault.touch();
+        }
         if show_passwords != self.vault_show_passwords.get() { self.password_vault.touch(); }
         self.vault_show_passwords.set(show_passwords);
         if let Some(value) = clipboard_text {
@@ -1935,6 +1942,8 @@ ${sections}</body></html>"#);
                 .add_filter("CSV", &["csv"])
                 .pick_file();
             if let Some(path) = selected {
+                self.vault_csv_preview.borrow_mut().take();
+                self.password_vault.touch();
                 let result = std::fs::read_to_string(&path)
                     .map_err(|error| format!("Не вдалося прочитати CSV: {error}"))
                     .and_then(|contents| {
@@ -1952,6 +1961,7 @@ ${sections}</body></html>"#);
             }
         }
         if export_csv {
+            self.password_vault.touch();
             match self.password_vault.export_csv(&self.storage) {
                 Ok(contents) => {
                     let contents = Zeroizing::new(contents);
@@ -1971,6 +1981,7 @@ ${sections}</body></html>"#);
             }
         }
         if confirm_csv_import {
+            self.password_vault.touch();
             let preview = self.vault_csv_preview.borrow_mut().take();
             if let Some(preview) = preview {
                 let result = self.password_vault.confirm_csv_import(&self.storage, preview);
@@ -2002,6 +2013,7 @@ ${sections}</body></html>"#);
             self.vault_username.borrow_mut().zeroize();
             self.vault_password.borrow_mut().zeroize();
             self.vault_notes.borrow_mut().zeroize();
+            self.vault_csv_preview.borrow_mut().take();
         }
         if setup {
             let master = Zeroizing::new(self.vault_master_password.borrow().clone());
@@ -2034,6 +2046,7 @@ ${sections}</body></html>"#);
             self.vault_username.borrow_mut().zeroize();
             self.vault_password.borrow_mut().zeroize();
             self.vault_notes.borrow_mut().zeroize();
+            self.vault_csv_preview.borrow_mut().take();
             *self.vault_message.borrow_mut() = "Сховище заблоковано.".to_owned();
         }
         if change_master_password {
@@ -3024,6 +3037,9 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 state.vault_username.borrow_mut().zeroize();
                 state.vault_password.borrow_mut().zeroize();
                 state.vault_notes.borrow_mut().zeroize();
+                // Dropping the preview drops its entries, which zeroize
+                // usernames, passwords and notes in their Drop implementation.
+                state.vault_csv_preview.borrow_mut().take();
                 *state.vault_message.borrow_mut() = "Сховище автоматично заблоковано після 5 хвилин бездіяльності.".to_owned();
                 state.window.request_redraw();
             }

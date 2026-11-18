@@ -332,18 +332,28 @@ impl PasswordVault {
         let mut credentials = Vec::with_capacity(rows.len());
 
         for row in rows {
-            let username = String::from_utf8(Self::decrypt_bytes(&key, &row.username_enc)?)
-                .map_err(|_| "Некоректне кодування імені користувача".to_owned())?;
-            let password = String::from_utf8(Self::decrypt_bytes(&key, &row.password_enc)?)
-                .map_err(|_| "Некоректне кодування пароля".to_owned())?;
-            let notes = row
-                .notes_enc
-                .as_deref()
-                .map(|value| Self::decrypt_bytes(&key, value))
-                .transpose()?
-                .map(String::from_utf8)
-                .transpose()
-                .map_err(|_| "Некоректне кодування нотаток".to_owned())?;
+            // Keep decrypted values in zeroizing buffers until ownership is
+            // transferred to PasswordCredential, whose Drop implementation
+            // zeroizes them. This also covers filtered-out and malformed rows.
+            let username_bytes = Zeroizing::new(Self::decrypt_bytes(&key, &row.username_enc)?);
+            let password_bytes = Zeroizing::new(Self::decrypt_bytes(&key, &row.password_enc)?);
+            let mut username = Zeroizing::new(
+                String::from_utf8(username_bytes.to_vec())
+                    .map_err(|_| "Некоректне кодування імені користувача".to_owned())?
+            );
+            let mut password = Zeroizing::new(
+                String::from_utf8(password_bytes.to_vec())
+                    .map_err(|_| "Некоректне кодування пароля".to_owned())?
+            );
+            let mut notes = if let Some(encoded) = row.notes_enc.as_deref() {
+                let notes_bytes = Zeroizing::new(Self::decrypt_bytes(&key, encoded)?);
+                Some(Zeroizing::new(
+                    String::from_utf8(notes_bytes.to_vec())
+                        .map_err(|_| "Некоректне кодування нотаток".to_owned())?
+                ))
+            } else {
+                None
+            };
 
             if !needle.is_empty()
                 && !row.origin.to_lowercase().contains(&needle)
@@ -357,9 +367,9 @@ impl PasswordVault {
                 id: row.id,
                 origin: row.origin,
                 title: row.title,
-                username,
-                password,
-                notes,
+                username: std::mem::take(&mut *username),
+                password: std::mem::take(&mut *password),
+                notes: notes.as_mut().map(|value| std::mem::take(&mut **value)),
                 created_at: row.created_at,
                 updated_at: row.updated_at,
             });
@@ -503,8 +513,8 @@ impl PasswordVault {
                     continue;
                 }
             };
-            let username = record.get(username_col).unwrap_or_default().to_owned();
-            let password = record.get(password_col).unwrap_or_default().to_owned();
+            let mut username = Zeroizing::new(record.get(username_col).unwrap_or_default().to_owned());
+            let mut password = Zeroizing::new(record.get(password_col).unwrap_or_default().to_owned());
             if password.is_empty() {
                 preview.issues.push(CsvImportIssue { row: row_number, message: "Порожній пароль — запис пропущено".to_owned() });
                 continue;
@@ -514,12 +524,15 @@ impl PasswordVault {
                 preview.duplicates += 1;
                 continue;
             }
+            let mut notes = notes_col.and_then(|column| record.get(column))
+                .filter(|value| !value.is_empty())
+                .map(|value| Zeroizing::new(value.to_owned()));
             preview.entries.push(CsvImportEntry {
                 origin,
                 title: title_col.and_then(|column| record.get(column)).unwrap_or_default().to_owned(),
-                username,
-                password,
-                notes: notes_col.and_then(|column| record.get(column)).filter(|value| !value.is_empty()).map(str::to_owned),
+                username: std::mem::take(&mut *username),
+                password: std::mem::take(&mut *password),
+                notes: notes.as_mut().map(|value| std::mem::take(&mut **value)),
             });
         }
         Ok(preview)
