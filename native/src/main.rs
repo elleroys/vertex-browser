@@ -243,11 +243,6 @@ ${sections}</body></html>"#);
 
     fn draw_chrome(self: &Rc<Self>) {
         let active = self.active_webview();
-        let current_url = active.as_ref()
-            .and_then(|view| view.url())
-            .filter(|url| matches!(url.scheme(), "http" | "https"))
-            .map(|url| url.to_string())
-            .unwrap_or_default();
         let tab_labels: Vec<(usize, String, bool)> = self.webviews.borrow().iter().enumerate()
             .map(|(index, view)| {
                 let title = view.page_title()
@@ -260,9 +255,6 @@ ${sections}</body></html>"#);
 
         let initial_active_tab = self.active_tab.get();
         let mut address = self.address_bar.borrow().clone();
-        if address.is_empty() && !current_url.is_empty() {
-            address = current_url;
-        }
 
         let mut chrome = self.egui.borrow_mut();
         chrome.run(&self.window, |ui| {
@@ -601,6 +593,10 @@ impl VertexApp {
             .delegate(state.clone())
             .build();
         webview.set_focused(true);
+        *state.address_bar.borrow_mut() = webview.url()
+            .filter(|url| matches!(url.scheme(), "http" | "https"))
+            .map(|url| url.to_string())
+            .unwrap_or_default();
         state.webviews.borrow_mut().push(webview);
 
         *self = Self::Running(state);
