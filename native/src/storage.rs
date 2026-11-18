@@ -480,6 +480,14 @@ impl BrowserStorage {
         Ok(())
     }
 
+    /// Remove completed download history rows without touching files on disk.
+    pub fn delete_completed_downloads(&self) -> rusqlite::Result<usize> {
+        let changed = self.connection.lock().expect("database mutex poisoned").execute(
+            "DELETE FROM downloads WHERE status='completed'", [],
+        )?;
+        Ok(changed)
+    }
+
     /// Return the newest history entries first. The caller controls the maximum result count.
     pub fn recent_history(&self, limit: u32) -> rusqlite::Result<Vec<HistoryEntry>> {
         let connection = self.connection.lock().expect("database mutex poisoned");
