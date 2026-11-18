@@ -29,7 +29,7 @@ pub struct VaultStatus {
     pub entry_count: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct PasswordCredential {
     pub id: String,
     pub origin: String,
