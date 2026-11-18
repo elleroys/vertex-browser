@@ -29,6 +29,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - A persistent browser session snapshot stores up to 50 HTTP(S) tab URLs and the active-tab index in SQLite. On startup without an explicit URL argument, the browser restores that session; malformed, obsolete and non-HTTP(S) entries are ignored.
 - Up to ten recently closed HTTP(S) tabs are persisted across restarts and can be reopened with Ctrl+Shift+T or the toolbar recovery control.
 - A basic settings window lets the user select Google, DuckDuckGo or Bing as the address-bar/new-tab search provider, configure an HTTP(S) homepage, choose a persistent download directory through the native folder picker, enable/disable startup session restore, clear browsing history on exit, and independently clear the persisted recently-closed-tabs list on exit; preferences are stored in the local profile.
+- The native site-data manager uses Servo's pinned `SiteDataManager` API to list sites with cookies, localStorage or sessionStorage, clear all supported data for one site, and confirm before clearing all cookies and Web Storage across sites. This does not yet cover IndexedDB, cache storage, service workers or other future storage categories.
 - A local encrypted password vault using Argon2id and XChaCha20-Poly1305, with create/unlock/lock, search, save/delete, password generation and clipboard copy.
 - Servo-backed login-form detection and explicit user-triggered same-origin autofill. Autofill checks the current origin again immediately before filling, serializes values safely and does not submit the form.
 - Password vault CSV import/export with a preview/validation step before import confirmation, row/size limits and temporary-buffer zeroization. The supported CSV schema is Vertex's own `origin,title,username,password,notes` format; arbitrary Chrome/vendor exports are not guaranteed to import unchanged.
@@ -39,10 +40,10 @@ This directory contains the native browser runtime prototype. The rendering engi
 ## Still missing
 
 This remains a development browser, not a release-ready consumer browser. The following work is still required:
-- A complete settings/profile interface (privacy controls and cookie/site-data management). Search provider, HTTP(S) homepage, persistent download-directory selection and startup session-restore preference are implemented, but the broader settings surface is not.
+- A complete settings/profile interface (advanced privacy controls, profile management and broader site-data categories). Search provider, HTTP(S) homepage, persistent download-directory selection, startup session restore, history cleanup and the supported cookie/Web Storage manager are implemented, but the broader settings surface is not.
 - Richer session metadata (scroll position and per-tab navigation history). Current session restore stores only HTTP(S) URLs and the active tab index; recently closed URLs are separately persisted.
 - Broader AdBlock compatibility: cosmetic filters, additional resource modifiers (for example third-party/domain modifiers), scriptlets, and full EasyList/uBlock syntax. The current matcher supports domain rules, path prefixes, `*` wildcards in paths, exceptions and a documented subset of resource types, but not the full filter-list grammar.
-- More complete browser security/privacy controls, permission prompts, cookie/site-data management and clipboard auto-clear policy.
+- More complete browser security/privacy controls, permission prompts, IndexedDB/cache/service-worker cleanup and clipboard auto-clear policy.
 - Windows installer/update packaging, icons/signing, crash handling, accessibility and production hardening.
 - Site compatibility and performance measurements on real Windows hardware. Servo feature coverage (media, WebRTC, DRM, extensions and DevTools) must be evaluated separately.
 
