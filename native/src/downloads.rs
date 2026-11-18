@@ -230,15 +230,15 @@ mod tests {
             let (mut stream, _) = listener.accept().unwrap();
             let mut request = Vec::new();
             let mut byte = [0u8; 1];
-            while !request.ends_with(b"\\r\\n\\r\\n") {
+            while !request.ends_with(b"\r\n\r\n") {
                 stream.read_exact(&mut byte).unwrap();
                 request.push(byte[0]);
             }
             let request = String::from_utf8_lossy(&request).to_ascii_lowercase();
             assert!(request.contains("range: bytes=5-"));
-            assert!(request.contains("if-range: \\"v1\\""));
+            assert!(request.contains("if-range: \"v1\""));
             stream.write_all(
-                b"HTTP/1.1 206 Partial Content\\r\\nETag: \\"v1\\"\\r\\nContent-Range: bytes 5-10/11\\r\\nContent-Length: 6\\r\\nConnection: close\\r\\n\\r\\n world"
+                b"HTTP/1.1 206 Partial Content\r\nETag: \"v1\"\r\nContent-Range: bytes 5-10/11\r\nContent-Length: 6\r\nConnection: close\r\n\r\n world"
             ).unwrap();
         });
 
@@ -251,7 +251,7 @@ mod tests {
             &format!("http://{address}/file.bin"),
             &destination,
             &partial,
-            ResumeInfo { etag: Some("\\"v1\\"".to_owned()), last_modified: None },
+            ResumeInfo { etag: Some("\"v1\"".to_owned()), last_modified: None },
             |_, _, _| true,
         ).unwrap();
         server.join().unwrap();
