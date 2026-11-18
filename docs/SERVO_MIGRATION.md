@@ -25,13 +25,15 @@ The `native/` application is the active migration target on `servo-migration`. I
 
 Implemented in the native branch:
 
-- Native window, Servo rendering/event-loop integration, address bar and tab UI.
-- Navigation, page title updates, zoom controls and keyboard shortcuts.
-- SQLite-backed history, bookmarks, settings and a downloads-history table.
-- Internal pages for history, bookmarks and download records.
+- Native window, Servo rendering/event-loop integration, address bar, native egui/Glow toolbar and multi-tab UI.
+- Navigation, page title/loading state, zoom controls, keyboard/mouse/wheel/focus input and common keyboard shortcuts.
+- SQLite-backed history, bookmarks, settings, download records and persistent session restore (up to 50 HTTP(S) tab URLs plus active-tab index).
+- Internal pages for new tab, history, bookmarks and download records.
 - Basic request blocking through Servo's `WebViewDelegate::load_web_resource`.
-- Global AdBlock toggle and per-host exceptions, persisted in SQLite.
-- Native custom-rule editor with SQLite persistence. The supported EasyList subset includes domain rules (`||host^`), domain/path rules and exception rules (`@@||host^`); comments are ignored. Cosmetic filters, regular expressions, resource modifiers, scriptlets and full uBlock syntax are not supported.
+- Global AdBlock toggle, per-site exceptions and a custom-rule editor persisted in SQLite. The supported EasyList subset includes domain rules (`||host^`), domain/path rules and exception rules (`@@||host^`); comments are ignored. Cosmetic filters, regular expressions, resource modifiers, scriptlets and full uBlock syntax are not supported.
+- Encrypted password vault using Argon2id and XChaCha20-Poly1305, including save/search/delete, password generation and lock/unlock.
+- Servo-backed login form detection and explicit user-triggered same-origin autofill with origin revalidation and safe JS value serialization.
+- Password CSV import/export with validation preview, explicit import confirmation and a Vertex-specific CSV schema.
 
 Known limitations (not yet acceptance-tested):
 
@@ -39,8 +41,9 @@ Known limitations (not yet acceptance-tested):
 - Rules are parsed into an in-memory rule set when the browser starts and when custom rules are saved, rather than reparsed for every resource request. Path rules with the EasyList separator marker check the separator boundary, so `/ads^` does not accidentally match `/adserver`.
 - The downloads page currently displays persisted records only. Actual network transfers, progress reporting, cancellation and opening files are not yet integrated.
 - Servo's pinned `WebViewDelegate::load_web_resource` hook exposes the outgoing `WebResourceRequest` and lets the embedder replace a response; it does not expose the eventual server response headers to that callback. Therefore it cannot safely identify `Content-Disposition: attachment` downloads on its own. Do not intercept every URL or start a second unauthenticated HTTP request as a workaround. A proper download integration needs a verified response/download event or an engine-level API change.
-- The native password manager now has a basic egui window: create/unlock/lock the vault, add credentials, search entries, toggle password visibility, generate random passwords and delete entries. The backend uses Argon2id and XChaCha20-Poly1305; master-password and password input buffers are zeroized when cleared/locked, and decrypted credential buffers are zeroized when their records are dropped. The vault UI supports copying usernames and passwords to the system clipboard and surfaces decryption/read errors instead of silently hiding them. Closing the vault window locks it and clears sensitive input buffers. Clipboard contents are not automatically cleared by the browser. The password window can ask Servo to inspect the active HTTP/HTTPS document for password inputs and likely username fields, then display the detected form action and field metadata. This is detection only: it does not read existing field values, submit forms or autofill credentials. CSV import and user-confirmed autofill are not implemented yet.
-- Tab session restore, robust tab lifecycle and Windows packaging remain unfinished.
+- The password vault supports manual credential management, safe same-origin autofill and CSV import/export. Autofill is explicit and never submits the form. CSV import currently targets the Vertex schema (`origin,title,username,password,notes`), not every browser/vendor export format. Clipboard contents are not automatically cleared by the browser.
+- Session restore currently stores only HTTP(S) tab URLs and the active-tab index. Recently closed tabs, per-tab back/forward history and scroll positions are not persisted.
+- Profile settings, Windows packaging, broader privacy controls and production hardening remain unfinished.
 - No successful native build or end-to-end browser test has been recorded yet. Do not treat source-level changes as proof of runtime correctness.
 
 ## Migration sequence
