@@ -254,7 +254,7 @@ mod tests {
 
     #[test]
     fn path_wildcards_match_filter_list_segments_and_respect_separators() {
-        let rules = "||cdn.example.net/ads/*/banner^\\n||static.example.org/assets/*";
+        let rules = "||cdn.example.net/ads/*/banner^\n||static.example.org/assets/*";
         assert!(is_blocked_url_with_rules(
             &url("https://cdn.example.net/ads/mobile/banner.js"), rules
         ));
