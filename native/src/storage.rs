@@ -663,6 +663,15 @@ mod tests {
     }
 
     #[test]
+    fn clearing_recently_closed_tabs_persists_an_empty_list() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        storage.save_closed_tabs(&["https://example.com/".to_owned()]).unwrap();
+        assert_eq!(storage.load_closed_tabs().unwrap().len(), 1);
+        storage.save_closed_tabs(&[]).unwrap();
+        assert!(storage.load_closed_tabs().unwrap().is_empty());
+    }
+
+    #[test]
     fn limits_recently_closed_tabs_to_ten() {
         let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
         let urls = (0..15).map(|index| format!("https://{index}.example/")).collect::<Vec<_>>();
