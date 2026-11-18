@@ -824,7 +824,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                         .vertical_align(egui::Align::Center),
                 );
                 if self.address_select_all.replace(false) {
-                    if let Some(mut edit_state) = egui::TextEditState::load(ui.ctx(), response.id) {
+                    if let Some(mut edit_state) = egui::text_edit::TextEditState::load(ui.ctx(), response.id) {
                         let start = egui::text::CCursor::new(0);
                         let end = egui::text::CCursor::new(address.chars().count());
                         edit_state.cursor.set_char_range(Some(egui::text::CCursorRange::two(start, end)));
