@@ -537,6 +537,17 @@ mod tests {
     }
 
     #[test]
+    fn limits_recently_closed_tabs_to_ten() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let urls = (0..15).map(|index| format!("https://{index}.example/")).collect::<Vec<_>>();
+        storage.save_closed_tabs(&urls).unwrap();
+        let restored = storage.load_closed_tabs().unwrap();
+        assert_eq!(restored.len(), 10);
+        assert_eq!(restored[0], "https://14.example/");
+        assert_eq!(restored[9], "https://5.example/");
+    }
+
+    #[test]
     fn ignores_corrupt_or_empty_saved_sessions() {
         let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
         storage.set_setting("browser_session_v1", "not-json").unwrap();
