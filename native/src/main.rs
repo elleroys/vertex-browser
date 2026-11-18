@@ -102,6 +102,13 @@ impl BrowserState {
         }
     }
 
+    fn persist_closed_tabs(&self) {
+        let urls: Vec<String> = self.closed_tabs.borrow().iter().map(Url::to_string).collect();
+        if let Err(error) = self.storage.save_closed_tabs(&urls) {
+            log::error!("could not persist recently closed tabs: {error}");
+        }
+    }
+
     fn activate_tab(&self, index: usize) {
         let mut tabs = self.webviews.borrow_mut();
         if index >= tabs.len() {
@@ -155,6 +162,7 @@ impl BrowserState {
     fn reopen_closed_tab(self: &Rc<Self>) {
         let url = self.closed_tabs.borrow_mut().pop();
         if let Some(url) = url {
+            self.persist_closed_tabs();
             self.create_tab(url);
         }
     }
@@ -195,6 +203,7 @@ impl BrowserState {
         }
         drop(tabs);
         self.persist_session();
+        self.persist_closed_tabs();
         self.window.request_redraw();
     }
 
@@ -1398,6 +1407,11 @@ impl VertexApp {
             .ok().flatten()
             .filter(|value| matches!(value.as_str(), "google" | "duckduckgo" | "bing"))
             .unwrap_or_else(|| "google".to_owned());
+        let closed_tabs = storage.load_closed_tabs().unwrap_or_default()
+            .into_iter()
+            .rev()
+            .filter_map(|value| Url::parse(&value).ok())
+            .collect::<Vec<_>>();
         let state = Rc::new(BrowserState {
             window,
             servo,
@@ -1407,7 +1421,7 @@ impl VertexApp {
             cursor_position: Cell::new(PhysicalPosition::new(0.0, 0.0)),
             modifiers: Cell::new(Modifiers::empty()),
             active_tab: Cell::new(0),
-            closed_tabs: RefCell::new(Vec::new()),
+            closed_tabs: RefCell::new(closed_tabs),
             storage,
             egui: RefCell::new(chrome),
             address_bar: RefCell::new(String::new()),
