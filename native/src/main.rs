@@ -1243,7 +1243,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                 || entry.file_path.to_lowercase().contains(&needle))
                         }).collect::<Vec<_>>();
                         egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
-                            for entry in visible_entries {
+                            for entry in &visible_entries {
                                 ui.group(|ui| {
                                     ui.horizontal(|ui| {
                                         ui.label(egui::RichText::new(&entry.file_name).strong());
