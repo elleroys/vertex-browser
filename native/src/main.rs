@@ -58,6 +58,7 @@ struct BrowserState {
     event_loop_proxy: EventLoopProxy<ServoWakeup>,
     downloads_manager_open: Cell<bool>,
     download_url: RefCell<String>,
+    context_menu_link: RefCell<Option<Url>>,
     active_downloads: RefCell<HashMap<i64, Arc<AtomicBool>>>,
     egui: RefCell<egui_glow::winit::EguiGlow>,
     address_bar: RefCell<String>,
@@ -1111,6 +1112,44 @@ ${sections}</body></html>"#);
                 }
                 if !open { self.bookmarks_manager_open.set(false); }
             }
+            if let Some(link) = self.context_menu_link.borrow().clone() {
+                let scale = self.window.scale_factor() as f32;
+                let cursor = self.cursor_position.get();
+                let position = egui::pos2((cursor.x as f32 / scale).max(8.0), (cursor.y as f32 / scale).max(8.0));
+                let mut close_menu = false;
+                let mut download_link: Option<String> = None;
+                let mut open_link: Option<Url> = None;
+                egui::Window::new("Дії з посиланням")
+                    .id(egui::Id::new("vertex-link-context-menu"))
+                    .title_bar(false)
+                    .collapsible(false)
+                    .resizable(false)
+                    .fixed_pos(position)
+                    .show(ui.ctx(), |ui| {
+                        ui.label(link.host_str().unwrap_or("Посилання"));
+                        ui.separator();
+                        if ui.button("Завантажити посилання…").clicked() {
+                            download_link = Some(link.to_string());
+                            close_menu = true;
+                        }
+                        if ui.button("Відкрити в новій вкладці").clicked() {
+                            open_link = Some(link.clone());
+                            close_menu = true;
+                        }
+                        if ui.button("Скасувати").clicked() {
+                            close_menu = true;
+                        }
+                    });
+                if close_menu {
+                    self.context_menu_link.borrow_mut().take();
+                }
+                if let Some(url) = download_link {
+                    self.start_download(url);
+                }
+                if let Some(url) = open_link {
+                    self.create_tab(url);
+                }
+            }
             self.draw_password_vault_window(ui.ctx());
         });
         chrome.paint(&self.window);
@@ -1739,6 +1778,22 @@ ${sections}</body></html>"#);
 }
 
 impl servo::WebViewDelegate for BrowserState {
+    fn show_embedder_control(&self, _webview: WebView, control: servo::EmbedderControl) {
+        if let servo::EmbedderControl::ContextMenu(menu) = control {
+            let link = menu.element_info().link_url.clone().filter(|url| {
+                matches!(url.scheme(), "http" | "https")
+                    && url.host_str().is_some()
+                    && url.username().is_empty()
+                    && url.password().is_none()
+            });
+            menu.dismiss();
+            if let Some(link) = link {
+                *self.context_menu_link.borrow_mut() = Some(link);
+                self.window.request_redraw();
+            }
+        }
+    }
+
     fn request_create_new(
         &self,
         parent_webview: WebView,
@@ -1930,6 +1985,7 @@ impl VertexApp {
             event_loop_proxy: waker.0.clone(),
             downloads_manager_open: Cell::new(false),
             download_url: RefCell::new(String::new()),
+            context_menu_link: RefCell::new(None),
             active_downloads: RefCell::new(HashMap::new()),
             egui: RefCell::new(chrome),
             address_bar: RefCell::new(String::new()),
