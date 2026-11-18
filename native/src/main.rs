@@ -7,7 +7,7 @@ use std::{
 use servo::{
     Code, DevicePoint, EventLoopWaker, InputEvent, Key, KeyState, Location, Modifiers,
     MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeftViewportEvent, MouseMoveEvent, NamedKey, Servo, ServoBuilder,
+    ImeEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, Servo, ServoBuilder,
     WebView, WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
     WindowRenderingContext, KeyboardEvent,
 };
@@ -15,7 +15,7 @@ use url::Url;
 use winit::{
     application::ApplicationHandler,
     dpi::PhysicalPosition,
-    event::{ElementState, MouseScrollDelta, WindowEvent},
+    event::{ElementState, Ime, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
     keyboard::{Key as WinitKey, ModifiersState, NamedKey as WinitNamedKey},
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
@@ -207,6 +207,7 @@ impl VertexApp {
             .hidpi_scale_factor(euclid::Scale::new(state.window.scale_factor() as f32))
             .delegate(state.clone())
             .build();
+        webview.set_focused(true);
         state.webviews.borrow_mut().push(webview);
 
         *self = Self::Running(state);
@@ -287,6 +288,32 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.active_webview() {
                         webview.resize(size);
+                    }
+                }
+            }
+            WindowEvent::Focused(focused) => {
+                if let Self::Running(state) = self {
+                    if let Some(webview) = state.active_webview() {
+                        webview.set_focused(focused);
+                    }
+                }
+            }
+            WindowEvent::Ime(Ime::Commit(text)) => {
+                if let Self::Running(state) = self {
+                    if let Some(webview) = state.active_webview() {
+                        webview.notify_input_event(InputEvent::Keyboard(
+                            KeyboardEvent::from_state_and_key(
+                                KeyState::Down,
+                                Key::Named(NamedKey::Process),
+                            ),
+                        ));
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Commit(text)));
+                        webview.notify_input_event(InputEvent::Keyboard(
+                            KeyboardEvent::from_state_and_key(
+                                KeyState::Up,
+                                Key::Named(NamedKey::Process),
+                            ),
+                        ));
                     }
                 }
             }
