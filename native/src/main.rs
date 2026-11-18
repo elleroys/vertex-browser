@@ -228,15 +228,8 @@ impl BrowserState {
     }
 
     fn home_url(&self) -> Url {
-        let configured = self.home_page.borrow().trim().to_owned();
-        if !configured.is_empty() {
-            if let Ok(url) = Url::parse(&configured) {
-                if matches!(url.scheme(), "http" | "https") {
-                    return url;
-                }
-            }
-        }
-        self.new_tab_url()
+        let configured = self.home_page.borrow().clone();
+        parse_home_page(&configured).unwrap_or_else(|| self.new_tab_url())
     }
 
     fn new_tab_url(&self) -> Url {
@@ -682,8 +675,7 @@ ${sections}</body></html>"#);
                 }
                 if changed_home_page {
                     let candidate = selected_home_page.trim();
-                    let valid = candidate.is_empty() || Url::parse(candidate)
-                        .is_ok_and(|url| matches!(url.scheme(), "http" | "https"));
+                    let valid = candidate.is_empty() || parse_home_page(candidate).is_some();
                     if valid {
                         *self.home_page.borrow_mut() = candidate.to_owned();
                         if let Err(error) = self.storage.set_setting("home_page", candidate) {
@@ -1605,6 +1597,14 @@ fn parse_navigation_input_with_engine(input: &str, engine: &str) -> Url {
     Url::parse(&format!("{base}?{query}")).expect("search URL is valid")
 }
 
+fn parse_home_page(value: &str) -> Option<Url> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Url::parse(trimmed).ok().filter(|url| matches!(url.scheme(), "http" | "https"))
+}
+
 fn search_engine_label(engine: &str) -> &'static str {
     match engine {
         "duckduckgo" => "DuckDuckGo",
@@ -1989,6 +1989,14 @@ mod tests {
             url.query_pairs().find(|(key, _)| key == "q").map(|(_, value)| value.into_owned()),
             Some("servo browser engine".to_owned())
         );
+    }
+
+    #[test]
+    fn accepts_only_http_home_pages() {
+        assert_eq!(parse_home_page("https://example.com/").unwrap().as_str(), "https://example.com/");
+        assert!(parse_home_page("").is_none());
+        assert!(parse_home_page("javascript:alert(1)").is_none());
+        assert!(parse_home_page("file:///private").is_none());
     }
 
     #[test]
