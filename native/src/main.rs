@@ -11,7 +11,7 @@ use servo::{
     MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
     ImeEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, Servo, ServoBuilder,
     WebView, WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
-    WindowRenderingContext, RenderingContext, KeyboardEvent,
+    WindowRenderingContext, OffscreenRenderingContext, RenderingContext, KeyboardEvent,
 };
 use url::Url;
 use storage::{default_profile_dir, BrowserStorage};
@@ -40,6 +40,7 @@ struct BrowserState {
     window: Window,
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
+    page_context: Rc<OffscreenRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
     active_tab: Cell<usize>,
     closed_tabs: RefCell<Vec<Url>>,
@@ -84,7 +85,7 @@ impl BrowserState {
             active.set_focused(false);
             active.hide();
         }
-        let webview = WebViewBuilder::new(&self.servo, self.rendering_context.clone())
+        let webview = WebViewBuilder::new(&self.servo, self.page_context.clone())
             .url(url)
             .hidpi_scale_factor(euclid::Scale::new(self.window.scale_factor() as f32))
             .delegate(self.clone())
@@ -440,9 +441,25 @@ ${sections}</body></html>"#);
         }
     }
 
+    fn toolbar_height_physical(&self) -> u32 {
+        (82.0 * self.window.scale_factor()).round() as u32
+    }
+
+    fn page_size(&self, window_size: winit::dpi::PhysicalSize<u32>) -> winit::dpi::PhysicalSize<u32> {
+        winit::dpi::PhysicalSize::new(
+            window_size.width.max(1),
+            window_size.height.saturating_sub(self.toolbar_height_physical()).max(1),
+        )
+    }
+
+    fn cursor_over_page(&self) -> bool {
+        self.cursor_position.get().y >= self.toolbar_height_physical() as f64
+    }
+
     fn cursor_point(&self) -> WebViewPoint {
         let position = self.cursor_position.get();
-        WebViewPoint::Device(DevicePoint::new(position.x as f32, position.y as f32))
+        let page_y = position.y - self.toolbar_height_physical() as f64;
+        WebViewPoint::Device(DevicePoint::new(position.x as f32, page_y.max(0.0) as f32))
     }
 
     fn handle_keyboard(&self, event: winit::event::KeyEvent, forward_to_page: bool) {
@@ -679,6 +696,8 @@ impl VertexApp {
         let storage = BrowserStorage::open(&profile_dir.join("profile.sqlite3"))
             .expect("failed to open Vertex browser profile database");
 
+        let page_context = Rc::new(rendering_context.offscreen_context(PhysicalPosition::new(1, 1).into()));
+
         let chrome = egui_glow::winit::EguiGlow::new(
             event_loop,
             rendering_context.glow_gl_api(),
@@ -690,6 +709,7 @@ impl VertexApp {
             window,
             servo,
             rendering_context,
+            page_context,
             webviews: RefCell::new(Vec::new()),
             cursor_position: Cell::new(PhysicalPosition::new(0.0, 0.0)),
             modifiers: Cell::new(Modifiers::empty()),
@@ -705,7 +725,7 @@ impl VertexApp {
             None => state.new_tab_url(),
         };
 
-        let webview = WebViewBuilder::new(&state.servo, state.rendering_context.clone())
+        let webview = WebViewBuilder::new(&state.servo, state.page_context.clone())
             .url(url)
             .hidpi_scale_factor(euclid::Scale::new(state.window.scale_factor() as f32))
             .delegate(state.clone())
@@ -879,6 +899,18 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.active_webview() {
                         webview.paint();
+                        let page_height = state.page_context.size().height;
+                        let page_width = state.page_context.size().width;
+                        if let Some(blit_to_window) = state.page_context.render_to_parent_callback() {
+                            let gl = state.rendering_context.glow_gl_api();
+                            blit_to_window(
+                                &gl,
+                                euclid::default::Rect::new(
+                                    euclid::default::Point2D::new(0, 0),
+                                    euclid::default::Size2D::new(page_width as i32, page_height as i32),
+                                ),
+                            );
+                        }
                         state.draw_chrome();
                         state.rendering_context.present();
                     }
@@ -888,13 +920,14 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.active_webview() {
                         webview.set_hidpi_scale_factor(euclid::Scale::new(scale_factor as f32));
+                        webview.resize(state.page_size(state.window.inner_size()));
                     }
                 }
             }
             WindowEvent::Resized(size) => {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.active_webview() {
-                        webview.resize(size);
+                        webview.resize(state.page_size(size));
                     }
                 }
             }
@@ -981,6 +1014,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 if egui_consumed { return; }
                 if let Self::Running(state) = self {
                     state.cursor_position.set(position);
+                    if !state.cursor_over_page() { return; }
                     if let Some(webview) = state.active_webview() {
                         webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
                             state.cursor_point(),
@@ -1004,6 +1038,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             } => {
                 if egui_consumed { return; }
                 if let Self::Running(state) = self {
+                    if !state.cursor_over_page() { return; }
                     let servo_button = match button {
                         winit::event::MouseButton::Left => ServoMouseButton::Left,
                         winit::event::MouseButton::Right => ServoMouseButton::Right,
@@ -1026,6 +1061,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             WindowEvent::MouseWheel { delta, .. } => {
                 if egui_consumed { return; }
                 if let Self::Running(state) = self {
+                    if !state.cursor_over_page() { return; }
                     let (dx, dy, mode) = match delta {
                         MouseScrollDelta::LineDelta(x, y) => {
                             ((x as f64) * 38.0, (y as f64) * 38.0, WheelMode::DeltaLine)
