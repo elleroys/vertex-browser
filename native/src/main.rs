@@ -717,6 +717,17 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
         let mut address = self.address_bar.borrow().clone();
 
         let mut chrome = self.egui.borrow_mut();
+        // Set the context theme before the frame starts; changing only the inner Ui
+        // visuals can leave the native chrome using the platform light theme.
+        chrome.egui_ctx.set_visuals(egui::Visuals::dark());
+        chrome.egui_ctx.style_mut(|style| {
+            style.visuals.panel_fill = egui::Color32::from_rgb(24, 27, 34);
+            style.visuals.window_fill = egui::Color32::from_rgb(30, 34, 43);
+            style.visuals.extreme_bg_color = egui::Color32::from_rgb(15, 17, 22);
+            style.visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(43, 48, 60);
+            style.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(59, 68, 88);
+            style.visuals.widgets.active.bg_fill = egui::Color32::from_rgb(70, 83, 112);
+        });
         chrome.run(&self.window, |ui| {
             ui.style_mut().visuals.dark_mode = true;
             ui.spacing_mut().item_spacing = egui::vec2(5.0, 5.0);
@@ -769,7 +780,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                     }
                                 });
                                 if tab_labels.len() > 1
-                                    && ui.small_button("×").on_hover_text("Закрити вкладку").clicked()
+                                    && ui.small_button("x").on_hover_text("Закрити вкладку").clicked()
                                 {
                                     close_this_tab = true;
                                 }
@@ -784,10 +795,10 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                             }
                         });
                     });
-                if ui.button("＋").on_hover_text("Нова вкладка (Ctrl+T)").clicked() {
+                if ui.button("+ Нова вкладка").on_hover_text("Нова вкладка (Ctrl+T)").clicked() {
                     self.create_tab(self.new_tab_url());
                 }
-                if ui.add_enabled(!self.closed_tabs.borrow().is_empty(), egui::Button::new("↶"))
+                if ui.add_enabled(!self.closed_tabs.borrow().is_empty(), egui::Button::new("Відновити"))
                     .on_hover_text("Відновити вкладку (Ctrl+Shift+T)").clicked()
                 {
                     self.reopen_closed_tab();
@@ -799,18 +810,18 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                     ui.add_enabled(enabled, egui::Button::new(label).min_size(egui::vec2(30.0, 30.0)))
                         .on_hover_text(hint)
                 };
-                if nav_button(ui, "←", active.as_ref().is_some_and(|v| v.can_go_back()), "Назад (Alt+←)").clicked() {
+                if nav_button(ui, "Назад", active.as_ref().is_some_and(|v| v.can_go_back()), "Назад (Alt+←)").clicked() {
                     if let Some(view) = &active { view.go_back(1); }
                     self.window.request_redraw();
                 }
-                if nav_button(ui, "→", active.as_ref().is_some_and(|v| v.can_go_forward()), "Вперед (Alt+→)").clicked() {
+                if nav_button(ui, "Вперед", active.as_ref().is_some_and(|v| v.can_go_forward()), "Вперед (Alt+→)").clicked() {
                     if let Some(view) = &active { view.go_forward(1); }
                     self.window.request_redraw();
                 }
-                if ui.button("⟳").on_hover_text("Оновити (Ctrl+R)").clicked() {
+                if ui.button("Оновити").on_hover_text("Оновити (Ctrl+R)").clicked() {
                     if let Some(view) = &active { view.reload(); }
                 }
-                if ui.button("⌂").on_hover_text("Домашня сторінка").clicked() {
+                if ui.button("Дім").on_hover_text("Домашня сторінка").clicked() {
                     address.clear();
                     if let Some(view) = &active { view.load(self.home_url()); }
                 }
@@ -864,7 +875,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                         ui.close();
                     }
                 });
-                if ui.button(if current_bookmarked { "★" } else { "☆" }).on_hover_text("Додати або прибрати закладку").clicked() {
+                if ui.button(if current_bookmarked { "Закладка ★" } else { "Закладка +"}).on_hover_text("Додати або прибрати закладку").clicked() {
                     if let Some(view) = &active {
                         if let Some(url) = view.url().filter(|url| matches!(url.scheme(), "http" | "https")) {
                             let result = self.storage.is_bookmarked(url.as_str()).and_then(|saved| {
