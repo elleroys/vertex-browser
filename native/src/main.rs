@@ -677,6 +677,23 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
 
     fn draw_chrome(self: &Rc<Self>) {
         let active = self.active_webview();
+        // Keep the omnibox in sync with link clicks, redirects and history navigation.
+        // Never replace text while the user is actively editing the address.
+        let address_has_focus = self.egui.borrow().egui_ctx.memory(|memory| {
+            memory.focused() == Some(egui::Id::new("vertex-address-bar"))
+        });
+        if !address_has_focus {
+            if let Some(url) = active.as_ref().and_then(|view| view.url()) {
+                let current = if matches!(url.scheme(), "http" | "https") {
+                    url.to_string()
+                } else {
+                    String::new()
+                };
+                if *self.address_bar.borrow() != current {
+                    *self.address_bar.borrow_mut() = current;
+                }
+            }
+        }
         let current_bookmarked = active.as_ref()
             .and_then(|view| view.url())
             .filter(|url| matches!(url.scheme(), "http" | "https"))
@@ -752,11 +769,13 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                     ui.add_enabled(enabled, egui::Button::new(label).min_size(egui::vec2(30.0, 30.0)))
                         .on_hover_text(hint)
                 };
-                if nav_button(ui, "←", active.as_ref().is_some_and(|v| v.can_go_back()), "Назад").clicked() {
+                if nav_button(ui, "←", active.as_ref().is_some_and(|v| v.can_go_back()), "Назад (Alt+←)").clicked() {
                     if let Some(view) = &active { view.go_back(1); }
+                    self.window.request_redraw();
                 }
-                if nav_button(ui, "→", active.as_ref().is_some_and(|v| v.can_go_forward()), "Вперед").clicked() {
+                if nav_button(ui, "→", active.as_ref().is_some_and(|v| v.can_go_forward()), "Вперед (Alt+→)").clicked() {
                     if let Some(view) = &active { view.go_forward(1); }
+                    self.window.request_redraw();
                 }
                 if ui.button("⟳").on_hover_text("Оновити (Ctrl+R)").clicked() {
                     if let Some(view) = &active { view.reload(); }
@@ -2612,6 +2631,7 @@ impl servo::WebViewDelegate for BrowserState {
             .and_then(|active| active.url()) == url;
         if is_active {
             self.update_window_title(&webview);
+            self.window.request_redraw();
         }
         if let (Some(url), Some(title)) = (url, title) {
             if let Err(error) = self.storage.update_page_title(url.as_str(), &title) {
