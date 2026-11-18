@@ -108,6 +108,13 @@ where
     }
 }
 
+pub fn suggested_file_name(raw_url: &str) -> String {
+    let candidate = url::Url::parse(raw_url).ok()
+        .and_then(|url| url.path_segments().and_then(|mut segments| segments.filter(|part| !part.is_empty()).next_back().map(str::to_owned)))
+        .unwrap_or_else(|| "download".to_owned());
+    sanitize_file_name(&candidate)
+}
+
 pub fn sanitize_file_name(input: &str) -> String {
     let leaf = input.rsplit(['/', '\\\\']).next().unwrap_or(input);
     let cleaned: String = leaf
