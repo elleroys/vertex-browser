@@ -354,7 +354,8 @@ impl BrowserStorage {
 
     pub fn finish_download(&self, id: i64, received: u64) -> rusqlite::Result<()> {
         self.connection.lock().expect("database mutex poisoned").execute(
-            "UPDATE downloads SET status='completed',received_bytes=?1,total_bytes=COALESCE(total_bytes,?1),updated_at=?2 WHERE id=?3",
+            "UPDATE downloads SET status='completed',received_bytes=?1,total_bytes=COALESCE(total_bytes,?1),
+             partial_path=NULL,etag=NULL,last_modified=NULL,updated_at=?2 WHERE id=?3",
             params![received as i64, unix_time_ms(), id],
         )?;
         Ok(())
