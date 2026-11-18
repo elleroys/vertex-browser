@@ -299,9 +299,8 @@ ${sections}</body></html>"#);
             ui.style_mut().visuals.dark_mode = true;
             ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
 
-            // Servo currently renders to the full window-sized context. Keep the
-            // browser chrome visually opaque until a separate content surface is
-            // introduced, so page pixels never bleed through the toolbar.
+            // The page is composited from an offscreen viewport below this chrome.
+            // Keep the chrome backing opaque so no stale window pixels show through.
             let toolbar_cover = egui::Rect::from_min_size(
                 ui.min_rect().min,
                 egui::vec2(ui.available_width(), 82.0),
