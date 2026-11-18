@@ -729,7 +729,9 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                 } else if tab_response.clicked() {
                                     self.activate_tab(*index);
                                 }
-                                if ui.small_button("×").on_hover_text("Закрити вкладку").clicked() {
+                                if tab_labels.len() > 1
+                                    && ui.small_button("×").on_hover_text("Закрити вкладку").clicked()
+                                {
                                     self.close_tab_at(*index);
                                 }
                             }
