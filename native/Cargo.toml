@@ -18,6 +18,7 @@ egui_glow = { version = "0.34.3", features = ["winit"] }
 rusqlite = { version = "0.38", features = ["bundled"] }
 argon2 = "0.5"
 base64 = "0.22"
+arboard = "3.6"
 chacha20poly1305 = "0.10"
 rand = "0.8"
 uuid = { version = "1", features = ["v4"] }
