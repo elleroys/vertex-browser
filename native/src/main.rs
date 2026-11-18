@@ -857,7 +857,8 @@ ${sections}</body></html>"#);
                         log::error!("could not remove download record {id}: {error}");
                     }
                 }
-                let active_ids: std::collections::HashSet<i64> = entries.iter()
+                let refreshed_entries = self.storage.recent_downloads(100).unwrap_or_default();
+                let active_ids: std::collections::HashSet<i64> = refreshed_entries.iter()
                     .filter(|entry| matches!(entry.status.as_str(), "queued" | "downloading"))
                     .map(|entry| entry.id)
                     .collect();
