@@ -2877,11 +2877,13 @@ fn is_greek_letter(ch: char) -> bool {
     ch.is_alphabetic() && matches!(ch as u32, 0x0370..=0x03FF | 0x1F00..=0x1FFF)
 }
 
-fn has_mixed_confusable_scripts(label: &str) -> bool {
-    let latin = label.chars().any(is_latin_letter);
-    let cyrillic = label.chars().any(is_cyrillic_letter);
-    let greek = label.chars().any(is_greek_letter);
-    (latin && (cyrillic || greek)) || (cyrillic && greek)
+fn has_mixed_confusable_scripts(domain: &str) -> bool {
+    domain.split('.').any(|label| {
+        let latin = label.chars().any(is_latin_letter);
+        let cyrillic = label.chars().any(is_cyrillic_letter);
+        let greek = label.chars().any(is_greek_letter);
+        (latin && (cyrillic || greek)) || (cyrillic && greek)
+    })
 }
 
 fn has_invisible_or_bidi_controls(host: &str) -> bool {
@@ -3454,8 +3456,8 @@ mod tests {
 
     #[test]
     fn detects_invisible_and_bidirectional_unicode_controls() {
-        assert!(has_invisible_or_bidi_controls("safe\\u{200B}name"));
-        assert!(has_invisible_or_bidi_controls("safe\\u{202E}name"));
+        assert!(has_invisible_or_bidi_controls("safe\u{200B}name"));
+        assert!(has_invisible_or_bidi_controls("safe\u{202E}name"));
         assert!(!has_invisible_or_bidi_controls("example.com"));
     }
 
