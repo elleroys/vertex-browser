@@ -152,7 +152,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     }
                 }
             }
-            WindowEvent::Resized(size) => {
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {\n                if let Self::Running(state) = self {\n                    if let Some(webview) = state.active_webview() {\n                        webview.set_hidpi_scale_factor(euclid::Scale::new(scale_factor as f32));\n                    }\n                }\n            }\n            WindowEvent::Resized(size) => {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.active_webview() {
                         webview.resize(size);
