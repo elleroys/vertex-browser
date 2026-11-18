@@ -454,11 +454,18 @@ mod tests {
                 resource_types: None,
             })
         );
+        let exact_url = url("https://example.com/ads");
+        let exact_host = exact_url.host_str().expect("URL host");
+        assert_eq!(exact_host, "example.com");
+        assert!(host_matches(exact_host, "example.com"), "host matcher rejected equal hosts");
+        assert_eq!(exact_url.path(), "/ads");
+        assert_eq!(wildcard_prefix_end("ads", "ads"), Some(3));
         assert!(rule_matches(
-            &url("https://example.com/ads"),
+            &exact_url,
             content_security_policy::Destination::None,
             &parsed.1,
-        ), "parsed rule did not match the exact path: {:?}", parsed.1);
+        ), "parsed rule did not match exact path; host={exact_host:?}, path={:?}, rule={:?}",
+            exact_url.path(), parsed.1);
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads"), rules));
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads/banner.js"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://example.com/adserver.js"), rules));
