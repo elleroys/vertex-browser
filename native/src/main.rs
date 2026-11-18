@@ -774,6 +774,10 @@ ${sections}</body></html>"#);
                                                     if ui.small_button("Папка").clicked() {
                                                         open_folder = PathBuf::from(&entry.file_path).parent().map(PathBuf::from);
                                                     }
+                                                } else if matches!(entry.status.as_str(), "failed" | "cancelled") {
+                                                    if ui.small_button("Повторити").clicked() {
+                                                        requested_url = Some(entry.url.clone());
+                                                    }
                                                 }
                                                 if ui.small_button("Прибрати зі списку").clicked() {
                                                     delete_record = Some(entry.id);
