@@ -118,7 +118,7 @@ where
         let range = response.headers().get(reqwest::header::CONTENT_RANGE)
             .and_then(|v| v.to_str().ok())
             .ok_or("Server returned 206 without Content-Range")?;
-        if content_range_start(range) != Some(existing) {
+        if !content_range_is_complete(range, existing) {
             return Err("Server returned an unexpected Content-Range; partial file preserved".into());
         }
     } else if status == reqwest::StatusCode::PARTIAL_CONTENT {
@@ -199,11 +199,16 @@ where
     })
 }
 
-fn content_range_start(value: &str) -> Option<u64> {
-    let range = value.strip_prefix("bytes ")?;
-    let (span, _) = range.split_once('/')?;
-    let (start, _) = span.split_once('-')?;
-    start.parse().ok()
+fn content_range_is_complete(value: &str, expected_start: u64) -> bool {
+    let Some(range) = value.strip_prefix("bytes ") else { return false; };
+    let Some((span, total)) = range.split_once('/') else { return false; };
+    let Some((start, end)) = span.split_once('-') else { return false; };
+    let (Ok(start), Ok(end)) = (start.parse::<u64>(), end.parse::<u64>()) else { return false; };
+    if start != expected_start || end < start { return false; }
+    match total.parse::<u64>() {
+        Ok(total) => end.checked_add(1) == Some(total),
+        Err(_) => total == "*",
+    }
 }
 
 pub fn suggested_file_name(raw_url: &str) -> String {
@@ -282,10 +287,13 @@ mod tests {
     }
 
     #[test]
-    fn parses_content_range_start() {
-        assert_eq!(content_range_start("bytes 123-999/1000"), Some(123));
-        assert_eq!(content_range_start("bytes */1000"), None);
-        assert_eq!(content_range_start("items 1-2/3"), None);
+    fn accepts_only_complete_content_ranges_from_requested_offset() {
+        assert!(content_range_is_complete("bytes 123-999/1000", 123));
+        assert!(content_range_is_complete("bytes 123-999/*", 123));
+        assert!(!content_range_is_complete("bytes 124-999/1000", 123));
+        assert!(!content_range_is_complete("bytes 123-998/1000", 123));
+        assert!(!content_range_is_complete("bytes */1000", 123));
+        assert!(!content_range_is_complete("items 1-2/3", 1));
     }
 
     #[test]
