@@ -70,7 +70,17 @@ where
         fs::create_dir_all(partial_parent)?;
     }
 
-    let mut existing = fs::metadata(partial_path).map(|m| m.len()).unwrap_or(0);
+    let mut existing = match fs::symlink_metadata(partial_path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            return Err("Refusing to resume into a symbolic link".into());
+        }
+        Ok(metadata) if !metadata.is_file() => {
+            return Err("Partial download path is not a regular file".into());
+        }
+        Ok(metadata) => metadata.len(),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0,
+        Err(error) => return Err(error.into()),
+    };
     let validator = resume.etag.as_deref().filter(|tag| !tag.trim_start().starts_with("W/"))
         .or(resume.last_modified.as_deref());
     if existing > 0 && validator.is_none() {
@@ -143,7 +153,11 @@ where
         .unwrap_or_else(|| "download".to_owned());
     let file_name = sanitize_file_name(&file_name);
 
-    let mut output = OpenOptions::new().create(true).write(true).open(partial_path)?;
+    let mut output = if partial_path.exists() {
+        OpenOptions::new().write(true).open(partial_path)?
+    } else {
+        OpenOptions::new().write(true).create_new(true).open(partial_path)?
+    };
     if append {
         output.seek(SeekFrom::End(0))?;
     } else {
