@@ -219,6 +219,35 @@ impl BrowserStorage {
         Ok(Some((urls, active_index)))
     }
 
+    /// Persist the recently closed HTTP(S) tabs, newest first.
+    pub fn save_closed_tabs(&self, urls: &[String]) -> rusqlite::Result<()> {
+        let safe_urls: Vec<String> = urls.iter()
+            .filter_map(|raw_url| url::Url::parse(raw_url).ok())
+            .filter(|url| matches!(url.scheme(), "http" | "https"))
+            .map(|url| url.to_string())
+            .rev()
+            .take(10)
+            .collect();
+        self.set_setting("closed_tabs_v1", &serde_json::to_string(&safe_urls)
+            .expect("serializing a list of URLs cannot fail"))
+    }
+
+    /// Load recently closed HTTP(S) tabs in reopening order (most recent first).
+    pub fn load_closed_tabs(&self) -> rusqlite::Result<Vec<String>> {
+        let Some(raw) = self.get_setting("closed_tabs_v1")? else {
+            return Ok(Vec::new());
+        };
+        let Ok(items) = serde_json::from_str::<Vec<String>>(&raw) else {
+            return Ok(Vec::new());
+        };
+        Ok(items.into_iter()
+            .filter_map(|raw_url| url::Url::parse(&raw_url).ok())
+            .filter(|url| matches!(url.scheme(), "http" | "https"))
+            .map(|url| url.to_string())
+            .take(10)
+            .collect())
+    }
+
     pub fn get_vault_meta(&self) -> rusqlite::Result<Option<(String, String, String)>> {
         self.connection.lock().expect("database mutex poisoned").query_row(
             "SELECT salt_b64,verifier_enc,kdf_params FROM vault_meta WHERE id=1",
@@ -491,6 +520,20 @@ mod tests {
             "http://localhost:8080/".to_owned(),
         ]);
         assert_eq!(active, 1);
+    }
+
+    #[test]
+    fn persists_recently_closed_tabs_in_reopen_order() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        storage.save_closed_tabs(&[
+            "https://old.example/".to_owned(),
+            "https://new.example/".to_owned(),
+            "file:///private".to_owned(),
+        ]).unwrap();
+        assert_eq!(storage.load_closed_tabs().unwrap(), vec![
+            "https://new.example/".to_owned(),
+            "https://old.example/".to_owned(),
+        ]);
     }
 
     #[test]
