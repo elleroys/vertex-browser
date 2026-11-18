@@ -221,6 +221,47 @@ mod tests {
     use super::*;
 
     #[test]
+    fn resumes_from_partial_file_with_matching_etag() {
+        use std::{io::{Read as _, Write as _}, net::TcpListener, thread};
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = Vec::new();
+            let mut byte = [0u8; 1];
+            while !request.ends_with(b"\\r\\n\\r\\n") {
+                stream.read_exact(&mut byte).unwrap();
+                request.push(byte[0]);
+            }
+            let request = String::from_utf8_lossy(&request).to_ascii_lowercase();
+            assert!(request.contains("range: bytes=5-"));
+            assert!(request.contains("if-range: \\"v1\\""));
+            stream.write_all(
+                b"HTTP/1.1 206 Partial Content\\r\\nETag: \\"v1\\"\\r\\nContent-Range: bytes 5-10/11\\r\\nContent-Length: 6\\r\\nConnection: close\\r\\n\\r\\n world"
+            ).unwrap();
+        });
+
+        let root = std::env::temp_dir().join(format!("vertex-resume-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        let partial = root.join("file.part");
+        let destination = root.join("file.bin");
+        fs::write(&partial, b"hello").unwrap();
+        let result = download_to_path(
+            &format!("http://{address}/file.bin"),
+            &destination,
+            &partial,
+            ResumeInfo { etag: Some("\\"v1\\"".to_owned()), last_modified: None },
+            |_, _, _| true,
+        ).unwrap();
+        server.join().unwrap();
+        assert_eq!(result.bytes_received, 11);
+        assert_eq!(fs::read(&destination).unwrap(), b"hello world");
+        assert!(!partial.exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn parses_content_range_start() {
         assert_eq!(content_range_start("bytes 123-999/1000"), Some(123));
         assert_eq!(content_range_start("bytes */1000"), None);
