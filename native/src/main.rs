@@ -2023,11 +2023,11 @@ ${sections}</body></html>"#);
             } else {
                 self.password_vault.setup_master_password(&self.storage, master.as_str())
             };
-            *self.vault_message.borrow_mut() = result.map(|_| {
-                self.vault_master_password.borrow_mut().zeroize();
-                self.vault_confirm_password.borrow_mut().zeroize();
-                "Сховище створено й розблоковано.".to_owned()
-            }).unwrap_or_else(|error| error);
+            self.vault_master_password.borrow_mut().zeroize();
+            self.vault_confirm_password.borrow_mut().zeroize();
+            *self.vault_message.borrow_mut() = result
+                .map(|_| "Сховище створено й розблоковано.".to_owned())
+                .unwrap_or_else(|error| error);
         }
         if unlock {
             let master = Zeroizing::new(self.vault_master_password.borrow().clone());
@@ -2072,14 +2072,12 @@ ${sections}</body></html>"#);
             let result = self.password_vault.save_credential(
                 &self.storage, &origin, &title, username.as_str(), password.as_str(), Some(notes.as_str()),
             );
-            match result {
-                Ok(_) => {
-                    self.vault_password.borrow_mut().zeroize();
-                    self.vault_notes.borrow_mut().clear();
-                    *self.vault_message.borrow_mut() = "Пароль зашифровано та збережено.".to_owned();
-                }
-                Err(error) => *self.vault_message.borrow_mut() = error,
-            }
+            self.vault_username.borrow_mut().zeroize();
+            self.vault_password.borrow_mut().zeroize();
+            self.vault_notes.borrow_mut().zeroize();
+            *self.vault_message.borrow_mut() = result
+                .map(|_| "Пароль зашифровано та збережено.".to_owned())
+                .unwrap_or_else(|error| error);
         }
         if let Some(id) = delete_id {
             let result = self.password_vault.delete_credential(&self.storage, &id);

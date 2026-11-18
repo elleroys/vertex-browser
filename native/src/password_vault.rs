@@ -402,6 +402,17 @@ impl PasswordVault {
 }
 
 
+/// Temporary duplicate index whose username keys are wiped when the preview finishes.
+struct SensitiveUsernameSet(std::collections::HashSet<(String, String)>);
+
+impl Drop for SensitiveUsernameSet {
+    fn drop(&mut self) {
+        for (_, mut username) in self.0.drain() {
+            username.zeroize();
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CsvImportIssue {
     pub row: usize,
@@ -491,9 +502,9 @@ impl PasswordVault {
         let notes_col = column("notes");
 
         let existing = self.list_credentials(storage, None)?;
-        let mut known = std::collections::HashSet::new();
+        let mut known = SensitiveUsernameSet(std::collections::HashSet::new());
         for item in &existing {
-            known.insert((item.origin.to_ascii_lowercase(), item.username.to_lowercase()));
+            known.0.insert((item.origin.to_ascii_lowercase(), item.username.to_lowercase()));
         }
 
         let mut preview = CsvImportPreview { entries: Vec::new(), issues: Vec::new(), duplicates: 0 };
@@ -524,7 +535,7 @@ impl PasswordVault {
                 continue;
             }
             let duplicate_key = (origin.to_ascii_lowercase(), username.to_lowercase());
-            if !known.insert(duplicate_key) {
+            if !known.0.insert(duplicate_key) {
                 preview.duplicates += 1;
                 continue;
             }
