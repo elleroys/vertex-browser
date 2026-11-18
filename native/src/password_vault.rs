@@ -44,6 +44,8 @@ pub struct PasswordCredential {
 
 impl Drop for PasswordCredential {
     fn drop(&mut self) {
+        self.origin.zeroize();
+        self.title.zeroize();
         self.username.zeroize();
         self.password.zeroize();
         if let Some(notes) = &mut self.notes {
@@ -424,6 +426,8 @@ pub struct CsvImportEntry {
 
 impl Drop for CsvImportEntry {
     fn drop(&mut self) {
+        self.origin.zeroize();
+        self.title.zeroize();
         self.username.zeroize();
         self.password.zeroize();
         if let Some(notes) = &mut self.notes {
