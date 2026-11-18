@@ -1,0 +1,47 @@
+name: Servo native Windows build
+
+on:
+  push:
+    branches:
+      - servo-migration
+  pull_request:
+    branches:
+      - servo-migration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: servo-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Build native Servo shell (Windows x64)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            native -> target
+
+      - name: Show toolchain
+        working-directory: native
+        run: rustc --version && cargo --version
+        shell: pwsh
+
+      - name: Check native Servo application
+        working-directory: native
+        run: cargo check --locked
+        shell: pwsh
+
+      - name: Run navigation parser tests
+        working-directory: native
+        run: cargo test --locked parse_navigation_input
+        shell: pwsh
