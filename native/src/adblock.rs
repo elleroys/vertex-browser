@@ -1,10 +1,10 @@
-//! Small, dependency-free subset of EasyList network filter matching.
+//! Small subset of EasyList network filter matching.
 //!
 //! Supported rules:
 //! - `||example.com^` — a domain and its subdomains.
 //! - `||example.com/path^` — a domain/path prefix with separator boundary.
 //! - `@@||example.com^` — an exception rule.
-//! - `||example.com^$script,image` — resource-type restrictions.
+//! - `||example.com^$third-party,image` — resource-type restrictions.
 //! - Plain host names such as `ads.example.com`.
 //!
 //! Cosmetic rules, regular expressions, unsupported modifiers, scriptlets and
@@ -384,7 +384,7 @@ mod tests {
     fn imported_rules_are_merged_without_duplicates_and_report_unsupported_syntax() {
         let (merged, supported, ignored) = merge_imported_rules(
             "||existing.example^",
-            "! EasyList comment\n||ads.example.com^\n||existing.example^\n||ads.example.com^$script\n",
+            "! EasyList comment\n||ads.example.com^\n||existing.example^\n||ads.example.com^$third-party\n",
         );
         assert_eq!(supported, 1);
         assert_eq!(ignored, 1);
@@ -475,7 +475,7 @@ mod tests {
 
     #[test]
     fn ignores_comments_and_unsupported_modifiers() {
-        let rules = "! comment\n# heading\n||ads.example.com^$script";
+        let rules = "! comment\n# heading\n||ads.example.com^$third-party";
         assert!(!is_blocked_url_with_rules(&url("https://ads.example.com/"), rules));
     }
 
@@ -483,7 +483,7 @@ mod tests {
     fn resource_type_modifiers_match_servo_fetch_destinations() {
         use content_security_policy::Destination as D;
         let rules = RuleSet::new(
-            "||cdn.example.net^$script,image\n||assets.example.net^$stylesheet\n||api.example.net^$xmlhttprequest"
+            "||cdn.example.net^$third-party,image\n||assets.example.net^$stylesheet\n||api.example.net^$xmlhttprequest"
         );
         assert!(rules.is_blocked_resource(&url("https://cdn.example.net/ad.js"), D::Script));
         assert!(rules.is_blocked_resource(&url("https://cdn.example.net/ad.png"), D::Image));
@@ -505,7 +505,7 @@ mod tests {
     #[test]
     fn unsupported_resource_modifiers_are_ignored_as_a_whole() {
         use content_security_policy::Destination as D;
-        let rules = RuleSet::new("||cdn.example.net^$script,third-party");
+        let rules = RuleSet::new("||cdn.example.net^$third-party,third-party");
         assert!(!rules.is_blocked_resource(&url("https://cdn.example.net/ad.js"), D::Script));
     }
 
@@ -781,7 +781,7 @@ mod tests {
     fn imported_rules_are_merged_without_duplicates_and_report_unsupported_syntax() {
         let (merged, supported, ignored) = merge_imported_rules(
             "||existing.example^",
-            "! EasyList comment\n||ads.example.com^\n||existing.example^\n||ads.example.com^$script\n",
+            "! EasyList comment\n||ads.example.com^\n||existing.example^\n||ads.example.com^$third-party\n",
         );
         assert_eq!(supported, 1);
         assert_eq!(ignored, 1);
@@ -872,7 +872,7 @@ mod tests {
 
     #[test]
     fn ignores_comments_and_unsupported_modifiers() {
-        let rules = "! comment\n# heading\n||ads.example.com^$script";
+        let rules = "! comment\n# heading\n||ads.example.com^$third-party";
         assert!(!is_blocked_url_with_rules(&url("https://ads.example.com/"), rules));
     }
 
