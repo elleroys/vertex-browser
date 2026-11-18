@@ -1,14 +1,16 @@
-use std::{cell::RefCell, error::Error, rc::Rc};
+use std::{cell::{Cell, RefCell}, error::Error, rc::Rc};
 
 use servo::{
-    RenderingContext, Servo, ServoBuilder, WebView, WebViewBuilder, WindowRenderingContext,
+    DevicePoint, EventLoopWaker, InputEvent, MouseButton as ServoMouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent,
+    Servo, ServoBuilder, WebView, WebViewBuilder, WebViewPoint, WheelDelta,
+    WheelEvent, WheelMode, WindowRenderingContext,
 };
-use servo_embedder_traits::EventLoopWaker;
-use tracing_log::LogTracer;
 use url::Url;
 use winit::{
     application::ApplicationHandler,
-    event::WindowEvent,
+    dpi::PhysicalPosition,
+    event::{ElementState, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
     window::{Window, WindowId},
@@ -30,6 +32,18 @@ struct BrowserState {
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
+    cursor_position: Cell<PhysicalPosition<f64>>,
+}
+
+impl BrowserState {
+    fn active_webview(&self) -> Option<WebView> {
+        self.webviews.borrow().last().cloned()
+    }
+
+    fn cursor_point(&self) -> WebViewPoint {
+        let position = self.cursor_position.get();
+        WebViewPoint::Device(DevicePoint::new(position.x as f32, position.y as f32))
+    }
 }
 
 impl servo::WebViewDelegate for BrowserState {
@@ -83,6 +97,7 @@ impl VertexApp {
             servo,
             rendering_context,
             webviews: RefCell::new(Vec::new()),
+            cursor_position: Cell::new(PhysicalPosition::new(0.0, 0.0)),
         });
 
         let start_url = std::env::args()
@@ -100,6 +115,9 @@ impl VertexApp {
         state.webviews.borrow_mut().push(webview);
 
         *self = Self::Running(state);
+        if let Self::Running(state) = self {
+            state.window.request_redraw();
+        }
     }
 }
 
@@ -128,7 +146,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::RedrawRequested => {
                 if let Self::Running(state) = self {
-                    if let Some(webview) = state.webviews.borrow().last() {
+                    if let Some(webview) = state.active_webview() {
                         webview.paint();
                         state.rendering_context.present();
                     }
@@ -136,8 +154,66 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             }
             WindowEvent::Resized(size) => {
                 if let Self::Running(state) = self {
-                    if let Some(webview) = state.webviews.borrow().last() {
+                    if let Some(webview) = state.active_webview() {
                         webview.resize(size);
+                    }
+                }
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                if let Self::Running(state) = self {
+                    state.cursor_position.set(position);
+                    if let Some(webview) = state.active_webview() {
+                        webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+                            state.cursor_point(),
+                        )));
+                    }
+                }
+            }
+            WindowEvent::CursorLeft { .. } => {
+                if let Self::Running(state) = self {
+                    if let Some(webview) = state.active_webview() {
+                        webview.notify_input_event(InputEvent::MouseLeftViewport(
+                            MouseLeftViewportEvent::default(),
+                        ));
+                    }
+                }
+            }
+            WindowEvent::MouseInput { state: button_state, button, .. } => {
+                if let Self::Running(state) = self {
+                    let servo_button = match button {
+                        winit::event::MouseButton::Left => ServoMouseButton::Left,
+                        winit::event::MouseButton::Right => ServoMouseButton::Right,
+                        winit::event::MouseButton::Middle => ServoMouseButton::Middle,
+                        _ => return,
+                    };
+                    let action = match button_state {
+                        ElementState::Pressed => MouseButtonAction::Down,
+                        ElementState::Released => MouseButtonAction::Up,
+                    };
+                    if let Some(webview) = state.active_webview() {
+                        webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+                            action,
+                            servo_button,
+                            state.cursor_point(),
+                        )));
+                    }
+                }
+            }
+            WindowEvent::MouseWheel { delta, .. } => {
+                if let Self::Running(state) = self {
+                    let (dx, dy, mode) = match delta {
+                        MouseScrollDelta::LineDelta(x, y) => {
+                            ((x as f64) * 38.0, (y as f64) * 38.0, WheelMode::DeltaLine)
+                        }
+                        MouseScrollDelta::PixelDelta(position) => {
+                            (position.x, position.y, WheelMode::DeltaPixel)
+                        }
+                    };
+                    if let Some(webview) = state.active_webview() {
+                        webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
+                            WheelDelta { x: dx, y: dy, z: 0.0, mode },
+                            state.cursor_point(),
+                        )));
                     }
                 }
             }
