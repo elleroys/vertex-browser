@@ -11,6 +11,8 @@ servo = { git = "https://github.com/servo/servo", rev = "32fc710d5b0eb4bd27d4f3b
 winit = "0.30.13"
 euclid = "0.22"
 url = "2.5"
+egui = "0.34.3"
+egui_glow = { version = "0.34.3", features = ["winit"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 log = "0.4"
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std", "tls12"] }
