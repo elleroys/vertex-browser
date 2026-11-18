@@ -583,8 +583,14 @@ mod tests {
         assert_eq!(downloading[0].received_bytes, 512);
         assert_eq!(downloading[0].total_bytes, Some(1024));
         assert_eq!(downloading[0].status, "downloading");
+        assert_eq!(downloading[0].partial_path.as_deref(), Some("file.part"));
+        assert_eq!(downloading[0].etag.as_deref(), Some("\"etag-v1\""));
+        assert_eq!(downloading[0].last_modified.as_deref(), Some("Wed, 21 Oct 2015 07:28:00 GMT"));
         storage.finish_download(id, 1024).unwrap();
-        assert_eq!(storage.recent_downloads(10).unwrap()[0].status, "completed");
+        let completed = storage.recent_downloads(10).unwrap();
+        assert_eq!(completed[0].status, "completed");
+        assert_eq!(completed[0].partial_path, None);
+        assert_eq!(completed[0].etag, None);
         storage.delete_download(id).unwrap();
         assert!(storage.recent_downloads(10).unwrap().is_empty());
     }
