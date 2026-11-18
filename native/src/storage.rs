@@ -544,11 +544,28 @@ mod tests {
         let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
         let queued = storage.create_download("https://example.com/a", "a", "a").unwrap();
         let active = storage.create_download("https://example.com/b", "b", "b").unwrap();
-        storage.update_download_progress(active, 12, Some(100)).unwrap();
+        storage.update_download_progress(active, 12, Some(100), Path::new("active.part"), Some("\"etag-v1\""), None).unwrap();
         assert_eq!(storage.recover_interrupted_downloads().unwrap(), 2);
         let entries = storage.recent_downloads(10).unwrap();
         assert!(entries.iter().all(|entry| entry.status == "failed"));
         assert_eq!(entries.iter().find(|entry| entry.id == queued).unwrap().received_bytes, 0);
+    }
+
+    #[test]
+    fn retry_resets_progress_but_keeps_download_record() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let id = storage.create_download("https://example.com/file", "file", "file").unwrap();
+        storage.update_download_progress(
+            id, 500, Some(1000), Path::new("file.part"), Some("\"etag\""), None,
+        ).unwrap();
+        storage.fail_download(id).unwrap();
+        storage.reset_download_for_retry(id).unwrap();
+        let entry = storage.recent_downloads(1).unwrap().remove(0);
+        assert_eq!(entry.status, "queued");
+        assert_eq!(entry.received_bytes, 0);
+        assert_eq!(entry.total_bytes, None);
+        assert_eq!(entry.partial_path, None);
+        assert_eq!(entry.etag, None);
     }
 
     #[test]
@@ -561,7 +578,7 @@ mod tests {
         ).unwrap();
         let queued = storage.recent_downloads(10).unwrap();
         assert_eq!(queued[0].status, "queued");
-        storage.update_download_progress(id, 512, Some(1024)).unwrap();
+        storage.update_download_progress(id, 512, Some(1024), Path::new("file.part"), Some("\"etag-v1\""), Some("Wed, 21 Oct 2015 07:28:00 GMT")).unwrap();
         let downloading = storage.recent_downloads(10).unwrap();
         assert_eq!(downloading[0].received_bytes, 512);
         assert_eq!(downloading[0].total_bytes, Some(1024));
