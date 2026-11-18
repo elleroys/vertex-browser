@@ -99,6 +99,7 @@ struct BrowserState {
     vault_form_scan_result: RefCell<String>,
     vault_csv_preview: RefCell<Option<password_vault::CsvImportPreview>>,
     pending_permissions: RefCell<Vec<PendingPermission>>,
+    pending_navigation: RefCell<Option<PendingNavigation>>,
     navigation_security_notice: RefCell<String>,
 }
 
@@ -106,6 +107,12 @@ struct PendingPermission {
     origin: String,
     feature: String,
     request: servo::PermissionRequest,
+}
+
+struct PendingNavigation {
+    url: Url,
+    reasons: Vec<&'static str>,
+    request: servo::NavigationRequest,
 }
 
 impl BrowserState {
@@ -1145,6 +1152,33 @@ ${sections}</body></html>"#);
                 }
                 if !open { self.settings_open.set(false); }
             }
+            if let Some((url, reasons)) = self.pending_navigation.borrow().as_ref()
+                .map(|pending| (pending.url.clone(), pending.reasons.clone()))
+            {
+                let mut decision: Option<bool> = None;
+                egui::Window::new("Попередження безпеки Vortex")
+                    .resizable(false)
+                    .collapsible(false)
+                    .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                    .show(ui.ctx(), |ui| {
+                        ui.colored_label(egui::Color32::YELLOW, "Адреса має ознаки, які часто трапляються у фішингових або ризикових посиланнях.");
+                        ui.label(egui::RichText::new(url.as_str()).strong());
+                        ui.separator();
+                        for reason in &reasons { ui.label(format!("• {reason}")); }
+                        ui.separator();
+                        ui.label("Це локальна евристична перевірка, а не підтвердження наявності сайту в базі фішингу. Продовжуй лише якщо довіряєш адресі.");
+                        ui.horizontal(|ui| {
+                            if ui.button("Повернутися назад").clicked() { decision = Some(false); }
+                            if ui.button("Все одно перейти").clicked() { decision = Some(true); }
+                        });
+                    });
+                if let Some(allow) = decision {
+                    if let Some(pending) = self.pending_navigation.borrow_mut().take() {
+                        if allow { pending.request.allow(); } else { pending.request.deny(); }
+                    }
+                    self.window.request_redraw();
+                }
+            }
             if !self.pending_permissions.borrow().is_empty() {
                 let (origin, feature) = {
                     let pending = self.pending_permissions.borrow();
@@ -2131,6 +2165,14 @@ impl servo::WebViewDelegate for BrowserState {
             self.window.request_redraw();
             return;
         }
+        let risks = suspicious_navigation_reasons(&request.url);
+        if !risks.is_empty() {
+            let mut pending = self.pending_navigation.borrow_mut();
+            if let Some(previous) = pending.take() { previous.request.deny(); }
+            *pending = Some(PendingNavigation { url: request.url.clone(), reasons: risks, request });
+            self.window.request_redraw();
+            return;
+        }
         request.allow();
     }
 
@@ -2426,6 +2468,7 @@ impl VertexApp {
             vault_form_scan_result: RefCell::new(String::new()),
             vault_csv_preview: RefCell::new(None),
             pending_permissions: RefCell::new(Vec::new()),
+            pending_navigation: RefCell::new(None),
             navigation_security_notice: RefCell::new(String::new()),
         });
 
@@ -2537,6 +2580,26 @@ fn navigation_block_reason(current: Option<&Url>, target: &Url) -> Option<&'stat
         return Some("перехід з HTTPS на незахищений HTTP");
     }
     None
+}
+
+fn suspicious_navigation_reasons(url: &Url) -> Vec<&'static str> {
+    let mut reasons = Vec::new();
+    let Some(host) = url.host_str() else { return reasons; };
+    let host = host.trim_end_matches('.').to_ascii_lowercase();
+
+    if host.split('.').any(|label| label.starts_with("xn--")) {
+        reasons.push("Домен містить Punycode (IDN). Перевір символи в назві: підміна схожими літерами є поширеним прийомом.");
+    }
+    if host.parse::<std::net::IpAddr>().is_ok() {
+        reasons.push("Замість звичайного доменного імені використано IP-адресу.");
+    }
+    if host.split('.').count() >= 5 {
+        reasons.push("Домен має незвично багато піддоменів; перевір, кому належить основний домен.");
+    }
+    if url.scheme() == "http" && !matches!(host.as_str(), "localhost" | "127.0.0.1" | "[::1]") {
+        reasons.push("З'єднання HTTP не шифрується. Не вводь тут паролі, платіжні чи особисті дані.");
+    }
+    reasons
 }
 
 fn parse_navigation_input(input: &str) -> Url {
@@ -2997,6 +3060,24 @@ mod tests {
         assert_eq!(navigation_block_reason(None, &http), None);
         assert_eq!(navigation_block_reason(None, &https), None);
         assert_eq!(navigation_block_reason(None, &blank), None);
+    }
+
+    #[test]
+    fn warns_for_punycode_ip_and_deep_subdomains() {
+        let punycode = Url::parse("https://xn--pple-43d.com/").unwrap();
+        let ip = Url::parse("https://192.0.2.10/login").unwrap();
+        let deep = Url::parse("https://a.b.c.d.example.com/").unwrap();
+        assert!(suspicious_navigation_reasons(&punycode).iter().any(|reason| reason.contains("Punycode")));
+        assert!(suspicious_navigation_reasons(&ip).iter().any(|reason| reason.contains("IP-адресу")));
+        assert!(suspicious_navigation_reasons(&deep).iter().any(|reason| reason.contains("піддоменів")));
+    }
+
+    #[test]
+    fn warns_for_plain_http_but_not_https_normal_domains() {
+        let http = Url::parse("http://example.com/login").unwrap();
+        let https = Url::parse("https://example.com/login").unwrap();
+        assert!(suspicious_navigation_reasons(&http).iter().any(|reason| reason.contains("HTTP")));
+        assert!(suspicious_navigation_reasons(&https).is_empty());
     }
 
     #[test]
