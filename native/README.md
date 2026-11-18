@@ -43,7 +43,7 @@ This remains a development browser, not a release-ready consumer browser. The fo
 - A complete settings/profile interface (advanced privacy controls, profile management and broader site-data categories). Search provider, HTTP(S) homepage, persistent download-directory selection, startup session restore, history cleanup and the supported cookie/Web Storage manager are implemented, but the broader settings surface is not.
 - Richer session metadata (scroll position and per-tab navigation history). Current session restore stores only HTTP(S) URLs and the active tab index; recently closed URLs are separately persisted.
 - Broader AdBlock compatibility: cosmetic filters, additional resource modifiers (for example third-party/domain modifiers), scriptlets, and full EasyList/uBlock syntax. The current matcher supports domain rules, path prefixes, `*` wildcards in paths, exceptions and a documented subset of resource types, but not the full filter-list grammar.
-- More complete browser security/privacy controls, permission prompts, IndexedDB/cache/service-worker cleanup and clipboard auto-clear policy.
+- A fuller browser security/privacy surface remains necessary (for example, permission-decision management/revocation UI, IndexedDB/cache/service-worker cleanup and clipboard auto-clear policy). Servo permission requests are now prompted; users can allow once or persist allow/block decisions per origin and feature.
 - Windows installer/update packaging, icons/signing, crash handling, accessibility and production hardening.
 - Site compatibility and performance measurements on real Windows hardware. Servo feature coverage (media, WebRTC, DRM, extensions and DevTools) must be evaluated separately.
 
