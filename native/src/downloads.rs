@@ -232,8 +232,19 @@ pub fn sanitize_file_name(input: &str) -> String {
     let cleaned: String = leaf.chars()
         .filter(|character| !character.is_control() && !matches!(character, '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*'))
         .collect();
-    let cleaned = cleaned.trim().trim_matches('.');
-    if cleaned.is_empty() { "download".to_owned() } else { cleaned.chars().take(180).collect() }
+    // Windows rejects trailing dots/spaces and reserves device names even when
+    // an extension is present (for example CON.txt or LPT1.log).
+    let cleaned = cleaned.trim_matches(|character: char| character == '.' || character.is_whitespace());
+    if cleaned.is_empty() {
+        return "download".to_owned();
+    }
+    let device_stem = cleaned.split('.').next().unwrap_or(cleaned).trim_end_matches(' ').to_ascii_uppercase();
+    let reserved = matches!(device_stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || (device_stem.len() == 4
+            && (device_stem.starts_with("COM") || device_stem.starts_with("LPT"))
+            && matches!(device_stem.as_bytes()[3], b'1'..=b'9'));
+    let safe = if reserved { format!("_{cleaned}") } else { cleaned.to_owned() };
+    safe.chars().take(180).collect()
 }
 
 fn filename_from_content_disposition(header: &str) -> Option<String> {
@@ -348,6 +359,16 @@ mod tests {
     fn sanitizes_windows_paths_and_control_characters() {
         assert_eq!(sanitize_file_name(r"..\\folder\\report?.pdf"), "report.pdf");
         assert_eq!(sanitize_file_name(""), "download");
+        assert_eq!(sanitize_file_name("report.pdf. "), "report.pdf");
+    }
+
+    #[test]
+    fn prefixes_reserved_windows_device_names() {
+        assert_eq!(sanitize_file_name("CON"), "_CON");
+        assert_eq!(sanitize_file_name("con.txt"), "_con.txt");
+        assert_eq!(sanitize_file_name("LPT1.log"), "_LPT1.log");
+        assert_eq!(sanitize_file_name("COM9"), "_COM9");
+        assert_eq!(sanitize_file_name("COM0.txt"), "COM0.txt");
     }
 
     #[test]
