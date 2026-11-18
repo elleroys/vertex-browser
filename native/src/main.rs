@@ -45,6 +45,8 @@ struct BrowserState {
     cursor_position: Cell<PhysicalPosition<f64>>,
     modifiers: Cell<Modifiers>,
     storage: BrowserStorage,
+    address_editing: Cell<bool>,
+    address_text: RefCell<String>,
 }
 
 impl BrowserState {
@@ -121,6 +123,53 @@ impl BrowserState {
         self.window.set_title(&format!("{title} — Vertex Browser"));
     }
 
+    fn begin_address_edit(&self) {
+        let current = self.active_webview().and_then(|view| view.url())
+            .map(|url| url.to_string()).unwrap_or_default();
+        *self.address_text.borrow_mut() = current;
+        self.address_editing.set(true);
+        self.window.set_title(&format!("{} — Vertex Browser", self.address_text.borrow()));
+    }
+
+    fn handle_address_key(&self, event: &winit::event::KeyEvent) {
+        if event.state != ElementState::Pressed { return; }
+        match &event.logical_key {
+            WinitKey::Named(WinitNamedKey::Escape) => {
+                self.address_editing.set(false);
+                if let Some(view) = self.active_webview() { self.update_window_title(&view); }
+            }
+            WinitKey::Named(WinitNamedKey::Enter) => {
+                let input = self.address_text.borrow().clone();
+                self.address_editing.set(false);
+                if !input.trim().is_empty() {
+                    if let Some(view) = self.active_webview() {
+                        view.load(parse_navigation_input(&input));
+                        self.servo.spin_event_loop();
+                    }
+                } else if let Some(view) = self.active_webview() {
+                    self.update_window_title(&view);
+                }
+            }
+            WinitKey::Named(WinitNamedKey::Backspace) => {
+                self.address_text.borrow_mut().pop();
+                self.window.set_title(&format!("{} — Vertex Browser", self.address_text.borrow()));
+            }
+            _ => {
+                if !self.modifiers.get().contains(Modifiers::CONTROL)
+                    && !self.modifiers.get().contains(Modifiers::ALT)
+                {
+                    if let Some(text) = event.text.as_ref() {
+                        let mut value = self.address_text.borrow_mut();
+                        for character in text.chars().filter(|ch| !ch.is_control()) {
+                            value.push(character);
+                        }
+                        self.window.set_title(&format!("{} — Vertex Browser", value));
+                    }
+                }
+            }
+        }
+    }
+
     fn cursor_point(&self) -> WebViewPoint {
         let position = self.cursor_position.get();
         WebViewPoint::Device(DevicePoint::new(position.x as f32, position.y as f32))
@@ -137,6 +186,10 @@ impl BrowserState {
             let is_alt = modifiers.contains(Modifiers::ALT);
 
             // Native browser shortcuts are intercepted before page delivery.
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("l")) {
+                self.begin_address_edit();
+                return;
+            }
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("r")) {
                 webview.reload();
                 return;
@@ -319,6 +372,8 @@ impl VertexApp {
             modifiers: Cell::new(Modifiers::empty()),
             active_tab: Cell::new(0),
             storage,
+            address_editing: Cell::new(false),
+            address_text: RefCell::new(String::new()),
         });
 
         let start_url = std::env::args()
@@ -502,6 +557,10 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
             }
             WindowEvent::KeyboardInput { event, .. } => {
                 if let Self::Running(state) = self {
+                    if state.address_editing.get() {
+                        state.handle_address_key(&event);
+                        return;
+                    }
                     if event.state == ElementState::Pressed {
                         let control = state.modifiers.get().contains(Modifiers::CONTROL);
                         let shift = state.modifiers.get().contains(Modifiers::SHIFT);
