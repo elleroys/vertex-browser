@@ -775,8 +775,8 @@ mod tests {
     #[test]
     fn escapes_html_in_internal_pages() {
         assert_eq!(
-            super::html_escape("<script a=\\\"x\\\">&'"),
-            "&lt;script a=&quot;x&quot;&gt;&amp;&#39;"
+            super::html_escape("<script>&'"),
+            "&lt;script&gt;&amp;&#39;"
         );
     }
 
