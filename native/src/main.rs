@@ -47,6 +47,15 @@ impl BrowserState {
         self.webviews.borrow().last().cloned()
     }
 
+    fn update_window_title(&self, webview: &WebView) {
+        let title = webview
+            .page_title()
+            .filter(|value| !value.trim().is_empty())
+            .or_else(|| webview.url().and_then(|url| url.host_str().map(str::to_owned)))
+            .unwrap_or_else(|| "New tab".to_owned());
+        self.window.set_title(&format!("{title} — Vertex Browser"));
+    }
+
     fn cursor_point(&self) -> WebViewPoint {
         let position = self.cursor_position.get();
         WebViewPoint::Device(DevicePoint::new(position.x as f32, position.y as f32))
@@ -148,6 +157,14 @@ impl BrowserState {
 impl servo::WebViewDelegate for BrowserState {
     fn notify_new_frame_ready(&self, _webview: WebView) {
         self.window.request_redraw();
+    }
+
+    fn notify_url_changed(&self, webview: WebView, _url: Url) {
+        self.update_window_title(&webview);
+    }
+
+    fn notify_page_title_changed(&self, webview: WebView, _title: Option<String>) {
+        self.update_window_title(&webview);
     }
 }
 
