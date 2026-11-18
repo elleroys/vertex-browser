@@ -773,9 +773,11 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                     if !address.trim().is_empty() {
                         if let Some(view) = &active {
                             view.load(parse_navigation_input_with_engine(&address, &self.search_engine.borrow()));
+                            view.set_focused(true);
                             self.servo.spin_event_loop();
                         }
                     }
+                    ui.ctx().memory_mut(|memory| memory.surrender_focus(response.id));
                 }
                 response.context_menu(|ui| {
                     if ui.button("Вставити з буфера обміну").clicked() {
@@ -792,10 +794,6 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                     if ui.button("Вирізати адресу").clicked() {
                         if let Err(error) = write_system_clipboard(&address) { log::warn!("{error}"); }
                         address.clear();
-                        ui.close();
-                    }
-                    if ui.button("Виділити все").clicked() {
-                        ui.ctx().memory_mut(|memory| memory.request_focus(egui::Id::new("vertex-address-bar")));
                         ui.close();
                     }
                 });
