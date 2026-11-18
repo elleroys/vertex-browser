@@ -509,33 +509,10 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
     }
 
     fn open_downloads_page(&self) {
-        let entries = match self.storage.recent_downloads(500) {
-            Ok(entries) => entries,
-            Err(error) => {
-                log::error!("could not read downloads: {error}");
-                return;
-            }
-        };
-        let mut items = String::new();
-        for entry in entries {
-            let name = html_escape(&entry.file_name);
-            let url = html_escape(&entry.url);
-            let path = html_escape(&entry.file_path);
-            let (status, progress) = match entry.status.as_str() {
-                "queued" => ("У черзі", "Очікує початку".to_owned()),
-                "downloading" => ("Завантажується", format_download_progress(entry.received_bytes, entry.total_bytes)),
-                "completed" => ("Завершено", format_download_progress(entry.received_bytes, entry.total_bytes)),
-                "cancelled" => ("Скасовано", "Завантаження скасовано".to_owned()),
-                _ => ("Помилка", "Не вдалося завершити завантаження".to_owned()),
-            };
-            items.push_str(&format!(
-                "<article><strong>{name}</strong><small>{status} · {progress}</small><small>{path}</small><small>{url}</small></article>"
-            ));
-        }
-        if items.is_empty() {
-            items.push_str("<p class=\"empty\">Завантажень поки немає.</p>");
-        }
-        self.open_internal_page(internal_page("Завантаження", &items));
+        // Ctrl+J and the Library menu must open the interactive native manager,
+        // not a read-only HTML snapshot that cannot cancel, retry or open files.
+        self.downloads_manager_open.set(true);
+        self.window.request_redraw();
     }
 
     fn adblock_enabled(&self) -> bool {
