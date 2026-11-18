@@ -4,6 +4,7 @@
 //! - `||example.com^` — a domain and its subdomains.
 //! - `||example.com/path^` — a domain/path prefix with separator boundary.
 //! - `@@||example.com^` — an exception rule.
+//! - `||example.com^$script,image` — resource-type restrictions.
 //! - Plain host names such as `ads.example.com`.
 //!
 //! Cosmetic rules, regular expressions, unsupported modifiers, scriptlets and
@@ -123,7 +124,12 @@ fn parse_rule(line: &str) -> Option<(bool, Rule)> {
         return None;
     }
 
-    let (body, resource_types) = match line.split_once('    let (exception, body) = if let Some(body) = body.strip_prefix("@@") {
+    let (body, resource_types) = match line.split_once('$') {
+        Some((body, modifier)) => (body, Some(ResourceTypeFilter::parse(modifier)?)),
+        None => (line, None),
+    };
+
+    let (exception, body) = if let Some(body) = body.strip_prefix("@@") {
         (true, body)
     } else {
         (false, body)
