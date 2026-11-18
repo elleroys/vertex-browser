@@ -15,9 +15,9 @@ Vortex is being migrated to a **native Rust desktop browser** with Servo as its 
 
 ## Current status
 
-The native prototype in `native/` creates a Windows desktop window, embeds Servo, loads an initial URL, paints frames, handles resizing/DPI, and forwards mouse, wheel, keyboard, focus, and committed IME input. It supports initial URL/search parsing and basic reload/back/forward shortcuts.
+The native prototype in `native/` creates a desktop window, embeds Servo, paints frames, handles resizing/DPI, and forwards mouse, wheel, keyboard, focus, and committed IME input. It has multi-tab lifecycle shortcuts, a SQLite profile, history and bookmarks pages, and a Servo-rendered new-tab page with search, bookmark shortcuts and recently visited pages.
 
-This is an **engine proof of concept, not yet a complete browser**. The address bar, browser toolbar, tabs, bookmarks/history UI, settings, download UI, password autofill, ad blocking, session restore, installer, and production hardening remain to be implemented and tested. No performance improvement is claimed until measured against Chrome on the same machine.
+This is an **engine proof of concept, not yet a complete browser**. A visible address bar, browser toolbar and tab strip, settings UI, download integration, password autofill, ad blocking, session restore, installer and production hardening remain to be implemented and tested. No performance improvement is claimed until measured against Chrome on the same machine.
 
 See:
 - [Servo migration plan](docs/SERVO_MIGRATION.md)
