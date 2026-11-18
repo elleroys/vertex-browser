@@ -132,7 +132,11 @@ impl BrowserState {
         let keyboard_event = KeyboardEvent::new_without_event(
             state,
             key,
-            match event.physical_key {\n                PhysicalKey::Code(code) => code_from_winit(code),\n                PhysicalKey::Unidentified(_) => Code::Unidentified,\n            },\n            Location::Standard,
+            match event.physical_key {
+                PhysicalKey::Code(code) => code_from_winit(code),
+                PhysicalKey::Unidentified(_) => Code::Unidentified,
+            },
+            Location::Standard,
             modifiers,
             event.repeat,
             false,
