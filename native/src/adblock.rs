@@ -64,8 +64,12 @@ fn parse_rule(line: &str) -> (bool, Rule<'_>) {
 }
 
 fn host_matches(host: &str, rule_host: &str) -> bool {
-    host.eq_ignore_ascii_case(rule_host)
-        || host.strip_suffix(rule_host).is_some_and(|prefix| prefix.ends_with('.'))
+    if host.eq_ignore_ascii_case(rule_host) || host.len() <= rule_host.len() {
+        return host.eq_ignore_ascii_case(rule_host);
+    }
+    let suffix_start = host.len() - rule_host.len();
+    host.as_bytes()[suffix_start - 1] == b'.'
+        && host[suffix_start..].eq_ignore_ascii_case(rule_host)
 }
 
 fn rule_matches(url: &url::Url, rule: &Rule<'_>) -> bool {
