@@ -29,7 +29,11 @@ const BUILTIN_RULES: &[&str] = &[
 
 #[derive(Debug, PartialEq, Eq)]
 enum Rule<'a> {
-    Domain { host: &'a str, path: Option<&'a str> },
+    Domain {
+        host: &'a str,
+        path: Option<&'a str>,
+        path_separator: bool,
+    },
     Invalid,
 }
 
@@ -46,9 +50,13 @@ fn parse_rule(line: &str) -> (bool, Rule<'_>) {
     };
 
     let body = body.strip_prefix("||").unwrap_or(body);
-    let body = body.strip_suffix('^').unwrap_or(body);
+    let (body, path_separator) = match body.strip_suffix('^') {
+        Some(body) => (body, true),
+        None => (body, false),
+    };
     let (host, path) = match body.split_once('/') {
-        Some((host, path)) => (host, Some(path)),
+        Some((host, path)) if !path.is_empty() => (host, Some(path)),
+        Some(_) => return (exception, Rule::Invalid),
         None => (body, None),
     };
     let host = host.trim_end_matches('.');
@@ -60,7 +68,11 @@ fn parse_rule(line: &str) -> (bool, Rule<'_>) {
         return (exception, Rule::Invalid);
     }
 
-    (exception, Rule::Domain { host, path })
+    (exception, Rule::Domain {
+        host,
+        path,
+        path_separator: path.is_some() && path_separator,
+    })
 }
 
 fn host_matches(host: &str, rule_host: &str) -> bool {
@@ -72,20 +84,36 @@ fn host_matches(host: &str, rule_host: &str) -> bool {
         && host[suffix_start..].eq_ignore_ascii_case(rule_host)
 }
 
+fn is_filter_separator(character: char) -> bool {
+    !character.is_ascii_alphanumeric()
+        && !matches!(character, '_' | '-' | '.' | '%')
+}
+
 fn rule_matches(url: &url::Url, rule: &Rule<'_>) -> bool {
-    let Rule::Domain { host: rule_host, path } = rule else {
+    let Rule::Domain {
+        host: rule_host,
+        path,
+        path_separator,
+    } = rule else {
         return false;
     };
     let Some(host) = url.host_str() else {
         return false;
     };
-    if !host_matches(&host.trim_end_matches('.').to_ascii_lowercase(), rule_host) {
+    if !host_matches(host.trim_end_matches('.'), rule_host) {
         return false;
     }
-    match path {
-        Some(path) => url.path().trim_start_matches('/').starts_with(path),
-        None => true,
+    let Some(path) = path else {
+        return true;
+    };
+    let url_path = url.path().trim_start_matches('/');
+    let Some(remainder) = url_path.strip_prefix(path) else {
+        return false;
+    };
+    if !path_separator || remainder.is_empty() {
+        return true;
     }
+    remainder.chars().next().is_some_and(is_filter_separator)
 }
 
 /// Returns true when a URL matches the built-in ad/tracker rules.
@@ -138,6 +166,15 @@ mod tests {
         assert!(is_blocked_url_with_rules(&url("https://cdn.example.net/ads/banner.js"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://cdn.example.net/assets/banner.js"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://notads.example.com/"), rules));
+    }
+
+    #[test]
+    fn path_separator_does_not_match_longer_words() {
+        let rules = "||example.com/ads^";
+        assert!(is_blocked_url_with_rules(&url("https://example.com/ads"), rules));
+        assert!(is_blocked_url_with_rules(&url("https://example.com/ads/banner.js"), rules));
+        assert!(is_blocked_url_with_rules(&url("https://example.com/ads?slot=1"), rules));
+        assert!(!is_blocked_url_with_rules(&url("https://example.com/adserver.js"), rules));
     }
 
     #[test]
