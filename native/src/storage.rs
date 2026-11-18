@@ -42,6 +42,9 @@ pub struct DownloadEntry {
     pub received_bytes: u64,
     pub total_bytes: Option<u64>,
     pub created_at: i64,
+    pub partial_path: Option<String>,
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
 }
 
 pub struct BrowserStorage {
