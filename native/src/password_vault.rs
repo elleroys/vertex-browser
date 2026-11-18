@@ -143,8 +143,11 @@ impl PasswordVault {
         storage: &BrowserStorage,
         master_password: &str,
     ) -> Result<(), String> {
-        if master_password.chars().count() < 8 {
-            return Err("Майстер-пароль має містити щонайменше 8 символів".to_owned());
+        if master_password.chars().count() < 12 {
+            return Err("Майстер-пароль має містити щонайменше 12 символів".to_owned());
+        }
+        if master_password.len() > 1024 {
+            return Err("Майстер-пароль не може перевищувати 1024 байти".to_owned());
         }
         if storage.get_vault_meta().map_err(|error| error.to_string())?.is_some() {
             return Err("Сховище вже налаштоване. Використай розблокування.".to_owned());
@@ -165,14 +168,23 @@ impl PasswordVault {
     }
 
     pub fn unlock(&self, storage: &BrowserStorage, master_password: &str) -> Result<(), String> {
-        let Some((salt_b64, verifier_enc, _)) =
+        if master_password.len() > 1024 {
+            return Err("Майстер-пароль не може перевищувати 1024 байти".to_owned());
+        }
+        let Some((salt_b64, verifier_enc, stored_kdf_params)) =
             storage.get_vault_meta().map_err(|error| error.to_string())?
         else {
             return Err("Сховище паролів ще не налаштоване".to_owned());
         };
+        if stored_kdf_params != KDF_PARAMS {
+            return Err("Непідтримувані параметри шифрування сховища. Дані не змінено.".to_owned());
+        }
         let salt = BASE64
             .decode(salt_b64)
             .map_err(|_| "Пошкоджені параметри сховища паролів".to_owned())?;
+        if salt.len() != 16 {
+            return Err("Некоректна довжина salt у сховищі паролів".to_owned());
+        }
         let key = Self::derive_key(master_password, &salt)?;
         let verifier = Self::decrypt_bytes(&key, &verifier_enc)
             .map_err(|_| "Неправильний майстер-пароль".to_owned())?;
@@ -502,12 +514,36 @@ mod tests {
         let vault = PasswordVault::new();
         assert!(!vault.status(&storage).unwrap().is_configured);
         assert!(vault.setup_master_password(&storage, "short").is_err());
+        assert!(vault.setup_master_password(&storage, "eight888").is_err());
         vault.setup_master_password(&storage, "correct horse battery").unwrap();
         assert!(vault.status(&storage).unwrap().is_unlocked);
         vault.lock();
         assert!(!vault.status(&storage).unwrap().is_unlocked);
         assert!(vault.unlock(&storage, "incorrect password").is_err());
         vault.unlock(&storage, "correct horse battery").unwrap();
+    }
+
+
+    #[test]
+    fn refuses_unknown_kdf_metadata_and_malformed_salt() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let vault = PasswordVault::new();
+        vault.setup_master_password(&storage, "correct horse battery").unwrap();
+        vault.lock();
+        let (salt, verifier, _) = storage.get_vault_meta().unwrap().unwrap();
+        storage.save_vault_meta(&salt, &verifier, "argon2id:unknown").unwrap();
+        assert!(vault.unlock(&storage, "correct horse battery").unwrap_err().contains("Непідтримувані"));
+        storage.save_vault_meta("AQID", &verifier, KDF_PARAMS).unwrap();
+        assert!(vault.unlock(&storage, "correct horse battery").unwrap_err().contains("довжина salt"));
+    }
+
+    #[test]
+    fn rejects_oversized_master_password_before_kdf() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let vault = PasswordVault::new();
+        let oversized = "x".repeat(1025);
+        assert!(vault.setup_master_password(&storage, &oversized).is_err());
+        assert!(vault.unlock(&storage, &oversized).is_err());
     }
 
     #[test]
