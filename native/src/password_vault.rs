@@ -352,7 +352,11 @@ mod tests {
             "secret-value",
             Some("test note"),
         ).unwrap();
-        assert_eq!(saved.origin, "https://www.example.com");
+        assert_eq!(saved, saved.trim());
+        let encrypted_rows = storage.list_password_rows().unwrap();
+        assert_eq!(encrypted_rows.len(), 1);
+        assert!(!encrypted_rows[0].password_enc.contains("secret-value"));
+        assert!(!encrypted_rows[0].username_enc.contains("alice"));
         let found = vault.find_for_origin(&storage, "https://www.example.com/other").unwrap();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].password, "secret-value");
@@ -370,5 +374,7 @@ mod tests {
             normalize_origin("https://example.com").unwrap(),
             normalize_origin("https://notexample.com").unwrap()
         );
+        assert!(normalize_origin("javascript:alert(1)").is_err());
+        assert!(normalize_origin("file:///C:/private.txt").is_err());
     }
 }
