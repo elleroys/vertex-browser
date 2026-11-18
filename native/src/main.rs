@@ -1726,7 +1726,7 @@ ${sections}</body></html>"#);
         }
     }
 
-    fn draw_password_vault_window(&self, ctx: &egui::Context) {
+    fn draw_password_vault_window(self: &Rc<Self>, ctx: &egui::Context) {
         if !self.password_vault_open.get() {
             return;
         }
@@ -3298,9 +3298,9 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 if let Self::Running(state) = self {
                     if !state.cursor_over_page() { return; }
                     let servo_button = match button {
-                        winit::event::MouseButton::Left => ServoMouseButton::Left,
-                        winit::event::MouseButton::Right => ServoMouseButton::Right,
-                        winit::event::MouseButton::Middle => ServoMouseButton::Middle,
+                        winit::event::MouseButton::Left => ServoMouseButton::Primary,
+                        winit::event::MouseButton::Right => ServoMouseButton::Secondary,
+                        winit::event::MouseButton::Middle => ServoMouseButton::Auxiliary,
                         _ => return,
                     };
                     let action = match button_state {
