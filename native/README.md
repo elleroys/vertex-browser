@@ -7,7 +7,7 @@ This directory is the isolated native-engine proof of concept. It does not repla
 - Native desktop window created by `winit`.
 - Servo is embedded in-process through its current `ServoBuilder` / `WebViewBuilder` API.
 - Initial page can be supplied as the first command-line argument; defaults to `https://example.com`.
-- Window resize, redraw, Servo event-loop wakeups and frame presentation are wired.
+- Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation are wired.\n- Mouse movement, clicks, leaving the viewport and wheel scrolling are forwarded to Servo.
 
 This is an engine integration spike, **not yet the full Vertex browser**. Navigation controls, keyboard/mouse forwarding, multiple tabs, downloads, permissions, profile storage, ad blocking and the browser chrome are not implemented here yet.
 
