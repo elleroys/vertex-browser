@@ -76,6 +76,7 @@ struct BrowserState {
     bookmarks_manager_open: Cell<bool>,
     history_manager_open: Cell<bool>,
     site_data_manager_open: Cell<bool>,
+    site_permissions_manager_open: Cell<bool>,
     site_data_clear_all_confirm_open: Cell<bool>,
     history_clear_confirm_open: Cell<bool>,
     search_engine: RefCell<String>,
@@ -771,6 +772,9 @@ ${sections}</body></html>"#);
                     if ui.button("Дані сайтів").on_hover_text("Перегляд і очищення cookies та Web Storage").clicked() {
                         self.site_data_manager_open.set(true);
                     }
+                    if ui.button("Дозволи").on_hover_text("Керування збереженими дозволами сайтів").clicked() {
+                        self.site_permissions_manager_open.set(true);
+                    }
                     if ui.button("Завантаження").clicked() {
                         address.clear();
                         self.downloads_manager_open.set(true);
@@ -1172,6 +1176,47 @@ ${sections}</body></html>"#);
                     if allow { pending.request.allow(); } else { pending.request.deny(); }
                     self.window.request_redraw();
                 }
+            }
+            if self.site_permissions_manager_open.get() {
+                let entries = self.storage.site_permissions().unwrap_or_default();
+                let mut open = true;
+                let mut revoke_key: Option<String> = None;
+                egui::Window::new("Дозволи сайтів")
+                    .open(&mut open)
+                    .resizable(true)
+                    .default_width(520.0)
+                    .default_height(380.0)
+                    .show(ui.ctx(), |ui| {
+                        ui.label("Тут можна переглянути й відкликати постійні рішення. Після відкликання сайт знову запитає дозвіл.");
+                        ui.separator();
+                        if entries.is_empty() {
+                            ui.label("Збережених рішень поки немає.");
+                        }
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for (key, value) in &entries {
+                                let Some(rest) = key.strip_prefix("permission:") else { continue; };
+                                let Some((origin, feature)) = rest.rsplit_once(':') else { continue; };
+                                ui.horizontal(|ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new(origin).strong());
+                                        ui.label(format!("{feature} · {}", if value == "allow" { "Дозволено" } else { "Заблоковано" }));
+                                    });
+                                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                        if ui.small_button("Відкликати").clicked() {
+                                            revoke_key = Some(key.clone());
+                                        }
+                                    });
+                                });
+                                ui.separator();
+                            }
+                        });
+                    });
+                if let Some(key) = revoke_key {
+                    if let Err(error) = self.storage.delete_setting(&key) {
+                        log::error!("could not revoke site permission: {error}");
+                    }
+                }
+                if !open { self.site_permissions_manager_open.set(false); }
             }
             if self.site_data_manager_open.get() {
                 let entries = self.servo.site_data_manager().site_data(
@@ -2334,6 +2379,7 @@ impl VertexApp {
             bookmarks_manager_open: Cell::new(false),
             history_manager_open: Cell::new(false),
             site_data_manager_open: Cell::new(false),
+            site_permissions_manager_open: Cell::new(false),
             site_data_clear_all_confirm_open: Cell::new(false),
             history_clear_confirm_open: Cell::new(false),
             search_engine: RefCell::new(search_engine),
