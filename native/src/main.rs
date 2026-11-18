@@ -1937,6 +1937,21 @@ mod tests {
     }
 
     #[test]
+    fn supports_configured_search_engines() {
+        let duckduckgo = parse_navigation_input_with_engine("servo browser", "duckduckgo");
+        assert_eq!(duckduckgo.host_str(), Some("duckduckgo.com"));
+        assert_eq!(duckduckgo.path(), "/");
+        assert_eq!(
+            duckduckgo.query_pairs().find(|(key, _)| key == "q").map(|(_, value)| value.into_owned()),
+            Some("servo browser".to_owned())
+        );
+
+        let bing = parse_navigation_input_with_engine("servo browser", "bing");
+        assert_eq!(bing.host_str(), Some("www.bing.com"));
+        assert_eq!(bing.path(), "/search");
+    }
+
+    #[test]
     fn encodes_unicode_search_terms() {
         let url = parse_navigation_input("браузер");
         assert_eq!(
