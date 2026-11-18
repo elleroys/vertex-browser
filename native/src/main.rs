@@ -385,8 +385,15 @@ ${sections}</body></html>"#);
         } else {
             downloads::ResumeInfo { etag: None, last_modified: None }
         };
-        if let Err(error) = self.storage.reset_download_for_retry(entry.id) {
-            log::error!("could not reset download {} for retry: {error}", entry.id);
+        let partial_bytes = if has_partial {
+            std::fs::metadata(&partial_path).map(|metadata| metadata.len()).unwrap_or(0)
+        } else { 0 };
+        let total_bytes = if has_partial { entry.total_bytes } else { None };
+        if let Err(error) = self.storage.prepare_download_retry(
+            entry.id, partial_bytes, total_bytes, &partial_path,
+            resume.etag.as_deref(), resume.last_modified.as_deref(),
+        ) {
+            log::error!("could not prepare download {} for retry: {error}", entry.id);
             return;
         }
         self.spawn_download(entry.id, entry.url, destination, partial_path, resume);
