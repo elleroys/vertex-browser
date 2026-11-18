@@ -618,6 +618,7 @@ ${sections}</body></html>"#);
         let mut delete_id: Option<String> = None;
         let mut clipboard_text: Option<String> = None;
         let mut scan_forms = false;
+        let mut fill_request: Option<(String, String, String)> = None;
 
         egui::Window::new("Менеджер паролів")
             .open(&mut open)
@@ -700,6 +701,9 @@ ${sections}</body></html>"#);
                                             ui.horizontal(|ui| {
                                                 ui.strong(&entry.title);
                                                 ui.label(&entry.origin);
+                                                if ui.small_button("Заповнити на сайті").on_hover_text("Передасть логін і пароль лише у форму на поточному сайті; форму не надсилає").clicked() {
+                                                    fill_request = Some((entry.origin.clone(), entry.username.clone(), entry.password.clone()));
+                                                }
                                                 if ui.small_button("Видалити").clicked() {
                                                     delete_id = Some(entry.id.clone());
                                                 }
@@ -755,6 +759,9 @@ ${sections}</body></html>"#);
         }
         if scan_forms {
             self.scan_login_forms();
+        }
+        if let Some((origin, username, password)) = fill_request {
+            self.fill_login_form(&origin, username, password);
         }
         if !open {
             self.password_vault_open.set(false);
@@ -820,6 +827,73 @@ ${sections}</body></html>"#);
             *self.vault_message.borrow_mut() = result.map(|_| "Запис видалено.".to_owned())
                 .unwrap_or_else(|error| error);
         }
+    }
+
+    fn fill_login_form(self: &Rc<Self>, expected_origin: &str, username: String, password: String) {
+        let Some(view) = self.active_webview() else { return; };
+        let Some(url) = view.url() else { return; };
+        let current_origin = url.origin().ascii_serialization();
+        if !matches!(url.scheme(), "http" | "https") || current_origin != expected_origin {
+            *self.vault_message.borrow_mut() = "Автозаповнення заблоковано: запис не відповідає поточному сайту.".to_owned();
+            self.window.request_redraw();
+            return;
+        }
+
+        let username = Zeroizing::new(username);
+        let password = Zeroizing::new(password);
+        let username_literal = match serde_json::to_string(username.as_str()) {
+            Ok(value) => Zeroizing::new(value),
+            Err(error) => {
+                *self.vault_message.borrow_mut() = format!("Не вдалося підготувати логін: {error}");
+                return;
+            }
+        };
+        let password_literal = match serde_json::to_string(password.as_str()) {
+            Ok(value) => Zeroizing::new(value),
+            Err(error) => {
+                *self.vault_message.borrow_mut() = format!("Не вдалося підготувати пароль: {error}");
+                return;
+            }
+        };
+        let script = Zeroizing::new(format!(r#"(() => {{
+            const username = {username_literal};
+            const password = {password_literal};
+            const passwordField = document.querySelector('input[type="password"]');
+            if (!passwordField) return 'Поле пароля не знайдено.';
+            const form = passwordField.form || passwordField.closest('form');
+            if (form) {{
+                const action = new URL(form.action || location.href, location.href);
+                if (action.origin !== location.origin) return 'Заповнення скасовано: форма надсилає дані на інший домен.';
+            }}
+            const fields = form ? Array.from(form.querySelectorAll('input')) : Array.from(document.querySelectorAll('input'));
+            const usernameField = fields.find(el => el !== passwordField &&
+                (el.autocomplete || '').toLowerCase().split(/\\s+/).includes('username')) ||
+                fields.find(el => el !== passwordField &&
+                    ['text', 'email', 'tel'].includes((el.type || '').toLowerCase()) &&
+                    /user|login|email|account/i.test([el.name, el.id, el.placeholder].join(' ')));
+            const setValue = (field, value) => {{
+                const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+                if (setter) setter.call(field, value); else field.value = value;
+                field.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                field.dispatchEvent(new Event('change', {{ bubbles: true }}));
+            }};
+            if (usernameField && username) setValue(usernameField, username);
+            setValue(passwordField, password);
+            return usernameField ? 'Логін і пароль заповнено. Форму НЕ надіслано.' : 'Пароль заповнено; поле логіна не визначено. Форму НЕ надіслано.';
+        }})()"#));
+
+        *self.vault_message.borrow_mut() = "Передаю дані у форму поточного сайту…".to_owned();
+        let state = self.clone();
+        view.evaluate_javascript(script.as_str(), move |result| {
+            let message = match result {
+                Ok(JSValue::String(value)) => value,
+                Ok(other) => format!("Неочікувана відповідь Servo: {other:?}"),
+                Err(error) => format!("Не вдалося заповнити форму: {error:?}"),
+            };
+            *state.vault_message.borrow_mut() = message;
+            state.window.request_redraw();
+        });
+        self.servo.spin_event_loop();
     }
 
     fn scan_login_forms(self: &Rc<Self>) {
