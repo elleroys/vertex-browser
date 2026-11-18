@@ -306,6 +306,31 @@ ${sections}</body></html>"#);
         self.window.request_redraw();
     }
 
+    fn site_adblock_enabled(&self, webview: &WebView) -> bool {
+        if !self.adblock_enabled() {
+            return false;
+        }
+        let Some(host) = webview.url().and_then(|url| url.host_str().map(str::to_owned)) else {
+            return true;
+        };
+        let key = format!("adblock_disabled:{host}");
+        !matches!(self.storage.get_setting(&key), Ok(Some(value)) if value == "true")
+    }
+
+    fn toggle_site_adblock(&self) {
+        let Some(host) = self.active_webview().and_then(|view| view.url())
+            .and_then(|url| url.host_str().map(str::to_owned)) else {
+            return;
+        };
+        let key = format!("adblock_disabled:{host}");
+        let disabled = matches!(self.storage.get_setting(&key), Ok(Some(value)) if value == "true");
+        if let Err(error) = self.storage.set_setting(&key, if disabled { "false" } else { "true" }) {
+            log::error!("could not save site ad blocker setting: {error}");
+            return;
+        }
+        self.window.request_redraw();
+    }
+
     fn begin_address_edit(&self) {
         let current = self.active_webview().and_then(|view| view.url())
             .filter(|url| matches!(url.scheme(), "http" | "https"))
@@ -454,8 +479,14 @@ ${sections}</body></html>"#);
                         if let Some(view) = &active { view.set_page_zoom((view.page_zoom() + 0.1).min(5.0)); }
                     }
                     let adblock_label = if self.adblock_enabled() { "AdBlock: ON" } else { "AdBlock: OFF" };
-                    if ui.button(adblock_label).on_hover_text("Увімкнути або вимкнути блокування реклами").clicked() {
+                    if ui.button(adblock_label).on_hover_text("Глобально увімкнути або вимкнути блокування реклами").clicked() {
                         self.toggle_adblock();
+                    }
+                    let site_blocking = active.as_ref().is_some_and(|view| self.site_adblock_enabled(view));
+                    let site_label = if site_blocking { "На сайті: ON" } else { "На сайті: OFF" };
+                    if ui.add_enabled(active.as_ref().and_then(|view| view.url()).is_some(), egui::Button::new(site_label))
+                        .on_hover_text("Перемкнути блокування реклами лише для поточного сайту").clicked() {
+                        self.toggle_site_adblock();
                     }
                     if ui.button("Історія").clicked() {
                         address.clear();
@@ -665,8 +696,8 @@ ${sections}</body></html>"#);
 }
 
 impl servo::WebViewDelegate for BrowserState {
-    fn load_web_resource(&self, _webview: WebView, load: servo::WebResourceLoad) {
-        if !self.adblock_enabled() {
+    fn load_web_resource(&self, webview: WebView, load: servo::WebResourceLoad) {
+        if !self.site_adblock_enabled(&webview) {
             return;
         }
         let Ok(url) = Url::parse(&load.request().url.to_string()) else {
