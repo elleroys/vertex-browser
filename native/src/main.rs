@@ -152,7 +152,7 @@ impl BrowserState {
             ));
         }
         if items.is_empty() { items.push_str("<p class=\"empty\">Історія поки порожня</p>"); }
-        let html = internal_page("Історія", &items, "<button onclick=\"fetch('/__clear_history')\">", false);
+        let html = internal_page("Історія", &items /* removed obsolete placeholder */ , "<button onclick=\"fetch('/__clear_history')\">", false);
         self.open_internal_page(html);
     }
 
@@ -172,7 +172,7 @@ impl BrowserState {
             items.push_str(&format!("<article><a href=\"{href}\">{title}</a><small>{url_text}</small></article>"));
         }
         if items.is_empty() { items.push_str("<p class=\"empty\">Закладок поки немає. Натисни Ctrl+D на сторінці, щоб додати її.</p>"); }
-        self.open_internal_page(internal_page("Закладки", &items, "", false));
+        self.open_internal_page(internal_page("Закладки", &items));
     }
 
     fn begin_address_edit(&self) {
@@ -473,7 +473,7 @@ fn html_escape(value: &str) -> String {
         .replace('\'', "&#39;")
 }
 
-fn internal_page(title: &str, items: &str, _unused: &str, _flag: bool) -> String {
+fn internal_page(title: &str, items: &str) -> String {
     format!(r#"<!doctype html>
 <html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title} — Vertex</title><style>
@@ -770,6 +770,23 @@ impl EventLoopWaker for ServoWaker {
 #[cfg(test)]
 mod tests {
     use super::parse_navigation_input;
+
+
+    #[test]
+    fn escapes_html_in_internal_pages() {
+        assert_eq!(
+            super::html_escape("<script a=\\\"x\\\">&'"),
+            "&lt;script a=&quot;x&quot;&gt;&amp;&#39;"
+        );
+    }
+
+    #[test]
+    fn internal_pages_use_dark_styling_and_supplied_content() {
+        let page = super::internal_page("Історія", "<article>Example</article>");
+        assert!(page.contains("color-scheme:dark"));
+        assert!(page.contains("<article>Example</article>"));
+        assert!(page.contains("<h1>Історія</h1>"));
+    }
 
     #[test]
     fn accepts_explicit_https_url() {
