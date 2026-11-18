@@ -73,6 +73,7 @@ struct BrowserState {
     search_engine: RefCell<String>,
     home_page: RefCell<String>,
     restore_session: Cell<bool>,
+    clear_history_on_exit: Cell<bool>,
     password_vault: password_vault::PasswordVault,
     password_vault_open: Cell<bool>,
     vault_master_password: RefCell<String>,
@@ -914,6 +915,8 @@ ${sections}</body></html>"#);
                         .map(|home| format!("{home}\\Downloads"))
                         .unwrap_or_else(|_| ".".to_owned()));
                 let mut restore_session = self.restore_session.get();
+                let mut clear_history_on_exit = self.clear_history_on_exit.get();
+                let mut changed_clear_history = false;
                 let mut changed_engine = false;
                 let mut changed_home_page = false;
                 let mut choose_download_dir = false;
@@ -961,6 +964,9 @@ ${sections}</body></html>"#);
                         if ui.checkbox(&mut restore_session, "Відновлювати вкладки після запуску").changed() {
                             changed_restore_session = true;
                         }
+                        if ui.checkbox(&mut clear_history_on_exit, "Очищати історію після закриття браузера").changed() {
+                            changed_clear_history = true;
+                        }
                         ui.label("Дозволені лише адреси HTTP та HTTPS. Профіль зберігається локально в SQLite.");
                     });
                 if changed_engine {
@@ -1002,6 +1008,15 @@ ${sections}</body></html>"#);
                         if restore_session { "true" } else { "false" },
                     ) {
                         log::error!("could not save session restore preference: {error}");
+                    }
+                }
+                if changed_clear_history {
+                    self.clear_history_on_exit.set(clear_history_on_exit);
+                    if let Err(error) = self.storage.set_setting(
+                        "clear_history_on_exit",
+                        if clear_history_on_exit { "true" } else { "false" },
+                    ) {
+                        log::error!("could not save clear-history preference: {error}");
                     }
                 }
                 if !open { self.settings_open.set(false); }
@@ -1999,6 +2014,10 @@ impl VertexApp {
             storage.get_setting("restore_session"),
             Ok(Some(value)) if value == "false"
         );
+        let clear_history_on_exit = matches!(
+            storage.get_setting("clear_history_on_exit"),
+            Ok(Some(value)) if value == "true"
+        );
         let closed_tabs = storage.load_closed_tabs().unwrap_or_default()
             .into_iter()
             .rev()
@@ -2033,6 +2052,7 @@ impl VertexApp {
             search_engine: RefCell::new(search_engine),
             home_page: RefCell::new(home_page),
             restore_session: Cell::new(restore_session),
+            clear_history_on_exit: Cell::new(clear_history_on_exit),
             password_vault: password_vault::PasswordVault::new(),
             password_vault_open: Cell::new(false),
             vault_master_password: RefCell::new(String::new()),
@@ -2253,6 +2273,11 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         if let Self::Running(state) = self {
+            if state.clear_history_on_exit.get() {
+                if let Err(error) = state.storage.clear_history() {
+                    log::error!("could not clear browsing history on exit: {error}");
+                }
+            }
             let _ = state.rendering_context.make_current();
             state.egui.borrow_mut().destroy();
         }
