@@ -880,7 +880,7 @@ ${sections}</body></html>"#);
             if (usernameField && username) setValue(usernameField, username);
             setValue(passwordField, password);
             return usernameField ? 'Логін і пароль заповнено. Форму НЕ надіслано.' : 'Пароль заповнено; поле логіна не визначено. Форму НЕ надіслано.';
-        }})()"#));
+        }})()"#, username_literal = username_literal.as_str(), password_literal = password_literal.as_str()));
 
         *self.vault_message.borrow_mut() = "Передаю дані у форму поточного сайту…".to_owned();
         let state = self.clone();
