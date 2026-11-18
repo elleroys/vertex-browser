@@ -38,7 +38,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 
 This remains a development browser, not a release-ready consumer browser. The following work is still required:
 - Actual download transfers, progress updates, cancellation, destination selection and opening completed files. The current downloads page is only a persistent-record UI; it is not a working download manager.
-- A complete settings/profile interface (download directory, privacy controls, cookie/site-data management and session preferences). Search-provider and HTTP(S) homepage selection are implemented, but the broader settings surface is not.
+- A complete settings/profile interface (download directory, privacy controls and cookie/site-data management). Search provider, HTTP(S) homepage and startup session-restore preference are implemented, but the broader settings surface is not.
 - Richer session metadata (scroll position and per-tab navigation history). Current session restore stores only HTTP(S) URLs and the active tab index; recently closed URLs are separately persisted.
 - Broader AdBlock compatibility: filter-list updates, cosmetic filters, resource modifiers, scriptlets, and full EasyList/uBlock syntax.
 - More complete browser security/privacy controls, permission prompts, cookie/site-data management and clipboard auto-clear policy.
