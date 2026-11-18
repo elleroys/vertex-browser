@@ -18,6 +18,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Toolbar actions include bookmark toggle, history and bookmarks pages in addition to back/forward/reload/home and address navigation.
 - Multiple Servo WebViews in one native window, with active-tab focus and visibility management.
 - Tab lifecycle shortcuts: Ctrl+T opens the new-tab page, Ctrl+W closes the active tab (the final tab is kept open), Ctrl+Tab switches forward and Ctrl+Shift+Tab switches backward; Ctrl+1 through Ctrl+8 activate the corresponding tab and Ctrl+9 activates the last tab.
+- Recently closed HTTP(S) tabs can be reopened with Ctrl+Shift+T or the ↶ toolbar button; up to ten URLs are kept in memory for the current run. Each tab also has a ⋯ context menu for closing it or reopening the most recently closed tab.
 - Active page title is reflected in the native window title.
 - A per-user SQLite profile is created under `%APPDATA%\\VertexBrowser\\profile.sqlite3` on Windows (or a home-directory fallback elsewhere).
 - Browsing history is recorded on navigation and updated when the page title arrives; internal `about:` pages are excluded.
@@ -27,7 +28,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 
 ## Still missing
 
-This is still an early engine shell, not yet a complete consumer browser. The current chrome is a first integrated egui/Glow overlay: it shares Servo's OpenGL context and paints after the page. The page viewport has not yet been inset below the toolbar, so the page may render underneath the chrome area. Downloads, password autofill, ad-block network interception, profile settings, session restore, installer and production hardening remain missing. Do not claim those features are implemented.
+This is still an early engine shell, not yet a complete consumer browser. The current chrome is a first integrated egui/Glow overlay: it shares Servo's OpenGL context and paints after the page. The page viewport has not yet been inset below the toolbar, so the page may render underneath the chrome area. Downloads, password autofill, ad-block network interception, profile settings, persistent session restore, installer and production hardening remain missing. Recently closed tabs are only kept in memory and are not restored after restarting the browser. Do not claim those features are implemented.
 
 Physical-key mapping currently covers letters, digits, navigation keys, modifiers and F1–F12; uncommon keys still fall back to `Unidentified`. IME committed text is supported, while composition/preedit events remain follow-up work.
 
