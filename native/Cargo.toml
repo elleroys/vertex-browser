@@ -7,7 +7,7 @@ publish = false
 description = "Native Rust shell prototype for Vertex Browser using Servo"
 
 [dependencies]
-servo = { git = "https://github.com/servo/servo", rev = "32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17" }
+servo = { git = "https://github.com/servo/servo", rev = "32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17", default-features = false, features = ["bundled", "clipboard", "js_jit", "subtlecrypto"] }
 winit = "0.30.13"
 euclid = "0.22"
 url = "2.5"
