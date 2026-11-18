@@ -31,6 +31,7 @@ Implemented in the native branch:
 - Internal pages for history, bookmarks and download records.
 - Basic request blocking through Servo's `WebViewDelegate::load_web_resource`.
 - Global AdBlock toggle and per-host exceptions, persisted in SQLite.
+- Native custom-rule editor with SQLite persistence. The supported EasyList subset includes domain rules (`||host^`), domain/path rules and exception rules (`@@||host^`); comments are ignored. Cosmetic filters, regular expressions, resource modifiers, scriptlets and full uBlock syntax are not supported.
 
 Known limitations (not yet acceptance-tested):
 
