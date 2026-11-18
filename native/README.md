@@ -26,10 +26,24 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Ctrl+H opens a dark, Servo-rendered browsing history page (up to 500 recent URLs).
 - Ctrl+Shift+B opens a dark, Servo-rendered bookmarks page; links navigate directly in the active WebView.
 - Ctrl+D toggles a bookmark for the current HTTP(S) page. Bookmark/history/settings storage is implemented as an engine-independent native service, with APIs for recent history, listing bookmarks, deleting one history entry and clearing history.
+- A persistent browser session snapshot stores up to 50 HTTP(S) tab URLs and the active-tab index in SQLite. On startup without an explicit URL argument, the browser restores that session; malformed, obsolete and non-HTTP(S) entries are ignored.
+- A local encrypted password vault using Argon2id and XChaCha20-Poly1305, with create/unlock/lock, search, save/delete, password generation and clipboard copy.
+- Servo-backed login-form detection and explicit user-triggered same-origin autofill. Autofill checks the current origin again immediately before filling, serializes values safely and does not submit the form.
+- Password vault CSV import/export with a preview/validation step before import confirmation, row/size limits and temporary-buffer zeroization. The supported CSV schema is Vertex's own `origin,title,username,password,notes` format; arbitrary Chrome/vendor exports are not guaranteed to import unchanged.
+- A limited native AdBlock request interceptor with global enable/disable, per-site exceptions and custom domain/path/exception rules persisted in SQLite.
 
 ## Still missing
 
-This is still an early engine shell, not yet a complete consumer browser. The egui/Glow chrome shares Servo's OpenGL context and paints after the page. Servo now renders into an offscreen framebuffer sized to the content viewport below the toolbar, then the frame is blitted into the window; the page no longer occupies or paints underneath the toolbar area. Downloads, password autofill, ad-block network interception, profile settings, persistent session restore, installer and production hardening remain missing. Recently closed tabs are only kept in memory and are not restored after restarting the browser. Do not claim those features are implemented.
+This remains a development browser, not a release-ready consumer browser. The following work is still required:
+- Actual download transfers, progress updates, cancellation, destination selection and opening completed files. The current downloads page is only a persistent-record UI; it is not a working download manager.
+- A complete settings/profile interface (home page, search provider, download directory, privacy controls and session preferences).
+- Persistent recovery of recently closed tabs and richer session metadata (scroll position and per-tab navigation history). Current session restore stores only HTTP(S) URLs and the active tab index.
+- Broader AdBlock compatibility: filter-list updates, cosmetic filters, resource modifiers, scriptlets, and full EasyList/uBlock syntax.
+- More complete browser security/privacy controls, permission prompts, cookie/site-data management and clipboard auto-clear policy.
+- Windows installer/update packaging, icons/signing, crash handling, accessibility and production hardening.
+- Site compatibility and performance measurements on real Windows hardware. Servo feature coverage (media, WebRTC, DRM, extensions and DevTools) must be evaluated separately.
+
+Do not treat source-level implementation or GitHub commits as proof that the application compiles or works at runtime. Build and end-to-end testing are intentionally deferred until the feature set is implemented.
 
 Physical-key mapping currently covers letters, digits, navigation keys, modifiers and F1–F12; uncommon keys still fall back to `Unidentified`. IME committed text is supported, while composition/preedit events remain follow-up work.
 
