@@ -414,9 +414,20 @@ impl BrowserStorage {
         self.connection.lock().expect("database mutex poisoned").execute(
             "UPDATE downloads SET status='queued',received_bytes=?1,total_bytes=?2,
              partial_path=?3,etag=?4,last_modified=?5,updated_at=?6
-             WHERE id=?7 AND status IN ('failed','cancelled')",
+             WHERE id=?7 AND status IN ('failed','cancelled','paused')",
             params![received as i64, total.map(|value| value as i64), partial_path.display().to_string(),
                 etag, last_modified, unix_time_ms(), id],
+        )?;
+        Ok(())
+    }
+
+    /// Pause a transfer while retaining its partial file and resume validators.
+    /// Include 'cancelled' to resolve the small race where the worker observes
+    /// the stop token immediately before this state update reaches SQLite.
+    pub fn pause_download(&self, id: i64) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "UPDATE downloads SET status='paused',updated_at=?1 WHERE id=?2 AND status IN ('queued','downloading','cancelled')",
+            params![unix_time_ms(), id],
         )?;
         Ok(())
     }
