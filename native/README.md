@@ -54,3 +54,6 @@ All browser UI and browser services must be native Rust components around Servo.
 - Servo embedding overview: https://book.servo.org/embedding/overview.html
 - Upstream minimal winit embedder: https://github.com/servo/servo/blob/main/components/servo/examples/winit_minimal.rs
 - Pinned Servo source revision: `32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17`
+
+
+The toolbar overlay uses an opaque dark backing over its top 82 logical pixels to prevent page content from bleeding through. Servo's WebView still occupies the full rendering context; true viewport insetting remains future rendering work.
