@@ -533,7 +533,7 @@ mod tests {
         let id = storage.create_download("https://example.com/file", "file", "file").unwrap();
         let entry = storage.recent_downloads(1).unwrap().remove(0);
         assert_eq!(entry.id, id);
-        assert_eq!(entry.partial_path, None);
+        assert_eq!(entry.partial_path.as_deref(), Some("file.part"));
         assert_eq!(entry.etag, None);
         assert_eq!(entry.last_modified, None);
         drop(storage);
