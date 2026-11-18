@@ -1,10 +1,15 @@
-use std::{cell::{Cell, RefCell}, error::Error, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    error::Error,
+    rc::Rc,
+};
 
 use servo::{
-    DevicePoint, EventLoopWaker, InputEvent, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent,
-    Servo, ServoBuilder, WebView, WebViewBuilder, WebViewPoint, WheelDelta,
-    WheelEvent, WheelMode, WindowRenderingContext,
+    DevicePoint, EventLoopWaker, InputEvent, Modifiers,
+    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
+    MouseLeftViewportEvent, MouseMoveEvent, Servo, ServoBuilder, WebView,
+    WebViewBuilder, WebViewPoint, WheelDelta, WheelEvent, WheelMode,
+    WindowRenderingContext,
 };
 use url::Url;
 use winit::{
@@ -152,7 +157,14 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     }
                 }
             }
-            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {\n                if let Self::Running(state) = self {\n                    if let Some(webview) = state.active_webview() {\n                        webview.set_hidpi_scale_factor(euclid::Scale::new(scale_factor as f32));\n                    }\n                }\n            }\n            WindowEvent::Resized(size) => {
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                if let Self::Running(state) = self {
+                    if let Some(webview) = state.active_webview() {
+                        webview.set_hidpi_scale_factor(euclid::Scale::new(scale_factor as f32));
+                    }
+                }
+            }
+            WindowEvent::Resized(size) => {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.active_webview() {
                         webview.resize(size);
@@ -178,7 +190,11 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                     }
                 }
             }
-            WindowEvent::MouseInput { state: button_state, button, .. } => {
+            WindowEvent::MouseInput {
+                state: button_state,
+                button,
+                ..
+            } => {
                 if let Self::Running(state) = self {
                     let servo_button = match button {
                         winit::event::MouseButton::Left => ServoMouseButton::Left,
@@ -213,6 +229,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                         webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
                             WheelDelta { x: dx, y: dy, z: 0.0, mode },
                             state.cursor_point(),
+                            Modifiers::default(),
                         )));
                     }
                 }
