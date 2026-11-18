@@ -87,6 +87,31 @@ fn is_filter_separator(character: char) -> bool {
     !character.is_ascii_alphanumeric() && !matches!(character, '_' | '-' | '.' | '%')
 }
 
+// Match a filter-list path prefix containing '*' wildcards. Filter patterns are ASCII,
+// and URL paths are percent-encoded ASCII, so byte offsets are safe here.
+fn wildcard_prefix_end(value: &str, pattern: &str) -> Option<usize> {
+    if !pattern.contains('*') {
+        return value.strip_prefix(pattern).map(str::len);
+    }
+
+    let parts = pattern.split('*').collect::<Vec<_>>();
+    let mut cursor = 0usize;
+    let mut first = true;
+    for part in parts.iter().filter(|part| !part.is_empty()) {
+        if first && !pattern.starts_with('*') {
+            if !value[cursor..].starts_with(part) {
+                return None;
+            }
+            cursor += part.len();
+        } else {
+            let offset = value[cursor..].find(part)?;
+            cursor += offset + part.len();
+        }
+        first = false;
+    }
+    Some(cursor)
+}
+
 fn rule_matches(url: &url::Url, rule: &Rule) -> bool {
     let Rule::Domain {
         host: rule_host,
@@ -103,9 +128,10 @@ fn rule_matches(url: &url::Url, rule: &Rule) -> bool {
         return true;
     };
     let url_path = url.path().trim_start_matches('/');
-    let Some(remainder) = url_path.strip_prefix(path.as_str()) else {
+    let Some(matched_end) = wildcard_prefix_end(url_path, path) else {
         return false;
     };
+    let remainder = &url_path[matched_end..];
     if !path_separator || remainder.is_empty() {
         return true;
     }
@@ -224,6 +250,23 @@ mod tests {
         assert!(is_blocked_url_with_rules(&url("https://cdn.example.net/ads/banner.js"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://cdn.example.net/assets/banner.js"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://notads.example.com/"), rules));
+    }
+
+    #[test]
+    fn path_wildcards_match_filter_list_segments_and_respect_separators() {
+        let rules = "||cdn.example.net/ads/*/banner^\\n||static.example.org/assets/*";
+        assert!(is_blocked_url_with_rules(
+            &url("https://cdn.example.net/ads/mobile/banner.js"), rules
+        ));
+        assert!(!is_blocked_url_with_rules(
+            &url("https://cdn.example.net/ads/mobile/bannerExtra.js"), rules
+        ));
+        assert!(is_blocked_url_with_rules(
+            &url("https://static.example.org/assets/v2/app.css"), rules
+        ));
+        assert!(!is_blocked_url_with_rules(
+            &url("https://static.example.org/other/v2/app.css"), rules
+        ));
     }
 
     #[test]
