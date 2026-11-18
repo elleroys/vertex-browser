@@ -56,6 +56,17 @@ struct BrowserState {
     adblock_rules_draft: RefCell<String>,
     adblock_rules_open: Cell<bool>,
     password_vault: password_vault::PasswordVault,
+    password_vault_open: Cell<bool>,
+    vault_master_password: RefCell<String>,
+    vault_confirm_password: RefCell<String>,
+    vault_origin: RefCell<String>,
+    vault_title: RefCell<String>,
+    vault_username: RefCell<String>,
+    vault_password: RefCell<String>,
+    vault_notes: RefCell<String>,
+    vault_search: RefCell<String>,
+    vault_show_passwords: Cell<bool>,
+    vault_message: RefCell<String>,
 }
 
 impl BrowserState {
@@ -506,6 +517,14 @@ ${sections}</body></html>"#);
                         *self.adblock_rules_draft.borrow_mut() = self.adblock_custom_rules.borrow().clone();
                         self.adblock_rules_open.set(true);
                     }
+                    if ui.button("Паролі").on_hover_text("Зашифроване локальне сховище паролів").clicked() {
+                        if let Some(url) = active.as_ref().and_then(|view| view.url()) {
+                            if matches!(url.scheme(), "http" | "https") {
+                                *self.vault_origin.borrow_mut() = url.origin().ascii_serialization();
+                            }
+                        }
+                        self.password_vault_open.set(true);
+                    }
                     if ui.button("Історія").clicked() {
                         address.clear();
                         self.open_history_page();
@@ -566,10 +585,182 @@ ${sections}</body></html>"#);
                     }
                 }
             }
+            self.draw_password_vault_window(ui.ctx());
         });
         chrome.paint(&self.window);
         if self.active_tab.get() == initial_active_tab {
             *self.address_bar.borrow_mut() = address;
+        }
+    }
+
+    fn draw_password_vault_window(&self, ctx: &egui::Context) {
+        if !self.password_vault_open.get() {
+            return;
+        }
+
+        let status = self.password_vault.status(&self.storage);
+        let unlocked = status.as_ref().is_ok_and(|value| value.is_unlocked);
+        let search = self.vault_search.borrow().clone();
+        let entries = if unlocked {
+            self.password_vault.list_credentials(&self.storage, Some(&search))
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        let mut open = true;
+        let mut setup = false;
+        let mut unlock = false;
+        let mut lock = false;
+        let mut save = false;
+        let mut delete_id: Option<String> = None;
+
+        egui::Window::new("Менеджер паролів")
+            .open(&mut open)
+            .resizable(true)
+            .default_width(560.0)
+            .default_height(520.0)
+            .show(ctx, |ui| {
+                match &status {
+                    Ok(value) if !value.is_configured => {
+                        ui.label("Створи майстер-пароль. Він не зберігається у відкритому вигляді — з нього виводиться ключ шифрування.");
+                        ui.add(egui::TextEdit::singleline(&mut *self.vault_master_password.borrow_mut())
+                            .password(true).hint_text("Майстер-пароль"));
+                        ui.add(egui::TextEdit::singleline(&mut *self.vault_confirm_password.borrow_mut())
+                            .password(true).hint_text("Повтори майстер-пароль"));
+                        if ui.button("Створити зашифроване сховище").clicked() {
+                            setup = true;
+                        }
+                    }
+                    Ok(value) if !value.is_unlocked => {
+                        ui.label("Сховище заблоковане.");
+                        ui.add(egui::TextEdit::singleline(&mut *self.vault_master_password.borrow_mut())
+                            .password(true).hint_text("Майстер-пароль"));
+                        if ui.button("Розблокувати").clicked() {
+                            unlock = true;
+                        }
+                    }
+                    Ok(value) => {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("Записів у сховищі: {}", value.entry_count));
+                            if ui.button("Заблокувати").clicked() {
+                                lock = true;
+                            }
+                        });
+                        ui.separator();
+                        egui::CollapsingHeader::new("Додати пароль")
+                            .default_open(true)
+                            .show(ui, |ui| {
+                                ui.label("Адреса сайту");
+                                ui.text_edit_singleline(&mut *self.vault_origin.borrow_mut());
+                                ui.label("Назва запису");
+                                ui.text_edit_singleline(&mut *self.vault_title.borrow_mut());
+                                ui.label("Логін");
+                                ui.text_edit_singleline(&mut *self.vault_username.borrow_mut());
+                                ui.label("Пароль");
+                                ui.add(egui::TextEdit::singleline(&mut *self.vault_password.borrow_mut())
+                                    .password(true));
+                                ui.label("Нотатки (необов'язково)");
+                                ui.text_edit_singleline(&mut *self.vault_notes.borrow_mut());
+                                if ui.button("Зберегти пароль").clicked() {
+                                    save = true;
+                                }
+                            });
+                        ui.separator();
+                        ui.horizontal(|ui| {
+                            ui.label("Пошук:");
+                            ui.text_edit_singleline(&mut *self.vault_search.borrow_mut());
+                            ui.checkbox(&mut self.vault_show_passwords.get_mut(), "Показувати паролі");
+                        });
+                        egui::ScrollArea::vertical().max_height(230.0).show(ui, |ui| {
+                            for entry in &entries {
+                                ui.group(|ui| {
+                                    ui.horizontal(|ui| {
+                                        ui.strong(&entry.title);
+                                        ui.label(&entry.origin);
+                                        if ui.small_button("Видалити").clicked() {
+                                            delete_id = Some(entry.id.clone());
+                                        }
+                                    });
+                                    ui.label(format!("Логін: {}", entry.username));
+                                    if self.vault_show_passwords.get() {
+                                        ui.label(format!("Пароль: {}", entry.password));
+                                    } else {
+                                        ui.label("Пароль: ••••••••");
+                                    }
+                                    if let Some(notes) = &entry.notes {
+                                        ui.label(format!("Нотатки: {notes}"));
+                                    }
+                                });
+                            }
+                            if entries.is_empty() {
+                                ui.label("Записів не знайдено.");
+                            }
+                        });
+                    }
+                    Err(error) => {
+                        ui.colored_label(egui::Color32::LIGHT_RED, error);
+                    }
+                }
+                let message = self.vault_message.borrow();
+                if !message.is_empty() {
+                    ui.separator();
+                    ui.label(message.as_str());
+                }
+            });
+
+        if !open {
+            self.password_vault_open.set(false);
+        }
+        if setup {
+            let master = self.vault_master_password.borrow().clone();
+            let confirm = self.vault_confirm_password.borrow().clone();
+            let result = if master != confirm {
+                Err("Майстер-паролі не збігаються".to_owned())
+            } else {
+                self.password_vault.setup_master_password(&self.storage, &master)
+            };
+            *self.vault_message.borrow_mut() = result.map(|_| {
+                self.vault_master_password.borrow_mut().clear();
+                self.vault_confirm_password.borrow_mut().clear();
+                "Сховище створено й розблоковано.".to_owned()
+            }).unwrap_or_else(|error| error);
+        }
+        if unlock {
+            let master = self.vault_master_password.borrow().clone();
+            let result = self.password_vault.unlock(&self.storage, &master);
+            self.vault_master_password.borrow_mut().clear();
+            *self.vault_message.borrow_mut() = result.map(|_| "Сховище розблоковано.".to_owned())
+                .unwrap_or_else(|error| error);
+        }
+        if lock {
+            self.password_vault.lock();
+            self.vault_show_passwords.set(false);
+            self.vault_master_password.borrow_mut().clear();
+            *self.vault_message.borrow_mut() = "Сховище заблоковано.".to_owned();
+        }
+        if save {
+            let origin = self.vault_origin.borrow().clone();
+            let title = self.vault_title.borrow().clone();
+            let username = self.vault_username.borrow().clone();
+            let password = self.vault_password.borrow().clone();
+            let notes = self.vault_notes.borrow().clone();
+            let result = self.password_vault.save_credential(
+                &self.storage, &origin, &title, &username, &password, Some(&notes),
+            );
+            match result {
+                Ok(_) => {
+                    self.vault_password.borrow_mut().clear();
+                    self.vault_notes.borrow_mut().clear();
+                    *self.vault_message.borrow_mut() = "Пароль зашифровано та збережено.".to_owned();
+                }
+                Err(error) => *self.vault_message.borrow_mut() = error,
+            }
+        }
+        if let Some(id) = delete_id {
+            let result = self.password_vault.delete_credential(&self.storage, &id);
+            *self.vault_message.borrow_mut() = result.map(|_| "Запис видалено.".to_owned())
+                .unwrap_or_else(|error| error);
         }
     }
 
@@ -882,6 +1073,17 @@ impl VertexApp {
             adblock_rules_draft: RefCell::new(String::new()),
             adblock_rules_open: Cell::new(false),
             password_vault: password_vault::PasswordVault::new(),
+            password_vault_open: Cell::new(false),
+            vault_master_password: RefCell::new(String::new()),
+            vault_confirm_password: RefCell::new(String::new()),
+            vault_origin: RefCell::new(String::new()),
+            vault_title: RefCell::new(String::new()),
+            vault_username: RefCell::new(String::new()),
+            vault_password: RefCell::new(String::new()),
+            vault_notes: RefCell::new(String::new()),
+            vault_search: RefCell::new(String::new()),
+            vault_show_passwords: Cell::new(false),
+            vault_message: RefCell::new(String::new()),
         });
 
         let url = match std::env::args().nth(1) {
