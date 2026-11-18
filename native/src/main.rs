@@ -133,6 +133,13 @@ impl BrowserState {
 
     fn handle_address_key(&self, event: &winit::event::KeyEvent) {
         if event.state != ElementState::Pressed { return; }
+        if self.modifiers.get().contains(Modifiers::CONTROL)
+            && matches!(&event.logical_key, WinitKey::Character(value) if value.eq_ignore_ascii_case("a"))
+        {
+            self.address_text.borrow_mut().clear();
+            self.window.set_title(" — Vertex Browser");
+            return;
+        }
         match &event.logical_key {
             WinitKey::Named(WinitNamedKey::Escape) => {
                 self.address_editing.set(false);
