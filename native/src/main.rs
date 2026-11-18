@@ -15,7 +15,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-use servo::{
+use vortex_engine::servo::{
     Code, DevicePoint, EventLoopWaker, InputEvent, Key, KeyState, LoadStatus, Location, Modifiers,
     MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent,
     ImeEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, Servo, ServoBuilder,
@@ -36,8 +36,8 @@ use winit::{
     window::{Window, WindowId},
 };
 
-fn vortex_servo_preferences() -> servo::Preferences {
-    let mut preferences = servo::Preferences::default();
+fn vortex_servo_preferences() -> vortex_engine::servo::Preferences {
+    let mut preferences = vortex_engine::servo::Preferences::default();
 
     // Modern single-page applications rely on these APIs for their component
     // lifecycle, persistent state, lazy rendering and asynchronous UI updates.
@@ -137,14 +137,14 @@ struct BrowserState {
 struct PendingPermission {
     origin: String,
     feature: String,
-    request: servo::PermissionRequest,
+    request: vortex_engine::servo::PermissionRequest,
 }
 
 struct PendingNavigation {
     url: Url,
     reasons: Vec<String>,
     threat_match: bool,
-    request: servo::NavigationRequest,
+    request: vortex_engine::servo::NavigationRequest,
 }
 
 impl BrowserState {
@@ -1710,7 +1710,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
             }
             if self.site_data_manager_open.get() {
                 let entries = self.servo.site_data_manager().site_data(
-                    servo::StorageType::Cookies | servo::StorageType::Local | servo::StorageType::Session,
+                    vortex_engine::servo::StorageType::Cookies | vortex_engine::servo::StorageType::Local | vortex_engine::servo::StorageType::Session,
                 );
                 let mut open = true;
                 let mut clear_site: Option<String> = None;
@@ -1740,9 +1740,9 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                         ui.label(egui::RichText::new(&name).strong());
                                         let kinds = entry.storage_types();
                                         let mut labels = Vec::new();
-                                        if kinds.contains(servo::StorageType::Cookies) { labels.push("Cookies"); }
-                                        if kinds.contains(servo::StorageType::Local) { labels.push("localStorage"); }
-                                        if kinds.contains(servo::StorageType::Session) { labels.push("sessionStorage"); }
+                                        if kinds.contains(vortex_engine::servo::StorageType::Cookies) { labels.push("Cookies"); }
+                                        if kinds.contains(vortex_engine::servo::StorageType::Local) { labels.push("localStorage"); }
+                                        if kinds.contains(vortex_engine::servo::StorageType::Session) { labels.push("sessionStorage"); }
                                         ui.label(egui::RichText::new(labels.join(" · ")).small().color(egui::Color32::GRAY));
                                     });
                                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1758,7 +1758,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                 if let Some(site) = clear_site {
                     self.servo.site_data_manager().clear_site_data(
                         &[site.as_str()],
-                        servo::StorageType::Cookies | servo::StorageType::Local | servo::StorageType::Session,
+                        vortex_engine::servo::StorageType::Cookies | vortex_engine::servo::StorageType::Local | vortex_engine::servo::StorageType::Session,
                     );
                 }
                 if clear_all {
@@ -1783,12 +1783,12 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                 if confirm {
                     self.servo.site_data_manager().clear_cookies(None);
                     let sites: Vec<String> = self.servo.site_data_manager().site_data(
-                        servo::StorageType::Local | servo::StorageType::Session,
+                        vortex_engine::servo::StorageType::Local | vortex_engine::servo::StorageType::Session,
                     ).iter().map(|entry| entry.name()).collect();
                     let site_refs: Vec<&str> = sites.iter().map(String::as_str).collect();
                     self.servo.site_data_manager().clear_site_data(
                         &site_refs,
-                        servo::StorageType::Local | servo::StorageType::Session,
+                        vortex_engine::servo::StorageType::Local | vortex_engine::servo::StorageType::Session,
                     );
                     self.site_data_clear_all_confirm_open.set(false);
                 } else if !open {
@@ -2679,8 +2679,8 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
     }
 }
 
-impl servo::WebViewDelegate for BrowserState {
-    fn request_navigation(&self, webview: WebView, request: servo::NavigationRequest) {
+impl vortex_engine::servo::WebViewDelegate for BrowserState {
+    fn request_navigation(&self, webview: WebView, request: vortex_engine::servo::NavigationRequest) {
         let current = webview.url();
         if let Some(reason) = navigation_block_reason(current.as_ref(), &request.url) {
             *self.navigation_security_notice.borrow_mut() = format!(
@@ -2707,7 +2707,7 @@ impl servo::WebViewDelegate for BrowserState {
         request.allow();
     }
 
-    fn request_permission(&self, webview: WebView, request: servo::PermissionRequest) {
+    fn request_permission(&self, webview: WebView, request: vortex_engine::servo::PermissionRequest) {
         let Some(url) = webview.url() else {
             request.deny();
             return;
@@ -2739,8 +2739,8 @@ impl servo::WebViewDelegate for BrowserState {
         self.window.request_redraw();
     }
 
-    fn show_embedder_control(&self, _webview: WebView, control: servo::EmbedderControl) {
-        if let servo::EmbedderControl::ContextMenu(menu) = control {
+    fn show_embedder_control(&self, _webview: WebView, control: vortex_engine::servo::EmbedderControl) {
+        if let vortex_engine::servo::EmbedderControl::ContextMenu(menu) = control {
             let link = menu.element_info().link_url.clone().filter(|url| {
                 matches!(url.scheme(), "http" | "https")
                     && url.host_str().is_some()
@@ -2758,7 +2758,7 @@ impl servo::WebViewDelegate for BrowserState {
     fn request_create_new(
         &self,
         parent_webview: WebView,
-        request: servo::CreateNewWebViewRequest,
+        request: vortex_engine::servo::CreateNewWebViewRequest,
     ) {
         let webview = request
             .builder(self.rendering_context.clone())
@@ -2787,7 +2787,7 @@ impl servo::WebViewDelegate for BrowserState {
         self.window.request_redraw();
     }
 
-    fn load_web_resource(&self, webview: WebView, load: servo::WebResourceLoad) {
+    fn load_web_resource(&self, webview: WebView, load: vortex_engine::servo::WebResourceLoad) {
         if !self.site_adblock_enabled(&webview) {
             return;
         }
@@ -2798,7 +2798,7 @@ impl servo::WebViewDelegate for BrowserState {
             log::debug!("AdBlock blocked resource: {url}");
             // An empty successful response prevents the blocked resource from reaching the page.
             // Dropping the interception sends FinishLoad to Servo.
-            let _ = load.intercept(servo::WebResourceResponse::new(url));
+            let _ = load.intercept(vortex_engine::servo::WebResourceResponse::new(url));
         }
     }
 
