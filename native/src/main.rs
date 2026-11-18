@@ -58,6 +58,8 @@ struct BrowserState {
     adblock_rules_open: Cell<bool>,
     settings_open: Cell<bool>,
     bookmarks_manager_open: Cell<bool>,
+    history_manager_open: Cell<bool>,
+    history_clear_confirm_open: Cell<bool>,
     search_engine: RefCell<String>,
     home_page: RefCell<String>,
     password_vault: password_vault::PasswordVault,
@@ -572,8 +574,7 @@ ${sections}</body></html>"#);
                         self.password_vault_open.set(true);
                     }
                     if ui.button("Історія").clicked() {
-                        address.clear();
-                        self.open_history_page();
+                        self.history_manager_open.set(true);
                     }
                     if ui.button("Завантаження").clicked() {
                         address.clear();
@@ -686,6 +687,92 @@ ${sections}</body></html>"#);
                     }
                 }
                 if !open { self.settings_open.set(false); }
+            }
+            if self.history_manager_open.get() {
+                let entries = self.storage.recent_history(500).unwrap_or_default();
+                let mut open = true;
+                let mut open_url: Option<String> = None;
+                let mut delete_url: Option<String> = None;
+                let mut request_clear = false;
+                egui::Window::new("Історія переглядів")
+                    .open(&mut open)
+                    .resizable(true)
+                    .default_width(620.0)
+                    .default_height(480.0)
+                    .show(ui.ctx(), |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("Записів: {}", entries.len()));
+                            if ui.button("Очистити всю історію…").clicked() {
+                                request_clear = true;
+                            }
+                        });
+                        ui.separator();
+                        if entries.is_empty() {
+                            ui.label("Історія поки порожня.");
+                        }
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for entry in &entries {
+                                ui.horizontal(|ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new(if entry.title.trim().is_empty() {
+                                            &entry.url
+                                        } else {
+                                            &entry.title
+                                        }).strong());
+                                        ui.label(egui::RichText::new(&entry.url).small().color(egui::Color32::GRAY));
+                                        ui.label(egui::RichText::new(format!("Відвідувань: {}", entry.visit_count))
+                                            .small().color(egui::Color32::GRAY));
+                                    });
+                                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                        if ui.small_button("Видалити").clicked() {
+                                            delete_url = Some(entry.url.clone());
+                                        }
+                                        if ui.small_button("Відкрити").clicked() {
+                                            open_url = Some(entry.url.clone());
+                                        }
+                                    });
+                                });
+                                ui.separator();
+                            }
+                        });
+                    });
+                if let Some(url) = delete_url {
+                    if let Err(error) = self.storage.delete_history_entry(&url) {
+                        log::error!("could not delete history entry: {error}");
+                    }
+                }
+                if let Some(url) = open_url {
+                    if let (Some(view), Ok(url)) = (self.active_webview(), Url::parse(&url)) {
+                        view.load(url);
+                        self.servo.spin_event_loop();
+                    }
+                    self.history_manager_open.set(false);
+                }
+                if request_clear { self.history_clear_confirm_open.set(true); }
+                if !open { self.history_manager_open.set(false); }
+            }
+            if self.history_clear_confirm_open.get() {
+                let mut open = true;
+                let mut confirm = false;
+                egui::Window::new("Очистити історію?")
+                    .open(&mut open)
+                    .resizable(false)
+                    .collapsible(false)
+                    .show(ui.ctx(), |ui| {
+                        ui.label("Цю дію не можна скасувати. Закладки та збережені паролі залишаться.");
+                        ui.horizontal(|ui| {
+                            if ui.button("Очистити").clicked() { confirm = true; }
+                            if ui.button("Скасувати").clicked() { self.history_clear_confirm_open.set(false); }
+                        });
+                    });
+                if confirm {
+                    if let Err(error) = self.storage.clear_history() {
+                        log::error!("could not clear browsing history: {error}");
+                    }
+                    self.history_clear_confirm_open.set(false);
+                } else if !open {
+                    self.history_clear_confirm_open.set(false);
+                }
             }
             if self.bookmarks_manager_open.get() {
                 let entries = self.storage.all_bookmarks().unwrap_or_default();
@@ -1556,6 +1643,8 @@ impl VertexApp {
             adblock_rules_open: Cell::new(false),
             settings_open: Cell::new(false),
             bookmarks_manager_open: Cell::new(false),
+            history_manager_open: Cell::new(false),
+            history_clear_confirm_open: Cell::new(false),
             search_engine: RefCell::new(search_engine),
             home_page: RefCell::new(home_page),
             password_vault: password_vault::PasswordVault::new(),
