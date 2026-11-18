@@ -15,7 +15,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - IME committed text is forwarded to Servo.
 - Native shortcuts: Ctrl+L enters an editable address/search field (type, Ctrl+A to select all, Enter to navigate, Escape to cancel), Ctrl+R / F5 reload, Alt+Left back, Alt+Right forward.
 - Multiple Servo WebViews in one native window, with active-tab focus management.
-- Tab lifecycle shortcuts: Ctrl+T opens a blank tab, Ctrl+W closes the active tab (the final tab is kept open), Ctrl+Tab switches forward and Ctrl+Shift+Tab switches backward.
+- Tab lifecycle shortcuts: Ctrl+T opens a blank tab, Ctrl+W closes the active tab (the final tab is kept open), Ctrl+Tab switches forward and Ctrl+Shift+Tab switches backward; Ctrl+1 through Ctrl+8 activate the corresponding tab and Ctrl+9 activates the last tab.
 - Active page title is reflected in the native window title.
 - A per-user SQLite profile is created under `%APPDATA%\\VertexBrowser\\profile.sqlite3` on Windows (or a home-directory fallback elsewhere).
 - Browsing history is recorded on navigation and updated when the page title arrives; internal `about:` pages are excluded.
