@@ -103,7 +103,7 @@ fn rule_matches(url: &url::Url, rule: &Rule) -> bool {
         return true;
     };
     let url_path = url.path().trim_start_matches('/');
-    let Some(remainder) = url_path.strip_prefix(path) else {
+    let Some(remainder) = url_path.strip_prefix(path.as_str()) else {
         return false;
     };
     if !path_separator || remainder.is_empty() {
@@ -200,6 +200,23 @@ mod tests {
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads"), rules));
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads/banner.js"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://example.com/adserver.js"), rules));
+    }
+
+    #[test]
+    fn compiled_rules_match_the_string_helper() {
+        let rules = "||ads.example.com^\\n@@||safe.ads.example.com^";
+        let compiled = RuleSet::new(rules);
+        for value in [
+            "https://ads.example.com/banner.js",
+            "https://safe.ads.example.com/banner.js",
+            "https://example.org/",
+        ] {
+            let parsed = url(value);
+            assert_eq!(
+                compiled.is_blocked(&parsed),
+                is_blocked_url_with_rules(&parsed, rules)
+            );
+        }
     }
 
     #[test]
