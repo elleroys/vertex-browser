@@ -1,4 +1,5 @@
 mod adblock;
+mod password_vault;
 mod storage;
 
 use std::{
@@ -54,6 +55,7 @@ struct BrowserState {
     adblock_rules: RefCell<adblock::RuleSet>,
     adblock_rules_draft: RefCell<String>,
     adblock_rules_open: Cell<bool>,
+    password_vault: password_vault::PasswordVault,
 }
 
 impl BrowserState {
@@ -879,6 +881,7 @@ impl VertexApp {
             adblock_custom_rules: RefCell::new(custom_adblock_rules),
             adblock_rules_draft: RefCell::new(String::new()),
             adblock_rules_open: Cell::new(false),
+            password_vault: password_vault::PasswordVault::new(),
         });
 
         let url = match std::env::args().nth(1) {
