@@ -698,187 +698,143 @@ ${sections}</body></html>"#);
         let mut chrome = self.egui.borrow_mut();
         chrome.run(&self.window, |ui| {
             ui.style_mut().visuals.dark_mode = true;
-            ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
+            ui.spacing_mut().item_spacing = egui::vec2(5.0, 5.0);
+            ui.visuals_mut().window_fill = egui::Color32::from_rgb(25, 27, 34);
+            ui.visuals_mut().panel_fill = egui::Color32::from_rgb(25, 27, 34);
 
-            // The page is composited from an offscreen viewport below this chrome.
-            // Keep the chrome backing opaque so no stale window pixels show through.
-            let toolbar_cover = egui::Rect::from_min_size(
-                ui.min_rect().min,
-                egui::vec2(ui.available_width(), 82.0),
-            );
-            ui.painter().rect_filled(
-                toolbar_cover,
-                0.0,
-                egui::Color32::from_rgb(24, 26, 33),
-            );
-            ui.vertical(|ui| {
-                ui.horizontal(|ui| {
-                    egui::ScrollArea::horizontal()
-                        .id_salt("vertex-tab-strip")
-                        .auto_shrink([false, false])
-                        .show(ui, |ui| {
-                            ui.horizontal(|ui| {
-                                for (index, title, selected, loading) in &tab_labels {
-                                    let short_title: String = title.chars().take(18).collect();
-                                    ui.horizontal(|ui| {
-                                        let tab_title = if *loading { format!("◌ {short_title}") } else { short_title };
-                                        let label = if *selected {
-                                            egui::RichText::new(format!("● {tab_title}")).strong()
-                                        } else {
-                                            egui::RichText::new(tab_title)
-                                        };
-                                        if ui.add(egui::Button::new(label).fill(if *selected {
-                                            egui::Color32::from_rgb(54, 62, 91)
-                                        } else {
-                                            egui::Color32::from_rgb(35, 38, 48)
-                                        })).clicked() {
-                                            self.activate_tab(*index);
-                                        }
-                                        if ui.small_button("×").on_hover_text("Закрити вкладку").clicked() {
-                                            self.close_tab_at(*index);
-                                        }
-                                        ui.menu_button("⋯", |ui| {
-                                            if ui.button("Закрити вкладку").clicked() {
-                                                self.close_tab_at(*index);
-                                                ui.close();
-                                            }
-                                            if ui.button("Відновити закриту вкладку").clicked() {
-                                                self.reopen_closed_tab();
-                                                ui.close();
-                                            }
-                                        });
-                                    });
+            // Compact browser chrome: tabs on the first row, navigation and address on the second.
+            ui.horizontal(|ui| {
+                egui::ScrollArea::horizontal()
+                    .id_salt("vortex-tabs")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            for (index, title, selected, loading) in &tab_labels {
+                                let short_title: String = title.chars().take(22).collect();
+                                let label = if *loading { format!("◌ {short_title}") } else { short_title };
+                                let fill = if *selected {
+                                    egui::Color32::from_rgb(57, 67, 91)
+                                } else {
+                                    egui::Color32::from_rgb(37, 40, 49)
+                                };
+                                if ui.add_sized(
+                                    [170.0, 29.0],
+                                    egui::Button::new(egui::RichText::new(label).size(12.0))
+                                        .fill(fill)
+                                        .corner_radius(egui::CornerRadius::same(7)),
+                                ).clicked() {
+                                    self.activate_tab(*index);
+                                }
+                                if ui.small_button("×").on_hover_text("Закрити вкладку").clicked() {
+                                    self.close_tab_at(*index);
+                                }
+                            }
+                        });
+                    });
+                if ui.button("＋").on_hover_text("Нова вкладка (Ctrl+T)").clicked() {
+                    self.create_tab(self.new_tab_url());
+                }
+                if ui.add_enabled(!self.closed_tabs.borrow().is_empty(), egui::Button::new("↶"))
+                    .on_hover_text("Відновити вкладку (Ctrl+Shift+T)").clicked()
+                {
+                    self.reopen_closed_tab();
+                }
+            });
+
+            ui.horizontal(|ui| {
+                let nav_button = |ui: &mut egui::Ui, label: &str, enabled: bool, hint: &str| {
+                    ui.add_enabled(enabled, egui::Button::new(label).min_size(egui::vec2(30.0, 30.0)))
+                        .on_hover_text(hint)
+                };
+                if nav_button(ui, "←", active.as_ref().is_some_and(|v| v.can_go_back()), "Назад").clicked() {
+                    if let Some(view) = &active { view.go_back(1); }
+                }
+                if nav_button(ui, "→", active.as_ref().is_some_and(|v| v.can_go_forward()), "Вперед").clicked() {
+                    if let Some(view) = &active { view.go_forward(1); }
+                }
+                if ui.button("⟳").on_hover_text("Оновити (Ctrl+R)").clicked() {
+                    if let Some(view) = &active { view.reload(); }
+                }
+                if ui.button("⌂").on_hover_text("Домашня сторінка").clicked() {
+                    address.clear();
+                    if let Some(view) = &active { view.load(self.home_url()); }
+                }
+
+                let address_width = (ui.available_width() - 250.0).max(180.0);
+                let response = ui.add_sized(
+                    [address_width, 31.0],
+                    egui::TextEdit::singleline(&mut address)
+                        .id(egui::Id::new("vertex-address-bar"))
+                        .hint_text("Пошук або введення адреси")
+                        .vertical_align(egui::Align::Center),
+                );
+                if response.has_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter)) {
+                    if !address.trim().is_empty() {
+                        if let Some(view) = &active {
+                            view.load(parse_navigation_input_with_engine(&address, &self.search_engine.borrow()));
+                            self.servo.spin_event_loop();
+                        }
+                    }
+                }
+                if ui.button(if current_bookmarked { "★" } else { "☆" }).on_hover_text("Додати або прибрати закладку").clicked() {
+                    if let Some(view) = &active {
+                        if let Some(url) = view.url().filter(|url| matches!(url.scheme(), "http" | "https")) {
+                            let result = self.storage.is_bookmarked(url.as_str()).and_then(|saved| {
+                                if saved { self.storage.remove_bookmark(url.as_str()) } else {
+                                    let title = view.page_title().unwrap_or_else(|| url.host_str().unwrap_or("Saved page").to_owned());
+                                    self.storage.add_bookmark(url.as_str(), &title)
                                 }
                             });
-                        });
-                    if ui.button("+").clicked() {
-                        self.create_tab(self.new_tab_url());
-                    }
-                    if ui.add_enabled(!self.closed_tabs.borrow().is_empty(), egui::Button::new("↶"))
-                        .on_hover_text("Відновити закриту вкладку (Ctrl+Shift+T)").clicked()
-                    {
-                        self.reopen_closed_tab();
-                    }
-                });
-                ui.horizontal(|ui| {
-                    if ui.add_enabled(active.as_ref().is_some_and(|view| view.can_go_back()), egui::Button::new("←")).clicked() {
-                        if let Some(view) = &active { view.go_back(1); }
-                    }
-                    if ui.add_enabled(active.as_ref().is_some_and(|view| view.can_go_forward()), egui::Button::new("→")).clicked() {
-                        if let Some(view) = &active { view.go_forward(1); }
-                    }
-                    if ui.button("⟳").clicked() {
-                        if let Some(view) = &active { view.reload(); }
-                    }
-                    if ui.button("⌂").clicked() {
-                        address.clear();
-                        if let Some(view) = &active { view.load(self.home_url()); }
-                    }
-                    if ui.add(egui::Button::new(if current_bookmarked { "★" } else { "☆" })
-                        .fill(if current_bookmarked {
-                            egui::Color32::from_rgb(80, 72, 38)
-                        } else {
-                            egui::Color32::from_rgb(35, 38, 48)
-                        })).clicked() {
-                        if let Some(view) = &active {
-                            if let Some(url) = view.url().filter(|url| matches!(url.scheme(), "http" | "https")) {
-                                let result = self.storage.is_bookmarked(url.as_str()).and_then(|saved| {
-                                    if saved {
-                                        self.storage.remove_bookmark(url.as_str())
-                                    } else {
-                                        let title = view.page_title().unwrap_or_else(|| {
-                                            url.host_str().unwrap_or("Saved page").to_owned()
-                                        });
-                                        self.storage.add_bookmark(url.as_str(), &title)
-                                    }
-                                });
-                                if let Err(error) = result {
-                                    log::error!("could not toggle bookmark from toolbar: {error}");
-                                }
-                            }
+                            if let Err(error) = result { log::error!("could not toggle bookmark: {error}"); }
                         }
                     }
-                    let zoom = active.as_ref().map(|view| view.page_zoom()).unwrap_or(1.0);
-                    if ui.button("−").on_hover_text("Зменшити масштаб (Ctrl+-)").clicked() {
-                        if let Some(view) = &active { view.set_page_zoom((view.page_zoom() - 0.1).max(0.1)); }
-                    }
-                    if ui.button(format!("{}%", (zoom * 100.0).round() as u32))
-                        .on_hover_text("Скинути масштаб (Ctrl+0)").clicked()
-                    {
-                        if let Some(view) = &active { view.set_page_zoom(1.0); }
-                    }
-                    if ui.button("+").on_hover_text("Збільшити масштаб (Ctrl++)").clicked() {
-                        if let Some(view) = &active { view.set_page_zoom((view.page_zoom() + 0.1).min(5.0)); }
-                    }
-                    let adblock_label = if self.adblock_enabled() { "AdBlock: ON" } else { "AdBlock: OFF" };
-                    if ui.button(adblock_label).on_hover_text("Глобально увімкнути або вимкнути блокування реклами").clicked() {
-                        self.toggle_adblock();
-                    }
-                    let site_blocking = active.as_ref().is_some_and(|view| self.site_adblock_enabled(view));
-                    let site_label = if site_blocking { "На сайті: ON" } else { "На сайті: OFF" };
-                    if ui.add_enabled(active.as_ref().and_then(|view| view.url()).is_some(), egui::Button::new(site_label))
-                        .on_hover_text("Перемкнути блокування реклами лише для поточного сайту").clicked() {
-                        self.toggle_site_adblock();
-                    }
-                    if ui.button("Фільтри").on_hover_text("Керування власними правилами AdBlock").clicked() {
-                        *self.adblock_rules_draft.borrow_mut() = self.adblock_custom_rules.borrow().clone();
-                        self.adblock_rules_open.set(true);
-                    }
-                    if ui.button("Вкладки").on_hover_text("Керування відкритими вкладками та звільнення пам’яті закриттям фонових сторінок").clicked() {
-                        self.tab_manager_open.set(true);
-                    }
-                    if ui.button("Налаштування").clicked() {
-                        self.settings_open.set(true);
-                    }
-                    if ui.button("Паролі").on_hover_text("Зашифроване локальне сховище паролів").clicked() {
-                        if let Some(url) = active.as_ref().and_then(|view| view.url()) {
-                            if matches!(url.scheme(), "http" | "https") {
-                                *self.vault_origin.borrow_mut() = url.origin().ascii_serialization();
-                            }
+                }
+                ui.menu_button("Меню ☰", |ui| {
+                    ui.label(egui::RichText::new("VORTEX").strong());
+                    ui.separator();
+                    if ui.button("＋ Нова вкладка").clicked() { self.create_tab(self.new_tab_url()); ui.close(); }
+                    if ui.button("↶ Відновити закриту вкладку").clicked() { self.reopen_closed_tab(); ui.close(); }
+                    ui.separator();
+                    if ui.button("Завантаження").clicked() { self.downloads_manager_open.set(true); ui.close(); }
+                    if ui.button("Закладки").clicked() { self.bookmarks_manager_open.set(true); ui.close(); }
+                    if ui.button("Історія").clicked() { self.history_manager_open.set(true); ui.close(); }
+                    if ui.button("Паролі").clicked() {
+                        if let Some(url) = active.as_ref().and_then(|v| v.url()) {
+                            if matches!(url.scheme(), "http" | "https") { *self.vault_origin.borrow_mut() = url.origin().ascii_serialization(); }
                         }
-                        self.password_vault_open.set(true);
+                        self.password_vault_open.set(true); ui.close();
                     }
-                    if ui.button("Історія").clicked() {
-                        self.history_manager_open.set(true);
-                    }
-                    if ui.button("Дані сайтів").on_hover_text("Перегляд і очищення cookies та Web Storage").clicked() {
-                        self.site_data_manager_open.set(true);
-                    }
-                    if ui.button("Дозволи").on_hover_text("Керування збереженими дозволами сайтів").clicked() {
-                        self.site_permissions_manager_open.set(true);
-                    }
-                    if ui.button("Завантаження").clicked() {
-                        address.clear();
-                        self.downloads_manager_open.set(true);
-                    }
-                    if ui.button("Закладки").clicked() {
-                        self.bookmarks_manager_open.set(true);
-                    }
-                    if !self.navigation_security_notice.borrow().is_empty() {
-                        ui.colored_label(
-                            egui::Color32::from_rgb(255, 170, 90),
-                            self.navigation_security_notice.borrow().as_str(),
-                        );
-                        if ui.small_button("×").on_hover_text("Закрити повідомлення").clicked() {
-                            self.navigation_security_notice.borrow_mut().clear();
+                    ui.separator();
+                    ui.menu_button("Блокування реклами", |ui| {
+                        let enabled = self.adblock_enabled();
+                        if ui.button(if enabled { "✓ Увімкнено" } else { "Увімкнути" }).clicked() { self.toggle_adblock(); ui.close(); }
+                        let site_enabled = active.as_ref().is_some_and(|v| self.site_adblock_enabled(v));
+                        if ui.button(if site_enabled { "✓ Для цього сайту" } else { "Увімкнути для цього сайту" }).clicked() { self.toggle_site_adblock(); ui.close(); }
+                        if ui.button("Списки та правила…").clicked() {
+                            *self.adblock_rules_draft.borrow_mut() = self.adblock_custom_rules.borrow().clone();
+                            self.adblock_rules_open.set(true); ui.close();
                         }
-                    }
-                    let response = ui.add(
-                        egui::TextEdit::singleline(&mut address)
-                            .id(egui::Id::new("vertex-address-bar"))
-                            .desired_width(ui.available_width() - 8.0)
-                            .hint_text("Введи адресу або пошуковий запит"),
-                    );
-                    if response.has_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter)) {
-                        if !address.trim().is_empty() {
-                            if let Some(view) = &active {
-                                view.load(parse_navigation_input_with_engine(&address, &self.search_engine.borrow()));
-                                self.servo.spin_event_loop();
-                            }
-                    }
-                    }
+                    });
+                    if ui.button("Керування вкладками").clicked() { self.tab_manager_open.set(true); ui.close(); }
+                    if ui.button("Дані сайтів").clicked() { self.site_data_manager_open.set(true); ui.close(); }
+                    if ui.button("Дозволи сайтів").clicked() { self.site_permissions_manager_open.set(true); ui.close(); }
+                    if ui.button("Налаштування").clicked() { self.settings_open.set(true); ui.close(); }
+                    ui.separator();
+                    let zoom = active.as_ref().map(|v| v.page_zoom()).unwrap_or(1.0);
+                    ui.horizontal(|ui| {
+                        if ui.button("−").clicked() { if let Some(v) = &active { v.set_page_zoom((v.page_zoom()-0.1).max(0.1)); } }
+                        ui.label(format!("Масштаб: {}%", (zoom*100.0).round() as u32));
+                        if ui.button("+").clicked() { if let Some(v) = &active { v.set_page_zoom((v.page_zoom()+0.1).min(5.0)); } }
+                        if ui.button("100%").clicked() { if let Some(v) = &active { v.set_page_zoom(1.0); } }
+                    });
                 });
             });
+            if !self.navigation_security_notice.borrow().is_empty() {
+                ui.horizontal(|ui| {
+                    ui.colored_label(egui::Color32::from_rgb(255, 180, 90), self.navigation_security_notice.borrow().as_str());
+                    if ui.small_button("×").clicked() { self.navigation_security_notice.borrow_mut().clear(); }
+                });
+            }
             if self.adblock_rules_open.get() {
                 let mut open = true;
                 let mut update_list = false;
