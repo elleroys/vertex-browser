@@ -42,6 +42,7 @@ struct BrowserState {
     rendering_context: Rc<WindowRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
     active_tab: Cell<usize>,
+    closed_tabs: RefCell<Vec<Url>>,
     cursor_position: Cell<PhysicalPosition<f64>>,
     modifiers: Cell<Modifiers>,
     storage: BrowserStorage,
@@ -108,12 +109,24 @@ impl BrowserState {
         self.close_tab_at(self.active_tab.get());
     }
 
+    fn reopen_closed_tab(self: &Rc<Self>) {
+        let url = self.closed_tabs.borrow_mut().pop();
+        if let Some(url) = url {
+            self.create_tab(url);
+        }
+    }
+
     fn close_tab_at(&self, index: usize) {
         let mut tabs = self.webviews.borrow_mut();
         if tabs.len() <= 1 || index >= tabs.len() {
             return;
         }
         let was_active = index == self.active_tab.get();
+        if let Some(url) = tabs[index].url().filter(|url| matches!(url.scheme(), "http" | "https")) {
+            let mut closed = self.closed_tabs.borrow_mut();
+            closed.push(url);
+            if closed.len() > 10 { closed.remove(0); }
+        }
         tabs[index].set_focused(false);
         tabs[index].hide();
         tabs.remove(index);
@@ -318,15 +331,30 @@ ${sections}</body></html>"#);
                                         })).clicked() {
                                             self.activate_tab(*index);
                                         }
-                                        if ui.small_button("×").clicked() {
+                                        if ui.small_button("×").on_hover_text("Закрити вкладку").clicked() {
                                             self.close_tab_at(*index);
                                         }
+                                        ui.menu_button("⋯", |ui| {
+                                            if ui.button("Закрити вкладку").clicked() {
+                                                self.close_tab_at(*index);
+                                                ui.close();
+                                            }
+                                            if ui.button("Відновити закриту вкладку").clicked() {
+                                                self.reopen_closed_tab();
+                                                ui.close();
+                                            }
+                                        });
                                     });
                                 }
                             });
                         });
                     if ui.button("+").clicked() {
                         self.create_tab(self.new_tab_url());
+                    }
+                    if ui.add_enabled(!self.closed_tabs.borrow().is_empty(), egui::Button::new("↶"))
+                        .on_hover_text("Відновити закриту вкладку (Ctrl+Shift+T)").clicked()
+                    {
+                        self.reopen_closed_tab();
                     }
                 });
                 ui.horizontal(|ui| {
@@ -660,6 +688,7 @@ impl VertexApp {
             cursor_position: Cell::new(PhysicalPosition::new(0.0, 0.0)),
             modifiers: Cell::new(Modifiers::empty()),
             active_tab: Cell::new(0),
+            closed_tabs: RefCell::new(Vec::new()),
             storage,
             egui: RefCell::new(chrome),
             address_bar: RefCell::new(String::new()),
@@ -903,6 +932,10 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                         if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
                             let new_tab = state.new_tab_url();
                             state.create_tab(new_tab);
+                            return;
+                        }
+                        if control && shift && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("t")) {
+                            state.reopen_closed_tab();
                             return;
                         }
                         if control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("w")) {
