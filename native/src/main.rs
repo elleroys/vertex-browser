@@ -226,6 +226,7 @@ ${sections}</body></html>"#);
 
     fn begin_address_edit(&self) {
         let current = self.active_webview().and_then(|view| view.url())
+            .filter(|url| matches!(url.scheme(), "http" | "https"))
             .map(|url| url.to_string()).unwrap_or_default();
         *self.address_bar.borrow_mut() = current;
         self.egui.borrow().egui_ctx.memory_mut(|memory| {
@@ -238,6 +239,7 @@ ${sections}</body></html>"#);
         let active = self.active_webview();
         let current_url = active.as_ref()
             .and_then(|view| view.url())
+            .filter(|url| matches!(url.scheme(), "http" | "https"))
             .map(|url| url.to_string())
             .unwrap_or_default();
         let tab_labels: Vec<(usize, String, bool)> = self.webviews.borrow().iter().enumerate()
@@ -463,7 +465,11 @@ impl servo::WebViewDelegate for BrowserState {
             .as_ref() == Some(&url);
         if is_active {
             self.update_window_title(&webview);
-            *self.address_bar.borrow_mut() = url.to_string();
+            *self.address_bar.borrow_mut() = if matches!(url.scheme(), "http" | "https") {
+                url.to_string()
+            } else {
+                String::new()
+            };
         }
         let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("New page").to_owned());
         if let Err(error) = self.storage.record_visit(url.as_str(), &title) {
@@ -693,6 +699,13 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
         }
     }
 
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        if let Self::Running(state) = self {
+            let _ = state.rendering_context.make_current();
+            state.egui.borrow_mut().destroy();
+        }
+    }
+
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -746,6 +759,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 }
             }
             WindowEvent::Ime(Ime::Commit(text)) => {
+                if egui_consumed { return; }
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.active_webview() {
                         webview.notify_input_event(InputEvent::Keyboard(
