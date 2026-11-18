@@ -350,6 +350,15 @@ impl BrowserStorage {
         Ok(())
     }
 
+    /// Mark transfers left active by a previous process as failed on next startup.
+    pub fn recover_interrupted_downloads(&self) -> rusqlite::Result<usize> {
+        let changed = self.connection.lock().expect("database mutex poisoned").execute(
+            "UPDATE downloads SET status='failed',updated_at=?1 WHERE status IN ('queued','downloading')",
+            params![unix_time_ms()],
+        )?;
+        Ok(changed)
+    }
+
     pub fn recent_downloads(&self, limit: u32) -> rusqlite::Result<Vec<DownloadEntry>> {
         let connection = self.connection.lock().expect("database mutex poisoned");
         let mut statement = connection.prepare(
@@ -488,6 +497,18 @@ mod tests {
         assert_eq!(storage.history_count().unwrap(), 1);
         storage.clear_history().unwrap();
         assert_eq!(storage.history_count().unwrap(), 0);
+    }
+
+    #[test]
+    fn marks_interrupted_downloads_failed_on_startup() {
+        let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
+        let queued = storage.create_download("https://example.com/a", "a", "a").unwrap();
+        let active = storage.create_download("https://example.com/b", "b", "b").unwrap();
+        storage.update_download_progress(active, 12, Some(100)).unwrap();
+        assert_eq!(storage.recover_interrupted_downloads().unwrap(), 2);
+        let entries = storage.recent_downloads(10).unwrap();
+        assert!(entries.iter().all(|entry| entry.status == "failed"));
+        assert_eq!(entries.iter().find(|entry| entry.id == queued).unwrap().received_bytes, 0);
     }
 
     #[test]
