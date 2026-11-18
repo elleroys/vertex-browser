@@ -19,6 +19,26 @@ The existing Rust services are valuable and should be evaluated for reuse rather
 
 The current React frontend uses `@tauri-apps/api` and `vortexApi.ts`; it cannot simply be hosted in the native window without introducing another webview engine. The native browser chrome therefore needs a native UI (initial candidate: egui), or a separately designed UI process with a clearly defined IPC boundary.
 
+## Native Servo branch status (2026-11-18)
+
+The `native/` application is the active migration target on `servo-migration`. It uses a native `winit` window, Servo WebViews and an `egui` browser toolbar. Do not reintroduce Tauri or WebView2 into this runtime.
+
+Implemented in the native branch:
+
+- Native window, Servo rendering/event-loop integration, address bar and tab UI.
+- Navigation, page title updates, zoom controls and keyboard shortcuts.
+- SQLite-backed history, bookmarks, settings and a downloads-history table.
+- Internal pages for history, bookmarks and download records.
+- Basic request blocking through Servo's `WebViewDelegate::load_web_resource`.
+- Global AdBlock toggle and per-host exceptions, persisted in SQLite.
+
+Known limitations (not yet acceptance-tested):
+
+- The native AdBlock module is currently a small hard-coded host denylist. It is not EasyList/uBlock-compatible and has no cosmetic filtering or filter-list updater.
+- The downloads page currently displays persisted records only. Actual network transfers, progress reporting, cancellation and opening files are not yet integrated.
+- Password storage/autofill, tab session restore, robust tab lifecycle and Windows packaging remain unfinished.
+- No successful native build or end-to-end browser test has been recorded yet. Do not treat source-level changes as proof of runtime correctness.
+
 ## Migration sequence
 
 1. **Engine proof of concept (current):** start Servo in a native winit window, render a page, handle resize/redraw and event-loop wakeups. Keep this separate from the existing app.
