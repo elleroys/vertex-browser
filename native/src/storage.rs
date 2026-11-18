@@ -342,6 +342,14 @@ impl BrowserStorage {
         Ok(())
     }
 
+    pub fn cancel_download(&self, id: i64) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "UPDATE downloads SET status='cancelled',updated_at=?1 WHERE id=?2 AND status IN ('queued','downloading')",
+            params![unix_time_ms(), id],
+        )?;
+        Ok(())
+    }
+
     pub fn recent_downloads(&self, limit: u32) -> rusqlite::Result<Vec<DownloadEntry>> {
         let connection = self.connection.lock().expect("database mutex poisoned");
         let mut statement = connection.prepare(
