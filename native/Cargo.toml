@@ -25,6 +25,7 @@ rfd = "0.15"
 serde_json = "1"
 log = "0.4"
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std", "tls12"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 servo = { git = "https://github.com/servo/servo", rev = "32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17", features = ["no-wgl"] }
