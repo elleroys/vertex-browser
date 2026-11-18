@@ -87,6 +87,9 @@ where
                 return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Download cancelled").into());
             }
         }
+        if !progress(received, total_bytes) {
+            return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Download cancelled").into());
+        }
         output.flush()?;
         output.sync_all()?;
         Ok(received)
@@ -147,6 +150,18 @@ mod tests {
     fn sanitizes_windows_paths_and_control_characters() {
         assert_eq!(sanitize_file_name(r"..\\folder\\report?.pdf"), "report.pdf");
         assert_eq!(sanitize_file_name(""), "download");
+    }
+
+    #[test]
+    fn reads_content_disposition_filenames() {
+        assert_eq!(
+            filename_from_content_disposition("attachment; filename=\"archive.zip\""),
+            Some("archive.zip".to_owned())
+        );
+        assert_eq!(
+            filename_from_content_disposition("attachment; filename*=UTF-8''hello%20world.zip"),
+            Some("hello world.zip".to_owned())
+        );
     }
 
     #[test]
