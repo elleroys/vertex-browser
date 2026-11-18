@@ -152,7 +152,6 @@ impl BrowserState {
             ));
         }
         if items.is_empty() { items.push_str("<p class=\"empty\">Історія поки порожня</p>"); }
-        items.push_str("<a class=\"action\" href=\"vertex://history/clear\">Очистити історію</a>");
         let html = internal_page("Історія", &items);
         self.open_internal_page(html);
     }
@@ -371,13 +370,6 @@ impl servo::WebViewDelegate for BrowserState {
     }
 
     fn notify_url_changed(&self, webview: WebView, url: Url) {
-        if url.scheme() == "vertex" && url.host_str() == Some("history") && url.path() == "/clear" {
-            if let Err(error) = self.storage.clear_history() {
-                log::error!("could not clear browsing history: {error}");
-            }
-            self.open_history_page();
-            return;
-        }
         self.update_window_title(&webview);
         let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("New page").to_owned());
         if let Err(error) = self.storage.record_visit(url.as_str(), &title) {
@@ -488,7 +480,7 @@ fn internal_page(title: &str, items: &str) -> String {
 :root{{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#111318;color:#e8eaf0}}
 *{{box-sizing:border-box}}body{{margin:0;padding:48px max(24px,calc((100vw - 900px)/2));}}
 h1{{font-size:30px;font-weight:650;margin:0 0 28px}}.brand{{color:#8b9cff;font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}}
-article{{padding:16px 18px;margin:10px 0;background:#1b1e26;border:1px solid #292d38;border-radius:12px}}.action{{display:inline-block;margin-top:18px;padding:10px 14px;border:1px solid #41485b;border-radius:9px;color:#aebaff}}
+article{{padding:16px 18px;margin:10px 0;background:#1b1e26;border:1px solid #292d38;border-radius:12px}}
 a{{color:#e6e9ff;text-decoration:none;font-size:15px}}a:hover{{color:#9eacff}}
 small{{display:block;color:#858b9b;font-size:12px;margin-top:7px;overflow-wrap:anywhere}}
 .empty{{color:#858b9b;padding:24px 0}}
