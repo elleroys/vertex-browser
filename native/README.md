@@ -10,6 +10,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - New-tab page with a Google search form, up to eight bookmark shortcuts and eight recently visited pages.
 - Input parsing for HTTP(S) URLs, dotted hostnames, and search queries.
 - Window resize, DPI scaling, redraw, Servo event-loop wakeups and frame presentation.
+- A Servo `OffscreenRenderingContext` renders the page into a framebuffer sized to the content area below the 82-logical-pixel browser chrome; the frame is blitted into the native window before egui paints the toolbar. Mouse coordinates are translated into page-viewport coordinates and toolbar-area pointer events are not sent to the page.
 - Mouse movement, clicks, leaving the viewport and wheel scrolling forwarded to Servo.
 - Keyboard down/up events, logical keys, common physical key codes, and modifier state forwarded to Servo.
 - Window focus is synchronized with the active Servo WebView.
@@ -28,7 +29,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 
 ## Still missing
 
-This is still an early engine shell, not yet a complete consumer browser. The current chrome is a first integrated egui/Glow overlay: it shares Servo's OpenGL context and paints after the page. The page viewport has not yet been inset below the toolbar, so the page may render underneath the chrome area. Downloads, password autofill, ad-block network interception, profile settings, persistent session restore, installer and production hardening remain missing. Recently closed tabs are only kept in memory and are not restored after restarting the browser. Do not claim those features are implemented.
+This is still an early engine shell, not yet a complete consumer browser. The egui/Glow chrome shares Servo's OpenGL context and paints after the page. Servo now renders into an offscreen framebuffer sized to the content viewport below the toolbar, then the frame is blitted into the window; the page no longer occupies or paints underneath the toolbar area. Downloads, password autofill, ad-block network interception, profile settings, persistent session restore, installer and production hardening remain missing. Recently closed tabs are only kept in memory and are not restored after restarting the browser. Do not claim those features are implemented.
 
 Physical-key mapping currently covers letters, digits, navigation keys, modifiers and F1–F12; uncommon keys still fall back to `Unidentified`. IME committed text is supported, while composition/preedit events remain follow-up work.
 
@@ -57,4 +58,4 @@ All browser UI and browser services must be native Rust components around Servo.
 - Pinned Servo source revision: `32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17`
 
 
-The toolbar overlay uses an opaque dark backing over its top 82 logical pixels to prevent page content from bleeding through. Servo's WebView still occupies the full rendering context; true viewport insetting remains future rendering work.
+The page surface is an offscreen framebuffer attached to the window's Servo rendering context. Its height excludes the 82-logical-pixel toolbar area, and a framebuffer blit places it below the toolbar before the native chrome is drawn.
