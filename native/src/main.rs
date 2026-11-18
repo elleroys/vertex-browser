@@ -663,6 +663,18 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                             state.close_active_tab();
                             return;
                         }
+                        if control {
+                            if let WinitKey::Character(value) = &event.logical_key {
+                                if let Some(digit) = value.chars().next().filter(|ch| ('1'..='9').contains(ch)) {
+                                    let count = state.tab_count();
+                                    let target = if digit == '9' { count.saturating_sub(1) } else { digit.to_digit(10).unwrap_or(1) as usize - 1 };
+                                    if target < count {
+                                        state.activate_tab(target);
+                                    }
+                                    return;
+                                }
+                            }
+                        }
                         if control && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::Tab)) {
                             let count = state.tab_count();
                             if count > 1 {
