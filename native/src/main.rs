@@ -56,6 +56,8 @@ struct BrowserState {
     adblock_rules: RefCell<adblock::RuleSet>,
     adblock_rules_draft: RefCell<String>,
     adblock_rules_open: Cell<bool>,
+    settings_open: Cell<bool>,
+    search_engine: RefCell<String>,
     password_vault: password_vault::PasswordVault,
     password_vault_open: Cell<bool>,
     vault_master_password: RefCell<String>,
@@ -540,6 +542,9 @@ ${sections}</body></html>"#);
                         *self.adblock_rules_draft.borrow_mut() = self.adblock_custom_rules.borrow().clone();
                         self.adblock_rules_open.set(true);
                     }
+                    if ui.button("Налаштування").clicked() {
+                        self.settings_open.set(true);
+                    }
                     if ui.button("Паролі").on_hover_text("Зашифроване локальне сховище паролів").clicked() {
                         if let Some(url) = active.as_ref().and_then(|view| view.url()) {
                             if matches!(url.scheme(), "http" | "https") {
@@ -569,7 +574,7 @@ ${sections}</body></html>"#);
                     if response.has_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter)) {
                         if !address.trim().is_empty() {
                             if let Some(view) = &active {
-                                view.load(parse_navigation_input(&address));
+                                view.load(parse_navigation_input_with_engine(&address, &self.search_engine.borrow()));
                                 self.servo.spin_event_loop();
                             }
                     }
@@ -607,6 +612,40 @@ ${sections}</body></html>"#);
                         Err(error) => log::error!("could not save custom AdBlock rules: {error}"),
                     }
                 }
+            }
+            if self.settings_open.get() {
+                let mut open = true;
+                let mut selected_engine = self.search_engine.borrow().clone();
+                let mut changed = false;
+                egui::Window::new("Налаштування Vertex")
+                    .open(&mut open)
+                    .resizable(false)
+                    .default_width(360.0)
+                    .show(ui.ctx(), |ui| {
+                        ui.label("Пошукова система для запитів з адресного рядка");
+                        egui::ComboBox::from_id_salt("vertex-search-engine")
+                            .selected_text(search_engine_label(&selected_engine))
+                            .show_ui(ui, |ui| {
+                                for (id, label) in [
+                                    ("google", "Google"),
+                                    ("duckduckgo", "DuckDuckGo"),
+                                    ("bing", "Bing"),
+                                ] {
+                                    if ui.selectable_value(&mut selected_engine, id.to_owned(), label).changed() {
+                                        changed = true;
+                                    }
+                                }
+                            });
+                        ui.separator();
+                        ui.label("Профіль зберігається локально в SQLite. Синхронізація між пристроями поки не підтримується.");
+                    });
+                if changed {
+                    *self.search_engine.borrow_mut() = selected_engine.clone();
+                    if let Err(error) = self.storage.set_setting("search_engine", &selected_engine) {
+                        log::error!("could not save search engine setting: {error}");
+                    }
+                }
+                if !open { self.settings_open.set(false); }
             }
             self.draw_password_vault_window(ui.ctx());
         });
@@ -1355,6 +1394,10 @@ impl VertexApp {
         );
         let custom_adblock_rules = storage.get_setting("adblock_custom_rules")
             .ok().flatten().unwrap_or_default();
+        let search_engine = storage.get_setting("search_engine")
+            .ok().flatten()
+            .filter(|value| matches!(value.as_str(), "google" | "duckduckgo" | "bing"))
+            .unwrap_or_else(|| "google".to_owned());
         let state = Rc::new(BrowserState {
             window,
             servo,
@@ -1372,6 +1415,8 @@ impl VertexApp {
             adblock_custom_rules: RefCell::new(custom_adblock_rules),
             adblock_rules_draft: RefCell::new(String::new()),
             adblock_rules_open: Cell::new(false),
+            settings_open: Cell::new(false),
+            search_engine: RefCell::new(search_engine),
             password_vault: password_vault::PasswordVault::new(),
             password_vault_open: Cell::new(false),
             vault_master_password: RefCell::new(String::new()),
@@ -1471,33 +1516,46 @@ fn format_download_progress(received: u64, total: Option<u64>) -> String {
 }
 
 fn parse_navigation_input(input: &str) -> Url {
+    parse_navigation_input_with_engine(input, "google")
+}
+
+fn parse_navigation_input_with_engine(input: &str, engine: &str) -> Url {
     let trimmed = input.trim();
     if let Ok(url) = Url::parse(trimmed) {
-        if url.scheme() == "http" || url.scheme() == "https" {
+        if matches!(url.scheme(), "http" | "https") {
             return url;
         }
     }
 
-    // Accept ordinary hostnames, localhost and IP literals without requiring a scheme.
-    // A bare single word remains a search query, matching common browser behaviour.
     let looks_like_host = !trimmed.is_empty()
         && !trimmed.contains(char::is_whitespace)
         && (trimmed.contains('.')
             || trimmed.eq_ignore_ascii_case("localhost")
             || trimmed.to_ascii_lowercase().starts_with("localhost:")
             || trimmed.starts_with('['));
-
     if looks_like_host {
         if let Ok(url) = Url::parse(&format!("https://{trimmed}")) {
-            if url.host_str().is_some() {
-                return url;
-            }
+            return url;
         }
     }
 
-    let encoded: String = url::form_urlencoded::byte_serialize(trimmed.as_bytes()).collect();
-    Url::parse(&format!("https://www.google.com/search?q={encoded}"))
-        .expect("constructed search URL is valid")
+    let base = match engine {
+        "duckduckgo" => "https://duckduckgo.com/",
+        "bing" => "https://www.bing.com/search",
+        _ => "https://www.google.com/search",
+    };
+    let query = url::form_urlencoded::Serializer::new(String::new())
+        .append_pair("q", trimmed)
+        .finish();
+    Url::parse(&format!("{base}?{query}")).expect("search URL is valid")
+}
+
+fn search_engine_label(engine: &str) -> &'static str {
+    match engine {
+        "duckduckgo" => "DuckDuckGo",
+        "bing" => "Bing",
+        _ => "Google",
+    }
 }
 
 
