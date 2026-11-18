@@ -839,6 +839,13 @@ ${sections}</body></html>"#);
             return;
         }
 
+        let expected_origin_literal = match serde_json::to_string(expected_origin) {
+            Ok(value) => value,
+            Err(error) => {
+                *self.vault_message.borrow_mut() = format!("Не вдалося перевірити адресу сайту: {error}");
+                return;
+            }
+        };
         let username = Zeroizing::new(username);
         let password = Zeroizing::new(password);
         let username_literal = match serde_json::to_string(username.as_str()) {
@@ -856,6 +863,7 @@ ${sections}</body></html>"#);
             }
         };
         let script = Zeroizing::new(format!(r#"(() => {{
+            if (location.origin !== {expected_origin_literal}) return "Заповнення скасовано: сторінка змінилася.";
             const username = {username_literal};
             const password = {password_literal};
             const passwordField = document.querySelector('input[type="password"]');
@@ -880,7 +888,7 @@ ${sections}</body></html>"#);
             if (usernameField && username) setValue(usernameField, username);
             setValue(passwordField, password);
             return usernameField ? 'Логін і пароль заповнено. Форму НЕ надіслано.' : 'Пароль заповнено; поле логіна не визначено. Форму НЕ надіслано.';
-        }})()"#, username_literal = username_literal.as_str(), password_literal = password_literal.as_str()));
+        }})()"#, expected_origin_literal = expected_origin_literal.as_str(), username_literal = username_literal.as_str(), password_literal = password_literal.as_str()));
 
         *self.vault_message.borrow_mut() = "Передаю дані у форму поточного сайту…".to_owned();
         let state = self.clone();
