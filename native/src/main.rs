@@ -613,6 +613,7 @@ ${sections}</body></html>"#);
         let mut unlock = false;
         let mut lock = false;
         let mut save = false;
+        let mut show_passwords = self.vault_show_passwords.get();
         let mut delete_id: Option<String> = None;
 
         egui::Window::new("Менеджер паролів")
@@ -670,7 +671,7 @@ ${sections}</body></html>"#);
                         ui.horizontal(|ui| {
                             ui.label("Пошук:");
                             ui.text_edit_singleline(&mut *self.vault_search.borrow_mut());
-                            ui.checkbox(&mut self.vault_show_passwords.get_mut(), "Показувати паролі");
+                            ui.checkbox(&mut show_passwords, "Показувати паролі");
                         });
                         egui::ScrollArea::vertical().max_height(230.0).show(ui, |ui| {
                             for entry in &entries {
@@ -709,6 +710,7 @@ ${sections}</body></html>"#);
                 }
             });
 
+        self.vault_show_passwords.set(show_passwords);
         if !open {
             self.password_vault_open.set(false);
         }
