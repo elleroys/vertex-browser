@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::{Read, Write},
     path::{Path, PathBuf},
 };
@@ -69,7 +69,7 @@ where
     }
 
     let mut temporary_name = destination.file_name().unwrap_or_default().to_os_string();
-    temporary_name.push(".vertex-part");
+    temporary_name.push(format!(".{}.vertex-part", uuid::Uuid::new_v4()));
     let temporary_path: PathBuf = parent.join(temporary_name);
 
     let result = (|| -> Result<u64, Box<dyn Error + Send + Sync>> {
@@ -102,7 +102,7 @@ where
             Ok(DownloadResult { final_url, file_name, bytes_received, total_bytes })
         }
         Err(error) => {
-            let _ = File::open(&temporary_path).and_then(|_| fs::remove_file(&temporary_path));
+            let _ = fs::remove_file(&temporary_path);
             Err(error)
         }
     }
@@ -127,7 +127,7 @@ pub fn sanitize_file_name(input: &str) -> String {
 
 fn filename_from_content_disposition(header: &str) -> Option<String> {
     for part in header.split(';').skip(1) {
-        let (key, value) = part.trim().split_once('=')?;
+        let Some((key, value)) = part.trim().split_once('=') else { continue; };
         if key.eq_ignore_ascii_case("filename") || key.eq_ignore_ascii_case("filename*") {
             let value = value.trim().trim_matches('"');
             let value = value.strip_prefix("UTF-8''").unwrap_or(value);
