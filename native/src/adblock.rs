@@ -51,7 +51,7 @@ fn parse_rule(line: &str) -> (bool, Rule<'_>) {
         Some((host, path)) => (host, Some(path)),
         None => (body, None),
     };
-    let host = host.trim_end_matches('.').to_ascii_lowercase();
+    let host = host.trim_end_matches('.');
     if host.is_empty()
         || !host.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-')
         || host.starts_with('.')
@@ -60,11 +60,11 @@ fn parse_rule(line: &str) -> (bool, Rule<'_>) {
         return (exception, Rule::Invalid);
     }
 
-    (exception, Rule::Domain { host: Box::leak(host.into_boxed_str()), path })
+    (exception, Rule::Domain { host, path })
 }
 
 fn host_matches(host: &str, rule_host: &str) -> bool {
-    host == rule_host
+    host.eq_ignore_ascii_case(rule_host)
         || host.strip_suffix(rule_host).is_some_and(|prefix| prefix.ends_with('.'))
 }
 
