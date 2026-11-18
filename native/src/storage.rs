@@ -368,6 +368,16 @@ impl BrowserStorage {
         Ok(())
     }
 
+    pub fn reset_download_for_retry(&self, id: i64) -> rusqlite::Result<()> {
+        self.connection.lock().expect("database mutex poisoned").execute(
+            "UPDATE downloads SET status='queued',received_bytes=0,total_bytes=NULL,
+             partial_path=NULL,etag=NULL,last_modified=NULL,updated_at=?1
+             WHERE id=?2 AND status IN ('failed','cancelled')",
+            params![unix_time_ms(), id],
+        )?;
+        Ok(())
+    }
+
     pub fn cancel_download(&self, id: i64) -> rusqlite::Result<()> {
         self.connection.lock().expect("database mutex poisoned").execute(
             "UPDATE downloads SET status='cancelled',updated_at=?1 WHERE id=?2 AND status IN ('queued','downloading')",
