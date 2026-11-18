@@ -229,10 +229,20 @@ fn parse_navigation_input(input: &str) -> Url {
         }
     }
 
-    // Treat a dotted host without spaces as HTTPS; all other input becomes a search.
-    if !trimmed.is_empty() && !trimmed.contains(char::is_whitespace) && trimmed.contains('.') {
+    // Accept ordinary hostnames, localhost and IP literals without requiring a scheme.
+    // A bare single word remains a search query, matching common browser behaviour.
+    let looks_like_host = !trimmed.is_empty()
+        && !trimmed.contains(char::is_whitespace)
+        && (trimmed.contains('.')
+            || trimmed.eq_ignore_ascii_case("localhost")
+            || trimmed.to_ascii_lowercase().starts_with("localhost:")
+            || trimmed.starts_with('['));
+
+    if looks_like_host {
         if let Ok(url) = Url::parse(&format!("https://{trimmed}")) {
-            return url;
+            if url.host_str().is_some() {
+                return url;
+            }
         }
     }
 
@@ -476,6 +486,18 @@ mod tests {
     fn upgrades_plain_hostname_to_https() {
         let url = parse_navigation_input("example.org");
         assert_eq!(url.as_str(), "https://example.org/");
+    }
+
+    #[test]
+    fn accepts_localhost_with_port() {
+        let url = parse_navigation_input("localhost:3000");
+        assert_eq!(url.as_str(), "https://localhost:3000/");
+    }
+
+    #[test]
+    fn accepts_ipv4_with_port() {
+        let url = parse_navigation_input("127.0.0.1:8080");
+        assert_eq!(url.as_str(), "https://127.0.0.1:8080/");
     }
 
     #[test]
