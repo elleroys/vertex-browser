@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn parses_domain_and_path_rules() {
-        let rules = "||ads.example.com^\\n||cdn.example.net/ads/";
+        let rules = "||ads.example.com^\n||cdn.example.net/ads/";
         assert!(is_blocked_url_with_rules(&url("https://ads.example.com/banner"), rules));
         assert!(is_blocked_url_with_rules(&url("https://sub.ads.example.com/banner"), rules));
         assert!(is_blocked_url_with_rules(&url("https://cdn.example.net/ads/banner.js"), rules));
@@ -204,14 +204,14 @@ mod tests {
 
     #[test]
     fn exception_rules_override_block_rules() {
-        let rules = "||example.com^\\n@@||safe.example.com^";
+        let rules = "||example.com^\n@@||safe.example.com^";
         assert!(is_blocked_url_with_rules(&url("https://ads.example.com/"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://safe.example.com/"), rules));
     }
 
     #[test]
     fn ignores_comments_and_unsupported_modifiers() {
-        let rules = "! comment\\n# heading\\n||ads.example.com^$script";
+        let rules = "! comment\n# heading\n||ads.example.com^$script";
         assert!(!is_blocked_url_with_rules(&url("https://ads.example.com/"), rules));
     }
 }
