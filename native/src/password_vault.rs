@@ -367,7 +367,7 @@ mod tests {
             "secret-value",
             Some("test note"),
         ).unwrap();
-        assert!(!saved.is_empty());
+        assert!(!saved_id.is_empty());
         let encrypted_rows = storage.list_password_rows().unwrap();
         assert_eq!(encrypted_rows.len(), 1);
         assert_eq!(encrypted_rows[0].origin, "https://www.example.com");
