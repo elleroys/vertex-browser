@@ -26,6 +26,7 @@ The `native/` application is the active migration target on `servo-migration`. I
 Implemented in the native branch:
 
 - Native window, Servo rendering/event-loop integration, address bar, native egui/Glow toolbar and multi-tab UI.
+- Web content can open auxiliary windows as native tabs; `window.close()` is reflected in the tab strip when another tab remains open.
 - Navigation, page title/loading state, zoom controls, keyboard/mouse/wheel/focus input and common keyboard shortcuts.
 - SQLite-backed history, bookmarks, settings, download records and persistent session restore (up to 50 HTTP(S) tab URLs plus active-tab index).
 - Persistent recently-closed-tab recovery (up to ten HTTP(S) URLs) and basic settings for search provider (Google, DuckDuckGo, Bing) and validated HTTP(S) homepage.
