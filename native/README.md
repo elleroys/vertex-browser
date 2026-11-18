@@ -13,7 +13,7 @@ This is an engine integration spike, **not yet the full Vertex browser**. Naviga
 
 ## Toolchain and Windows
 
-Servo's current main branch requires a recent Rust toolchain (the upstream toolchain file currently pins Rust 1.99.1; the crate declares Rust 1.88 as its minimum). Use the upstream-pinned toolchain for reproducible builds.
+Servo's current main branch requires a recent Rust toolchain (the upstream toolchain file currently pins Rust 1.99.1; use that version for this pinned Servo revision). Use the upstream-pinned toolchain for reproducible builds.
 
 Servo's Windows build has native dependencies and platform-specific rendering configuration. In particular, the Windows dependency enables Servo's `no-wgl` feature. Media support requires the matching GStreamer development/runtime libraries; this initial prototype intentionally does not enable the media feature.
 
