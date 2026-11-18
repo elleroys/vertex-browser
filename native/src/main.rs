@@ -1,3 +1,5 @@
+mod storage;
+
 use std::{
     cell::{Cell, RefCell},
     error::Error,
@@ -12,6 +14,7 @@ use servo::{
     WindowRenderingContext, KeyboardEvent,
 };
 use url::Url;
+use storage::{default_profile_dir, BrowserStorage};
 use winit::{
     application::ApplicationHandler,
     dpi::PhysicalPosition,
@@ -41,6 +44,7 @@ struct BrowserState {
     active_tab: Cell<usize>,
     cursor_position: Cell<PhysicalPosition<f64>>,
     modifiers: Cell<Modifiers>,
+    storage: BrowserStorage,
 }
 
 impl BrowserState {
@@ -144,6 +148,15 @@ impl BrowserState {
             if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("w")) {
                 return;
             }
+            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("d")) {
+                if let Some(url) = webview.url() {
+                    let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("Saved page").to_owned());
+                    if let Err(error) = self.storage.add_bookmark(url.as_str(), &title) {
+                        log::error!("could not save bookmark: {error}");
+                    }
+                }
+                return;
+            }
             if is_alt && matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::ArrowLeft)) {
                 webview.go_back(1);
                 return;
@@ -227,12 +240,21 @@ impl servo::WebViewDelegate for BrowserState {
         self.window.request_redraw();
     }
 
-    fn notify_url_changed(&self, webview: WebView, _url: Url) {
+    fn notify_url_changed(&self, webview: WebView, url: Url) {
         self.update_window_title(&webview);
+        let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("New page").to_owned());
+        if let Err(error) = self.storage.record_visit(url.as_str(), &title) {
+            log::error!("could not record browsing history: {error}");
+        }
     }
 
-    fn notify_page_title_changed(&self, webview: WebView, _title: Option<String>) {
+    fn notify_page_title_changed(&self, webview: WebView, title: Option<String>) {
         self.update_window_title(&webview);
+        if let (Some(url), Some(title)) = (webview.url(), title) {
+            if let Err(error) = self.storage.update_page_title(url.as_str(), &title) {
+                log::error!("could not update history title: {error}");
+            }
+        }
     }
 }
 
@@ -277,6 +299,10 @@ impl VertexApp {
             .build();
         servo.setup_logging();
 
+        let profile_dir = default_profile_dir();
+        let storage = BrowserStorage::open(&profile_dir.join("profile.sqlite3"))
+            .expect("failed to open Vertex browser profile database");
+
         let state = Rc::new(BrowserState {
             window,
             servo,
@@ -285,6 +311,7 @@ impl VertexApp {
             cursor_position: Cell::new(PhysicalPosition::new(0.0, 0.0)),
             modifiers: Cell::new(Modifiers::empty()),
             active_tab: Cell::new(0),
+            storage,
         });
 
         let start_url = std::env::args()
