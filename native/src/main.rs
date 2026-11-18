@@ -278,26 +278,33 @@ ${sections}</body></html>"#);
             ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
-                    for (index, title, selected) in &tab_labels {
-                        let short_title: String = title.chars().take(18).collect();
-                        ui.horizontal(|ui| {
-                            let label = if *selected {
-                                egui::RichText::new(format!("● {short_title}")).strong()
-                            } else {
-                                egui::RichText::new(short_title)
-                            };
-                            if ui.add(egui::Button::new(label).fill(if *selected {
-                                egui::Color32::from_rgb(54, 62, 91)
-                            } else {
-                                egui::Color32::from_rgb(35, 38, 48)
-                            })).clicked() {
-                                self.activate_tab(*index);
-                            }
-                            if ui.small_button("×").clicked() {
-                                self.close_tab_at(*index);
-                            }
+                    egui::ScrollArea::horizontal()
+                        .id_salt("vertex-tab-strip")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                for (index, title, selected) in &tab_labels {
+                                    let short_title: String = title.chars().take(18).collect();
+                                    ui.horizontal(|ui| {
+                                        let label = if *selected {
+                                            egui::RichText::new(format!("● {short_title}")).strong()
+                                        } else {
+                                            egui::RichText::new(short_title)
+                                        };
+                                        if ui.add(egui::Button::new(label).fill(if *selected {
+                                            egui::Color32::from_rgb(54, 62, 91)
+                                        } else {
+                                            egui::Color32::from_rgb(35, 38, 48)
+                                        })).clicked() {
+                                            self.activate_tab(*index);
+                                        }
+                                        if ui.small_button("×").clicked() {
+                                            self.close_tab_at(*index);
+                                        }
+                                    });
+                                }
+                            });
                         });
-                    }
                     if ui.button("+").clicked() {
                         self.create_tab(self.new_tab_url());
                     }
