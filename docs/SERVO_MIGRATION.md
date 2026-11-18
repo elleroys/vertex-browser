@@ -35,8 +35,10 @@ Implemented in the native branch:
 
 Known limitations (not yet acceptance-tested):
 
-- The native AdBlock module is currently a small hard-coded host denylist. It is not EasyList/uBlock-compatible and has no cosmetic filtering or filter-list updater.
+- The native AdBlock module implements a deliberately limited EasyList network-rule subset plus a small built-in host list. It is not EasyList/uBlock-compatible: cosmetic filters, regular expressions, resource modifiers, scriptlets and filter-list updates are not implemented.
+- Path rules with the EasyList separator marker now check the separator boundary, so a rule for `/ads^` does not accidentally match `/adserver`.
 - The downloads page currently displays persisted records only. Actual network transfers, progress reporting, cancellation and opening files are not yet integrated.
+- Servo's pinned `WebViewDelegate::load_web_resource` hook exposes the outgoing `WebResourceRequest` and lets the embedder replace a response; it does not expose the eventual server response headers to that callback. Therefore it cannot safely identify `Content-Disposition: attachment` downloads on its own. Do not intercept every URL or start a second unauthenticated HTTP request as a workaround. A proper download integration needs a verified response/download event or an engine-level API change.
 - Password storage/autofill, tab session restore, robust tab lifecycle and Windows packaging remain unfinished.
 - No successful native build or end-to-end browser test has been recorded yet. Do not treat source-level changes as proof of runtime correctness.
 
