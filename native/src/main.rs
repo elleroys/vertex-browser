@@ -1962,7 +1962,7 @@ impl servo::WebViewDelegate for BrowserState {
         let Ok(url) = Url::parse(&load.request().url.to_string()) else {
             return;
         };
-        if self.adblock_rules.borrow().is_blocked(&url) {
+        if self.adblock_rules.borrow().is_blocked_resource(&url, load.request().destination) {
             log::debug!("AdBlock blocked resource: {url}");
             // An empty successful response prevents the blocked resource from reaching the page.
             // Dropping the interception sends FinishLoad to Servo.
