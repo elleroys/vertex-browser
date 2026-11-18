@@ -19,11 +19,13 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Active page title is reflected in the native window title.
 - A per-user SQLite profile is created under `%APPDATA%\\VertexBrowser\\profile.sqlite3` on Windows (or a home-directory fallback elsewhere).
 - Browsing history is recorded on navigation and updated when the page title arrives; internal `about:` pages are excluded.
+- Ctrl+H opens a dark, Servo-rendered browsing history page (up to 500 recent URLs).
+- Ctrl+Shift+B opens a dark, Servo-rendered bookmarks page; links navigate directly in the active WebView.
 - Ctrl+D toggles a bookmark for the current HTTP(S) page. Bookmark/history/settings storage is implemented as an engine-independent native service, with APIs for recent history, listing bookmarks, deleting one history entry and clearing history.
 
 ## Still missing
 
-This is an engine shell, not yet a complete consumer browser. Ctrl+L currently provides keyboard-driven address entry through the window title; a proper visible native address bar and toolbar are still missing. It does not yet have a visible tab strip, visible bookmarks/history UI, download integration, password autofill, ad-block network interception, profile settings, installer or production hardening. Do not claim those features are implemented.
+This is an engine shell, not yet a complete consumer browser. Ctrl+L currently provides keyboard-driven address entry through the window title; a proper visible native address bar and toolbar are still missing. It does not yet have a visible tab strip or native toolbar; history and bookmarks are currently accessible through keyboard shortcuts and Servo-rendered internal pages, download integration, password autofill, ad-block network interception, profile settings, installer or production hardening. Do not claim those features are implemented.
 
 Physical-key mapping currently covers letters, digits, navigation keys, modifiers and F1–F12; uncommon keys still fall back to `Unidentified`. IME committed text is supported, while composition/preedit events remain follow-up work.
 
