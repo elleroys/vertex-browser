@@ -352,9 +352,10 @@ mod tests {
             "secret-value",
             Some("test note"),
         ).unwrap();
-        assert_eq!(saved, saved.trim());
+        assert!(!saved.is_empty());
         let encrypted_rows = storage.list_password_rows().unwrap();
         assert_eq!(encrypted_rows.len(), 1);
+        assert_eq!(encrypted_rows[0].origin, "https://www.example.com");
         assert!(!encrypted_rows[0].password_enc.contains("secret-value"));
         assert!(!encrypted_rows[0].username_enc.contains("alice"));
         let found = vault.find_for_origin(&storage, "https://www.example.com/other").unwrap();
