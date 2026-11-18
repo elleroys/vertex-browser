@@ -152,7 +152,7 @@ impl BrowserState {
             ));
         }
         if items.is_empty() { items.push_str("<p class=\"empty\">Історія поки порожня</p>"); }
-        let html = internal_page("Історія", &items /* removed obsolete placeholder */ , "<button onclick=\"fetch('/__clear_history')\">", false);
+        let html = internal_page("Історія", &items);
         self.open_internal_page(html);
     }
 
