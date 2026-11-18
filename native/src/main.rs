@@ -63,6 +63,7 @@ struct BrowserState {
     egui: RefCell<egui_glow::winit::EguiGlow>,
     address_bar: RefCell<String>,
     adblock_custom_rules: RefCell<String>,
+    adblock_remote_rules: RefCell<String>,
     adblock_rules: RefCell<adblock::RuleSet>,
     adblock_rules_draft: RefCell<String>,
     adblock_rules_open: Cell<bool>,
@@ -554,12 +555,13 @@ ${sections}</body></html>"#);
         match result {
             Ok(imported) => {
                 let current = self.adblock_custom_rules.borrow().clone();
-                let (merged, supported, ignored) =
-                    adblock::merge_imported_rules(&current, &imported);
-                match self.storage.set_setting("adblock_custom_rules", &merged) {
+                let (remote, supported, ignored) =
+                    adblock::merge_imported_rules("", &imported);
+                match self.storage.set_setting("adblock_remote_rules", &remote) {
                     Ok(()) => {
-                        *self.adblock_custom_rules.borrow_mut() = merged.clone();
-                        *self.adblock_rules.borrow_mut() = adblock::RuleSet::new(&merged);
+                        *self.adblock_remote_rules.borrow_mut() = remote.clone();
+                        let combined = format!("{}\n{}", current, remote);
+                        *self.adblock_rules.borrow_mut() = adblock::RuleSet::new(&combined);
                         *self.adblock_update_status.borrow_mut() = format!(
                             "Оновлено: {supported} підтримуваних правил; пропущено: {ignored}"
                         );
@@ -851,7 +853,8 @@ ${sections}</body></html>"#);
                     match self.storage.set_setting("adblock_custom_rules", &rules) {
                         Ok(()) => {
                             *self.adblock_custom_rules.borrow_mut() = rules.clone();
-                            *self.adblock_rules.borrow_mut() = adblock::RuleSet::new(&rules);
+                            let combined = format!("{}\n{}", rules, self.adblock_remote_rules.borrow());
+                            *self.adblock_rules.borrow_mut() = adblock::RuleSet::new(&combined);
                             self.adblock_rules_open.set(false);
                             if let Some(view) = self.active_webview() { view.reload(); }
                             self.servo.spin_event_loop();
@@ -2083,6 +2086,9 @@ impl VertexApp {
         );
         let custom_adblock_rules = storage.get_setting("adblock_custom_rules")
             .ok().flatten().unwrap_or_default();
+        let remote_adblock_rules = storage.get_setting("adblock_remote_rules")
+            .ok().flatten().unwrap_or_default();
+        let combined_adblock_rules = format!("{}\n{}", custom_adblock_rules, remote_adblock_rules);
         let search_engine = storage.get_setting("search_engine")
             .ok().flatten()
             .filter(|value| matches!(value.as_str(), "google" | "duckduckgo" | "bing"))
@@ -2121,8 +2127,9 @@ impl VertexApp {
             active_downloads: RefCell::new(HashMap::new()),
             egui: RefCell::new(chrome),
             address_bar: RefCell::new(String::new()),
-            adblock_rules: RefCell::new(adblock::RuleSet::new(&custom_adblock_rules)),
+            adblock_rules: RefCell::new(adblock::RuleSet::new(&combined_adblock_rules)),
             adblock_custom_rules: RefCell::new(custom_adblock_rules),
+            adblock_remote_rules: RefCell::new(remote_adblock_rules),
             adblock_rules_draft: RefCell::new(String::new()),
             adblock_rules_open: Cell::new(false),
             adblock_list_url: RefCell::new(adblock_list_url),
