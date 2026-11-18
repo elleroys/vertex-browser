@@ -269,7 +269,7 @@ impl BrowserState {
             .filter(|value| !value.trim().is_empty())
             .or_else(|| webview.url().and_then(|url| url.host_str().map(str::to_owned)))
             .unwrap_or_else(|| "New tab".to_owned());
-        self.window.set_title(&format!("{title} — Vertex Browser"));
+        self.window.set_title(&format!("{title} — Vortex"));
     }
 
     fn open_internal_page(&self, html: String) {
@@ -332,9 +332,9 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
 .tile,article{{display:block;padding:16px;background:#1b1e26;border:1px solid #292d38;border-radius:12px;color:#e6e9ff;text-decoration:none;overflow-wrap:anywhere}}
 .tile:hover,article:hover{{border-color:#6578ed}}article{{margin:9px 0}}small{{display:block;color:#858b9b;font-size:12px;margin-top:6px;overflow-wrap:anywhere}}
 .muted{{color:#858b9b;font-size:13px}}
-</style></head><body><div class="brand">VERTEX BROWSER</div><h1>Нова вкладка</h1>
+</style></head><body><div class="brand">VORTEX</div><h1>Нова вкладка</h1>
 <form action="{search_action}" method="get"><input name="q" type="search" placeholder="Шукати в інтернеті або ввести адресу" autofocus><button type="submit">Знайти</button></form>
-${sections}</body></html>"#);
+{sections}</body></html>"#);
         html_data_url(&html)
     }
 
@@ -2557,7 +2557,7 @@ impl VertexApp {
         let window = event_loop
             .create_window(
                 Window::default_attributes()
-                    .with_title("Vertex Browser — Servo")
+                    .with_title("Vortex — Servo")
                     .with_inner_size(winit::dpi::LogicalSize::new(1280.0, 800.0)),
             )
             .expect("failed to create native window");
@@ -2579,7 +2579,7 @@ impl VertexApp {
 
         let profile_dir = default_profile_dir();
         let storage = Arc::new(BrowserStorage::open(&profile_dir.join("profile.sqlite3"))
-            .expect("failed to open Vertex browser profile database"));
+            .expect("failed to open Vortex browser profile database"));
         if let Err(error) = storage.recover_interrupted_downloads() {
             log::error!("could not recover interrupted downloads: {error}");
         }
@@ -2777,7 +2777,7 @@ article{{padding:16px 18px;margin:10px 0;background:#1b1e26;border:1px solid #29
 a{{color:#e6e9ff;text-decoration:none;font-size:15px}}a:hover{{color:#9eacff}}
 small{{display:block;color:#858b9b;font-size:12px;margin-top:7px;overflow-wrap:anywhere}}
 .empty{{color:#858b9b;padding:24px 0}}
-</style></head><body><div class="brand">VERTEX BROWSER</div><h1>{title}</h1>{items}</body></html>"#)
+</style></head><body><div class="brand">VORTEX</div><h1>{title}</h1>{items}</body></html>"#)
 }
 
 fn format_download_progress(received: u64, total: Option<u64>) -> String {
