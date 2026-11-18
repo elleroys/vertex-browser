@@ -57,6 +57,7 @@ struct BrowserState {
     adblock_rules_draft: RefCell<String>,
     adblock_rules_open: Cell<bool>,
     settings_open: Cell<bool>,
+    bookmarks_manager_open: Cell<bool>,
     search_engine: RefCell<String>,
     home_page: RefCell<String>,
     password_vault: password_vault::PasswordVault,
@@ -579,8 +580,7 @@ ${sections}</body></html>"#);
                         self.open_downloads_page();
                     }
                     if ui.button("Закладки").clicked() {
-                        address.clear();
-                        self.open_bookmarks_page();
+                        self.bookmarks_manager_open.set(true);
                     }
                     let response = ui.add(
                         egui::TextEdit::singleline(&mut address)
@@ -686,6 +686,58 @@ ${sections}</body></html>"#);
                     }
                 }
                 if !open { self.settings_open.set(false); }
+            }
+            if self.bookmarks_manager_open.get() {
+                let entries = self.storage.all_bookmarks().unwrap_or_default();
+                let mut open = true;
+                let mut open_url: Option<String> = None;
+                let mut delete_url: Option<String> = None;
+                egui::Window::new("Менеджер закладок")
+                    .open(&mut open)
+                    .resizable(true)
+                    .default_width(560.0)
+                    .default_height(420.0)
+                    .show(ui.ctx(), |ui| {
+                        if entries.is_empty() {
+                            ui.label("Закладок поки немає. Натисни ☆ на сторінці, щоб додати її.");
+                        }
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for entry in &entries {
+                                ui.horizontal(|ui| {
+                                    ui.vertical(|ui| {
+                                        ui.label(egui::RichText::new(if entry.title.trim().is_empty() {
+                                            &entry.url
+                                        } else {
+                                            &entry.title
+                                        }).strong());
+                                        ui.label(egui::RichText::new(&entry.url).small().color(egui::Color32::GRAY));
+                                    });
+                                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                        if ui.small_button("Видалити").clicked() {
+                                            delete_url = Some(entry.url.clone());
+                                        }
+                                        if ui.small_button("Відкрити").clicked() {
+                                            open_url = Some(entry.url.clone());
+                                        }
+                                    });
+                                });
+                                ui.separator();
+                            }
+                        });
+                    });
+                if let Some(url) = delete_url {
+                    if let Err(error) = self.storage.remove_bookmark(&url) {
+                        log::error!("could not delete bookmark: {error}");
+                    }
+                }
+                if let Some(url) = open_url {
+                    if let (Some(view), Ok(url)) = (self.active_webview(), Url::parse(&url)) {
+                        view.load(url);
+                        self.servo.spin_event_loop();
+                    }
+                    self.bookmarks_manager_open.set(false);
+                }
+                if !open { self.bookmarks_manager_open.set(false); }
             }
             self.draw_password_vault_window(ui.ctx());
         });
@@ -1503,6 +1555,7 @@ impl VertexApp {
             adblock_rules_draft: RefCell::new(String::new()),
             adblock_rules_open: Cell::new(false),
             settings_open: Cell::new(false),
+            bookmarks_manager_open: Cell::new(false),
             search_engine: RefCell::new(search_engine),
             home_page: RefCell::new(home_page),
             password_vault: password_vault::PasswordVault::new(),
