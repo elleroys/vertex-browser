@@ -250,9 +250,10 @@ ${sections}</body></html>"#);
             })
             .collect();
 
-        let mut address = self.address_bar.borrow_mut();
+        let initial_active_tab = self.active_tab.get();
+        let mut address = self.address_bar.borrow().clone();
         if address.is_empty() && !current_url.is_empty() {
-            *address = current_url;
+            address = current_url;
         }
 
         let mut chrome = self.egui.borrow_mut();
@@ -294,7 +295,7 @@ ${sections}</body></html>"#);
                         if let Some(view) = &active { view.load(self.new_tab_url()); }
                     }
                     let response = ui.add(
-                        egui::TextEdit::singleline(&mut *address)
+                        egui::TextEdit::singleline(&mut address)
                             .id(egui::Id::new("vertex-address-bar"))
                             .desired_width(ui.available_width() - 8.0)
                             .hint_text("Введи адресу або пошуковий запит"),
@@ -311,6 +312,9 @@ ${sections}</body></html>"#);
             });
         });
         chrome.paint(&self.window);
+        if self.active_tab.get() == initial_active_tab {
+            *self.address_bar.borrow_mut() = address;
+        }
     }
 
     fn cursor_point(&self) -> WebViewPoint {
@@ -454,8 +458,13 @@ impl servo::WebViewDelegate for BrowserState {
     }
 
     fn notify_url_changed(&self, webview: WebView, url: Url) {
-        self.update_window_title(&webview);
-        *self.address_bar.borrow_mut() = url.to_string();
+        let is_active = self.active_webview()
+            .and_then(|active| active.url())
+            .as_ref() == Some(&url);
+        if is_active {
+            self.update_window_title(&webview);
+            *self.address_bar.borrow_mut() = url.to_string();
+        }
         let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("New page").to_owned());
         if let Err(error) = self.storage.record_visit(url.as_str(), &title) {
             log::error!("could not record browsing history: {error}");
@@ -463,8 +472,13 @@ impl servo::WebViewDelegate for BrowserState {
     }
 
     fn notify_page_title_changed(&self, webview: WebView, title: Option<String>) {
-        self.update_window_title(&webview);
-        if let (Some(url), Some(title)) = (webview.url(), title) {
+        let url = webview.url();
+        let is_active = self.active_webview()
+            .and_then(|active| active.url()) == url;
+        if is_active {
+            self.update_window_title(&webview);
+        }
+        if let (Some(url), Some(title)) = (url, title) {
             if let Err(error) = self.storage.update_page_title(url.as_str(), &title) {
                 log::error!("could not update history title: {error}");
             }
