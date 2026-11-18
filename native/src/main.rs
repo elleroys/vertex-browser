@@ -303,6 +303,10 @@ ${sections}</body></html>"#);
             log::error!("could not save ad blocker setting: {error}");
             return;
         }
+        if let Some(view) = self.active_webview() {
+            view.reload();
+            self.servo.spin_event_loop();
+        }
         self.window.request_redraw();
     }
 
@@ -327,6 +331,10 @@ ${sections}</body></html>"#);
         if let Err(error) = self.storage.set_setting(&key, if disabled { "false" } else { "true" }) {
             log::error!("could not save site ad blocker setting: {error}");
             return;
+        }
+        if let Some(view) = self.active_webview() {
+            view.reload();
+            self.servo.spin_event_loop();
         }
         self.window.request_redraw();
     }
