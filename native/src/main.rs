@@ -73,7 +73,7 @@ impl BrowserState {
             active.show();
             active.set_focused(true);
             self.update_window_title(active);
-            *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
+            *self.address_bar.borrow_mut() = active.url().filter(|url| matches!(url.scheme(), "http" | "https")).map(|url| url.to_string()).unwrap_or_default();
         }
         self.window.request_redraw();
     }
@@ -790,7 +790,6 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                 }
             }
             WindowEvent::KeyboardInput { event, .. } => {
-                if egui_consumed { return; }
                 if let Self::Running(state) = self {
                     if event.state == ElementState::Pressed {
                         let control = state.modifiers.get().contains(Modifiers::CONTROL);
@@ -830,6 +829,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                             return;
                         }
                     }
+                    if egui_consumed { return; }
                     state.handle_keyboard(event);
                 }
             }
