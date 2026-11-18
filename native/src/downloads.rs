@@ -287,6 +287,45 @@ mod tests {
     }
 
     #[test]
+    fn restarts_when_server_ignores_range_and_does_not_reuse_old_validator() {
+        use std::{io::{Read as _, Write as _}, net::TcpListener, thread};
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = Vec::new();
+            let mut byte = [0u8; 1];
+            while !request.ends_with(b"\r\n\r\n") {
+                stream.read_exact(&mut byte).unwrap();
+                request.push(byte[0]);
+            }
+            assert!(String::from_utf8_lossy(&request).to_ascii_lowercase().contains("range: bytes=3-"));
+            stream.write_all(
+                b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nfresh"
+            ).unwrap();
+        });
+
+        let root = std::env::temp_dir().join(format!("vertex-restart-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        let partial = root.join("file.part");
+        let destination = root.join("file.bin");
+        fs::write(&partial, b"old").unwrap();
+        let result = download_to_path(
+            &format!("http://{address}/file.bin"),
+            &destination,
+            &partial,
+            ResumeInfo { etag: Some("\"old-v1\"".to_owned()), last_modified: None },
+            |_, _, _| true,
+        ).unwrap();
+        server.join().unwrap();
+        assert_eq!(result.bytes_received, 5);
+        assert_eq!(result.etag, None);
+        assert_eq!(fs::read(&destination).unwrap(), b"fresh");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn accepts_only_complete_content_ranges_from_requested_offset() {
         assert!(content_range_is_complete("bytes 123-999/1000", 123));
         assert!(content_range_is_complete("bytes 123-999/*", 123));
