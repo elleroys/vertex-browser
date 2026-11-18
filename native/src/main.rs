@@ -176,6 +176,7 @@ impl VertexApp {
                     .with_inner_size(winit::dpi::LogicalSize::new(1280.0, 800.0)),
             )
             .expect("failed to create native window");
+        window.set_ime_allowed(true);
 
         let window_handle = window
             .window_handle()
