@@ -302,6 +302,31 @@ ${sections}</body></html>"#);
                     if ui.button("⌂").clicked() {
                         if let Some(view) = &active { view.load(self.new_tab_url()); }
                     }
+                    if ui.button("★").clicked() {
+                        if let Some(view) = &active {
+                            if let Some(url) = view.url() {
+                                let result = self.storage.is_bookmarked(url.as_str()).and_then(|saved| {
+                                    if saved {
+                                        self.storage.remove_bookmark(url.as_str())
+                                    } else {
+                                        let title = view.page_title().unwrap_or_else(|| {
+                                            url.host_str().unwrap_or("Saved page").to_owned()
+                                        });
+                                        self.storage.add_bookmark(url.as_str(), &title)
+                                    }
+                                });
+                                if let Err(error) = result {
+                                    log::error!("could not toggle bookmark from toolbar: {error}");
+                                }
+                            }
+                        }
+                    }
+                    if ui.button("Історія").clicked() {
+                        self.open_history_page();
+                    }
+                    if ui.button("Закладки").clicked() {
+                        self.open_bookmarks_page();
+                    }
                     let response = ui.add(
                         egui::TextEdit::singleline(&mut address)
                             .id(egui::Id::new("vertex-address-bar"))
