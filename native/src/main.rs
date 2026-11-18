@@ -67,6 +67,7 @@ struct BrowserState {
     active_downloads: RefCell<HashMap<i64, Arc<AtomicBool>>>,
     egui: RefCell<egui_glow::winit::EguiGlow>,
     address_bar: RefCell<String>,
+    address_select_all: Cell<bool>,
     adblock_custom_rules: RefCell<String>,
     adblock_remote_rules: RefCell<String>,
     adblock_rules: RefCell<adblock::RuleSet>,
@@ -669,6 +670,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
             .filter(|url| matches!(url.scheme(), "http" | "https"))
             .map(|url| url.to_string()).unwrap_or_default();
         *self.address_bar.borrow_mut() = current;
+        self.address_select_all.set(true);
         self.egui.borrow().egui_ctx.memory_mut(|memory| {
             memory.request_focus(egui::Id::new("vertex-address-bar"));
         });
@@ -793,6 +795,14 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                         .hint_text("Пошук або введення адреси")
                         .vertical_align(egui::Align::Center),
                 );
+                if self.address_select_all.replace(false) {
+                    if let Some(mut edit_state) = egui::TextEditState::load(ui.ctx(), response.id) {
+                        let start = egui::text::CCursor::new(0);
+                        let end = egui::text::CCursor::new(address.chars().count());
+                        edit_state.cursor.set_char_range(Some(egui::text::CCursorRange::two(start, end)));
+                        edit_state.store(ui.ctx(), response.id);
+                    }
+                }
                 if response.has_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter)) {
                     if !address.trim().is_empty() {
                         if let Some(view) = &active {
@@ -929,6 +939,30 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                     });
                 });
             });
+            if let Some(view) = &active {
+                let loading = matches!(view.load_status(), LoadStatus::Started | LoadStatus::HeadParsed);
+                let url = view.url();
+                ui.horizontal(|ui| {
+                    if loading {
+                        ui.spinner();
+                        ui.label("Завантаження сторінки…");
+                    } else {
+                        ui.label(egui::RichText::new("●").color(egui::Color32::from_rgb(82, 190, 125)));
+                        ui.label("Готово");
+                    }
+                    if let Some(url) = url {
+                        let (security, color) = if url.scheme() == "https" {
+                            ("Захищене з’єднання", egui::Color32::from_rgb(105, 190, 135))
+                        } else if url.scheme() == "http" {
+                            ("Незахищене з’єднання", egui::Color32::from_rgb(225, 170, 90))
+                        } else {
+                            ("Внутрішня сторінка", egui::Color32::GRAY)
+                        };
+                        ui.separator();
+                        ui.colored_label(color, security);
+                    }
+                });
+            }
             if !self.navigation_security_notice.borrow().is_empty() {
                 ui.horizontal(|ui| {
                     ui.colored_label(egui::Color32::from_rgb(255, 180, 90), self.navigation_security_notice.borrow().as_str());
@@ -2322,7 +2356,9 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
             let is_alt = modifiers.contains(Modifiers::ALT);
 
             // Native browser shortcuts are intercepted before page delivery.
-            if is_control && matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("l")) {
+            if (is_control && (matches!(&event.logical_key, WinitKey::Character(s) if s.eq_ignore_ascii_case("l") || s.eq_ignore_ascii_case("k"))))
+                || matches!(&event.logical_key, WinitKey::Named(WinitNamedKey::F6))
+            {
                 self.begin_address_edit();
                 return;
             }
@@ -2612,11 +2648,16 @@ impl servo::WebViewDelegate for BrowserState {
             .as_ref() == Some(&url);
         if is_active {
             self.update_window_title(&webview);
-            *self.address_bar.borrow_mut() = if matches!(url.scheme(), "http" | "https") {
-                url.to_string()
-            } else {
-                String::new()
-            };
+            let address_has_focus = self.egui.borrow().egui_ctx.memory(|memory| {
+                memory.focused() == Some(egui::Id::new("vertex-address-bar"))
+            });
+            if !address_has_focus {
+                *self.address_bar.borrow_mut() = if matches!(url.scheme(), "http" | "https") {
+                    url.to_string()
+                } else {
+                    String::new()
+                };
+            }
         }
         self.persist_session();
         let title = webview.page_title().unwrap_or_else(|| url.host_str().unwrap_or("New page").to_owned());
@@ -2748,6 +2789,7 @@ impl VertexApp {
             active_downloads: RefCell::new(HashMap::new()),
             egui: RefCell::new(chrome),
             address_bar: RefCell::new(String::new()),
+            address_select_all: Cell::new(false),
             adblock_rules: RefCell::new(adblock::RuleSet::new(&combined_adblock_rules)),
             adblock_custom_rules: RefCell::new(custom_adblock_rules),
             adblock_remote_rules: RefCell::new(remote_adblock_rules),
@@ -3321,39 +3363,9 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                             return;
                         }
                     }
-                    // Keep keyboard shortcuts and text editing inside browser chrome when an egui
-                    // widget (most importantly the address bar) owns keyboard focus. Without this
-                    // guard, the same Ctrl+C/Ctrl+V key events can also leak into the web page.
-                    let address_has_focus = state.egui.borrow().egui_ctx.memory(|memory| {
-                        memory.focused() == Some(egui::Id::new("vertex-address-bar"))
-                    });
-                    let control = state.modifiers.get().contains(Modifiers::CONTROL);
-                    if address_has_focus && control && event.state == ElementState::Pressed {
-                        if let WinitKey::Character(key) = &event.logical_key {
-                            match key.to_ascii_lowercase().as_str() {
-                                "c" => {
-                                    if let Err(error) = write_system_clipboard(&state.address_bar.borrow()) { log::warn!("{error}"); }
-                                    return;
-                                }
-                                "x" => {
-                                    let value = state.address_bar.borrow().clone();
-                                    if let Err(error) = write_system_clipboard(&value) { log::warn!("{error}"); }
-                                    state.address_bar.borrow_mut().clear();
-                                    state.window.request_redraw();
-                                    return;
-                                }
-                                "v" => {
-                                    match read_system_clipboard() {
-                                        Ok(value) => *state.address_bar.borrow_mut() = value,
-                                        Err(error) => log::warn!("{error}"),
-                                    }
-                                    state.window.request_redraw();
-                                    return;
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
+                    // egui-winit owns text editing and clipboard shortcuts while the address
+                    // field is focused. Do not intercept Ctrl+C/X/V here: doing so copied the
+                    // entire stale address string and broke selection-aware editing.
                     let chrome_has_focus = state.egui.borrow().egui_ctx.memory(|memory| {
                         memory.focused().is_some()
                     });
