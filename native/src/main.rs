@@ -97,6 +97,13 @@ struct BrowserState {
     vault_message: RefCell<String>,
     vault_form_scan_result: RefCell<String>,
     vault_csv_preview: RefCell<Option<password_vault::CsvImportPreview>>,
+    pending_permissions: RefCell<Vec<PendingPermission>>,
+}
+
+struct PendingPermission {
+    origin: String,
+    feature: String,
+    request: servo::PermissionRequest,
 }
 
 impl BrowserState {
@@ -1124,6 +1131,48 @@ ${sections}</body></html>"#);
                 }
                 if !open { self.settings_open.set(false); }
             }
+            if !self.pending_permissions.borrow().is_empty() {
+                let (origin, feature) = {
+                    let pending = self.pending_permissions.borrow();
+                    (pending[0].origin.clone(), pending[0].feature.clone())
+                };
+                let mut decision: Option<(bool, bool)> = None;
+                egui::Window::new("Запит дозволу сайту")
+                    .resizable(false)
+                    .collapsible(false)
+                    .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                    .show(ui.ctx(), |ui| {
+                        ui.label(format!("Сайт {origin} запитує доступ до функції:"));
+                        ui.label(egui::RichText::new(&feature).strong());
+                        ui.separator();
+                        ui.horizontal(|ui| {
+                            if ui.button("Дозволити раз").clicked() {
+                                decision = Some((true, false));
+                            }
+                            if ui.button("Завжди дозволяти").clicked() {
+                                decision = Some((true, true));
+                            }
+                            if ui.button("Завжди блокувати").clicked() {
+                                decision = Some((false, true));
+                            }
+                        });
+                        ui.label(egui::RichText::new(
+                            "Постійне рішення зберігається окремо для цього сайту й типу дозволу."
+                        ).small().color(egui::Color32::GRAY));
+                    });
+                if let Some((allow, remember)) = decision {
+                    let pending = self.pending_permissions.borrow_mut().remove(0);
+                    if remember {
+                        let key = format!("permission:{}:{}", pending.origin, pending.feature);
+                        let value = if allow { "allow" } else { "deny" };
+                        if let Err(error) = self.storage.set_setting(&key, value) {
+                            log::error!("could not save site permission: {error}");
+                        }
+                    }
+                    if allow { pending.request.allow(); } else { pending.request.deny(); }
+                    self.window.request_redraw();
+                }
+            }
             if self.site_data_manager_open.get() {
                 let entries = self.servo.site_data_manager().site_data(
                     servo::StorageType::Cookies | servo::StorageType::Local | servo::StorageType::Session,
@@ -2016,6 +2065,38 @@ ${sections}</body></html>"#);
 }
 
 impl servo::WebViewDelegate for BrowserState {
+    fn request_permission(&self, webview: WebView, request: servo::PermissionRequest) {
+        let Some(url) = webview.url() else {
+            request.deny();
+            return;
+        };
+        if !matches!(url.scheme(), "http" | "https") {
+            request.deny();
+            return;
+        }
+        let origin = url.origin().ascii_serialization();
+        let feature = format!("{:?}", request.feature());
+        let setting_key = format!("permission:{origin}:{feature}");
+        match self.storage.get_setting(&setting_key) {
+            Ok(Some(value)) if value == "allow" => {
+                request.allow();
+                return;
+            }
+            Ok(Some(value)) if value == "deny" => {
+                request.deny();
+                return;
+            }
+            Ok(_) => {}
+            Err(error) => log::warn!("could not read site permission: {error}"),
+        }
+        self.pending_permissions.borrow_mut().push(PendingPermission {
+            origin,
+            feature,
+            request,
+        });
+        self.window.request_redraw();
+    }
+
     fn show_embedder_control(&self, _webview: WebView, control: servo::EmbedderControl) {
         if let servo::EmbedderControl::ContextMenu(menu) = control {
             let link = menu.element_info().link_url.clone().filter(|url| {
@@ -2274,6 +2355,7 @@ impl VertexApp {
             vault_message: RefCell::new(String::new()),
             vault_form_scan_result: RefCell::new(String::new()),
             vault_csv_preview: RefCell::new(None),
+            pending_permissions: RefCell::new(Vec::new()),
         });
 
         let saved_filter_url = state.adblock_list_url.borrow().clone();
