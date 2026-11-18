@@ -125,6 +125,8 @@ impl BrowserState {
             self.update_window_title(active);
             *self.address_bar.borrow_mut() = active.url().filter(|url| matches!(url.scheme(), "http" | "https")).map(|url| url.to_string()).unwrap_or_default();
         }
+        drop(tabs);
+        self.persist_session();
         self.window.request_redraw();
     }
 
