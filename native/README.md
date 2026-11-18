@@ -22,6 +22,7 @@ This directory contains the native browser runtime prototype. The rendering engi
 - Recently closed HTTP(S) tabs can be reopened with Ctrl+Shift+T or the ↶ toolbar button; up to ten URLs are persisted across restarts. Each tab also has a ⋯ context menu for closing it or reopening the most recently closed tab.
 - Active page title is reflected in the native window title.
 - A per-user SQLite profile is created under `%APPDATA%\\VertexBrowser\\profile.sqlite3` on Windows (or a home-directory fallback elsewhere).
+- Named browser profiles are selectable from Settings. Each profile uses its own SQLite database under `%APPDATA%\\VertexBrowser\\profiles\\<name>\\profile.sqlite3`; the `default` profile continues using the legacy `%APPDATA%\\VertexBrowser\\profile.sqlite3` path so existing installations are preserved. Profile names are restricted to 1–32 ASCII letters, digits, hyphens or underscores to prevent path traversal. Switching is selected in settings and takes effect after restart; the active profile marker is stored separately from profile data.
 - Browsing history is recorded on navigation and updated when the page title arrives; internal `about:` pages are excluded.
 - Ctrl+H opens a dark, Servo-rendered browsing history page (up to 500 recent URLs); the native history manager supports opening entries, deleting individual entries and confirmed full-history clearing.
 - Ctrl+Shift+B opens a dark, Servo-rendered bookmarks page; the native bookmarks manager supports opening and deleting saved bookmarks.
