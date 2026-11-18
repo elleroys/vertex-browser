@@ -83,13 +83,13 @@ impl BrowserState {
 
         let key = match &event.logical_key {
             WinitKey::Character(value) => Key::Character(value.to_string()),
+            WinitKey::Named(WinitNamedKey::Space) => Key::Character(" ".to_owned()),
             WinitKey::Named(named) => {
                 let named = match named {
                     WinitNamedKey::Backspace => NamedKey::Backspace,
                     WinitNamedKey::Tab => NamedKey::Tab,
                     WinitNamedKey::Enter => NamedKey::Enter,
                     WinitNamedKey::Escape => NamedKey::Escape,
-                    WinitNamedKey::Space => NamedKey::Space,
                     WinitNamedKey::ArrowDown => NamedKey::ArrowDown,
                     WinitNamedKey::ArrowLeft => NamedKey::ArrowLeft,
                     WinitNamedKey::ArrowRight => NamedKey::ArrowRight,
