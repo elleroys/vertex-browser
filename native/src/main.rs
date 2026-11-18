@@ -76,6 +76,7 @@ struct BrowserState {
     bookmarks_manager_open: Cell<bool>,
     history_manager_open: Cell<bool>,
     site_data_manager_open: Cell<bool>,
+    site_data_clear_all_confirm_open: Cell<bool>,
     history_clear_confirm_open: Cell<bool>,
     search_engine: RefCell<String>,
     home_page: RefCell<String>,
@@ -1177,12 +1178,38 @@ ${sections}</body></html>"#);
                     );
                 }
                 if clear_all {
-                    self.servo.site_data_manager().clear_site_data(
-                        &[],
-                        servo::StorageType::Cookies | servo::StorageType::Local | servo::StorageType::Session,
-                    );
+                    self.site_data_clear_all_confirm_open.set(true);
                 }
                 if !open { self.site_data_manager_open.set(false); }
+            }
+            if self.site_data_clear_all_confirm_open.get() {
+                let mut open = true;
+                let mut confirm = false;
+                egui::Window::new("Очистити всі дані сайтів?")
+                    .open(&mut open)
+                    .resizable(false)
+                    .collapsible(false)
+                    .show(ui.ctx(), |ui| {
+                        ui.label("Буде видалено cookies, localStorage та sessionStorage всіх сайтів. Дію не можна скасувати.");
+                        ui.horizontal(|ui| {
+                            if ui.button("Очистити все").clicked() { confirm = true; }
+                            if ui.button("Скасувати").clicked() { self.site_data_clear_all_confirm_open.set(false); }
+                        });
+                    });
+                if confirm {
+                    self.servo.site_data_manager().clear_cookies(None);
+                    let sites: Vec<String> = self.servo.site_data_manager().site_data(
+                        servo::StorageType::Local | servo::StorageType::Session,
+                    ).iter().map(|entry| entry.name()).collect();
+                    let site_refs: Vec<&str> = sites.iter().map(String::as_str).collect();
+                    self.servo.site_data_manager().clear_site_data(
+                        &site_refs,
+                        servo::StorageType::Local | servo::StorageType::Session,
+                    );
+                    self.site_data_clear_all_confirm_open.set(false);
+                } else if !open {
+                    self.site_data_clear_all_confirm_open.set(false);
+                }
             }
             if self.history_manager_open.get() {
                 let entries = self.storage.recent_history(500).unwrap_or_default();
@@ -2226,6 +2253,7 @@ impl VertexApp {
             bookmarks_manager_open: Cell::new(false),
             history_manager_open: Cell::new(false),
             site_data_manager_open: Cell::new(false),
+            site_data_clear_all_confirm_open: Cell::new(false),
             history_clear_confirm_open: Cell::new(false),
             search_engine: RefCell::new(search_engine),
             home_page: RefCell::new(home_page),
