@@ -225,19 +225,16 @@ impl BrowserState {
         };
 
         loop {
-            let (count, keep_position, close_position) = {
+            let close_position = {
                 let tabs = self.webviews.borrow();
                 let Some(keep_position) = tabs.iter().position(|tab| tab.id() == keep_id) else {
                     return;
                 };
-                let count = tabs.len();
-                if count <= 1 {
+                if tabs.len() <= 1 {
                     break;
                 }
-                let close_position = (0..count).rev().find(|index| *index != keep_position);
-                (count, keep_position, close_position)
+                (0..tabs.len()).rev().find(|index| *index != keep_position)
             };
-            let _ = count;
             let Some(close_position) = close_position else { break; };
             self.close_tab_at(close_position);
         }
@@ -784,7 +781,7 @@ section{{margin:32px auto;max-width:820px}}h2{{font-size:14px;color:#aeb5c8;font
                                     self.activate_tab(*index);
                                 }
                                 tab_response.context_menu(|ui| {
-                                    ui.label(egui::RichText::new(title).strong());
+                                    ui.label(egui::RichText::new(title.as_str()).strong());
                                     ui.separator();
                                     if ui.button("Закрити вкладку").clicked() {
                                         close_this_tab = true;
