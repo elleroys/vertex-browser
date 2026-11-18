@@ -330,7 +330,7 @@ ${sections}</body></html>"#);
         WebViewPoint::Device(DevicePoint::new(position.x as f32, position.y as f32))
     }
 
-    fn handle_keyboard(&self, event: winit::event::KeyEvent) {
+    fn handle_keyboard(&self, event: winit::event::KeyEvent, forward_to_page: bool) {
         let Some(webview) = self.active_webview() else {
             return;
         };
@@ -456,7 +456,9 @@ ${sections}</body></html>"#);
             event.repeat,
             false,
         );
-        webview.notify_input_event(InputEvent::Keyboard(keyboard_event));
+        if forward_to_page {
+            webview.notify_input_event(InputEvent::Keyboard(keyboard_event));
+        }
     }
 }
 
@@ -829,8 +831,7 @@ impl ApplicationHandler<ServoWakeup> for VertexApp {
                             return;
                         }
                     }
-                    if egui_consumed { return; }
-                    state.handle_keyboard(event);
+                    state.handle_keyboard(event, !egui_consumed);
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
