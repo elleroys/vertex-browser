@@ -58,6 +58,7 @@ struct BrowserState {
     adblock_rules_open: Cell<bool>,
     settings_open: Cell<bool>,
     search_engine: RefCell<String>,
+    home_page: RefCell<String>,
     password_vault: password_vault::PasswordVault,
     password_vault_open: Cell<bool>,
     vault_master_password: RefCell<String>,
@@ -224,6 +225,18 @@ impl BrowserState {
             view.load(url);
             self.servo.spin_event_loop();
         }
+    }
+
+    fn home_url(&self) -> Url {
+        let configured = self.home_page.borrow().trim().to_owned();
+        if !configured.is_empty() {
+            if let Ok(url) = Url::parse(&configured) {
+                if matches!(url.scheme(), "http" | "https") {
+                    return url;
+                }
+            }
+        }
+        self.new_tab_url()
     }
 
     fn new_tab_url(&self) -> Url {
@@ -501,7 +514,7 @@ ${sections}</body></html>"#);
                     }
                     if ui.button("⌂").clicked() {
                         address.clear();
-                        if let Some(view) = &active { view.load(self.new_tab_url()); }
+                        if let Some(view) = &active { view.load(self.home_url()); }
                     }
                     if ui.add(egui::Button::new(if current_bookmarked { "★" } else { "☆" })
                         .fill(if current_bookmarked {
@@ -627,7 +640,9 @@ ${sections}</body></html>"#);
             if self.settings_open.get() {
                 let mut open = true;
                 let mut selected_engine = self.search_engine.borrow().clone();
-                let mut changed = false;
+                let mut selected_home_page = self.home_page.borrow().clone();
+                let mut changed_engine = false;
+                let mut changed_home_page = false;
                 egui::Window::new("Налаштування Vertex")
                     .open(&mut open)
                     .resizable(false)
@@ -643,17 +658,39 @@ ${sections}</body></html>"#);
                                     ("bing", "Bing"),
                                 ] {
                                     if ui.selectable_value(&mut selected_engine, id.to_owned(), label).changed() {
-                                        changed = true;
+                                        changed_engine = true;
                                     }
                                 }
                             });
                         ui.separator();
-                        ui.label("Профіль зберігається локально в SQLite. Синхронізація між пристроями поки не підтримується.");
+                        ui.label("Домашня сторінка (залиш порожнім, щоб відкривати нову вкладку)");
+                        ui.horizontal(|ui| {
+                            ui.add(egui::TextEdit::singleline(&mut selected_home_page)
+                                .desired_width(f32::INFINITY)
+                                .hint_text("https://example.com"));
+                            if ui.button("Зберегти").clicked() {
+                                changed_home_page = true;
+                            }
+                        });
+                        ui.label("Дозволені лише адреси HTTP та HTTPS. Профіль зберігається локально в SQLite.");
                     });
-                if changed {
+                if changed_engine {
                     *self.search_engine.borrow_mut() = selected_engine.clone();
                     if let Err(error) = self.storage.set_setting("search_engine", &selected_engine) {
                         log::error!("could not save search engine setting: {error}");
+                    }
+                }
+                if changed_home_page {
+                    let candidate = selected_home_page.trim();
+                    let valid = candidate.is_empty() || Url::parse(candidate)
+                        .is_ok_and(|url| matches!(url.scheme(), "http" | "https"));
+                    if valid {
+                        *self.home_page.borrow_mut() = candidate.to_owned();
+                        if let Err(error) = self.storage.set_setting("home_page", candidate) {
+                            log::error!("could not save home page setting: {error}");
+                        }
+                    } else {
+                        log::warn!("ignored invalid home page; only HTTP and HTTPS URLs are allowed");
                     }
                 }
                 if !open { self.settings_open.set(false); }
@@ -1409,6 +1446,7 @@ impl VertexApp {
             .ok().flatten()
             .filter(|value| matches!(value.as_str(), "google" | "duckduckgo" | "bing"))
             .unwrap_or_else(|| "google".to_owned());
+        let home_page = storage.get_setting("home_page").ok().flatten().unwrap_or_default();
         let closed_tabs = storage.load_closed_tabs().unwrap_or_default()
             .into_iter()
             .rev()
@@ -1433,6 +1471,7 @@ impl VertexApp {
             adblock_rules_open: Cell::new(false),
             settings_open: Cell::new(false),
             search_engine: RefCell::new(search_engine),
+            home_page: RefCell::new(home_page),
             password_vault: password_vault::PasswordVault::new(),
             password_vault_open: Cell::new(false),
             vault_master_password: RefCell::new(String::new()),
