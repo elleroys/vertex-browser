@@ -115,8 +115,8 @@ mod tests {
 
     #[test]
     fn parses_only_http_urls_and_deduplicates_canonical_entries() {
-        let feed = parse_feed("# OpenPhish snapshot\nhttps://EXAMPLE.com/login#fragment\nhttps://example.com/login\nfile:///etc/passwd\njavascript:alert(1)\nnot a url\n").unwrap();
-        assert_eq!(feed.urls.len(), 1);
+        let feed = parse_feed("# OpenPhish snapshot\nhttps://EXAMPLE.com/login#fragment\nhttps://example.com/login\nhttps://one.example/a\nhttps://two.example/a\nhttps://three.example/a\nhttps://four.example/a\nhttps://five.example/a\nhttps://six.example/a\nhttps://seven.example/a\nhttps://eight.example/a\nhttps://nine.example/a\nhttps://ten.example/a\nhttps://eleven.example/a\nfile:///etc/passwd\njavascript:alert(1)\nnot a url\n").unwrap();
+        assert_eq!(feed.urls.len(), 12);
         assert!(feed.urls.contains("https://example.com/login"));
         assert_eq!(feed.ignored, 3);
     }
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn cache_round_trips_urls_and_timestamp_and_rejects_corruption() {
-        let feed = parse_feed("https://example.com/login\\nhttps://other.example/path\\n").unwrap();
+        let feed = parse_feed("https://example.com/login\nhttps://other.example/path\n").unwrap();
         let encoded = serialize_cache(1_800_000_000, &feed.urls);
         let (decoded, timestamp) = parse_cache(&encoded);
         assert_eq!(decoded, feed.urls);

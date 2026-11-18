@@ -1238,9 +1238,9 @@ ${sections}</body></html>"#);
                 if update_openphish { self.request_openphish_update(); }
                 if !open { self.settings_open.set(false); }
             }
-            if let Some((url, reasons, threat_match)) = self.pending_navigation.borrow().as_ref()
-                .map(|pending| (pending.url.clone(), pending.reasons.clone(), pending.threat_match))
-            {
+            let pending_warning = self.pending_navigation.borrow().as_ref()
+                .map(|pending| (pending.url.clone(), pending.reasons.clone(), pending.threat_match));
+            if let Some((url, reasons, threat_match)) = pending_warning {
                 let mut decision: Option<bool> = None;
                 egui::Window::new("Попередження безпеки Vortex")
                     .resizable(false)
