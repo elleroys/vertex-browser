@@ -7,7 +7,7 @@ Vortex is being migrated to a **native Rust desktop browser** with Servo as its 
 - **Runtime:** native Rust process; no Tauri runtime, WebView2, Edge WebView, CEF, or other system webview.
 - **Web engine:** Servo embedded in-process.
 - **Window and input:** `winit`.
-- **Browser chrome:** native Rust UI (planned; not yet implemented).
+- **Browser chrome:** native Rust UI using egui/Glow on Servo's shared OpenGL context.
 - **Persistence:** SQLite, reusing the existing schema and SQL logic after removing Tauri-specific coupling.
 - **Ad blocking:** retain filter-list parsing and per-site rules; replace WebView2 request interception with a Servo-supported network integration.
 - **Passwords:** retain the Argon2id/XChaCha20-Poly1305 vault core; rebuild page-aware save/autofill integration around supported Servo APIs.
@@ -15,9 +15,9 @@ Vortex is being migrated to a **native Rust desktop browser** with Servo as its 
 
 ## Current status
 
-The native prototype in `native/` creates a desktop window, embeds Servo, paints frames, handles resizing/DPI, and forwards mouse, wheel, keyboard, focus, and committed IME input. It has multi-tab lifecycle shortcuts, a SQLite profile, history and bookmarks pages, and a Servo-rendered new-tab page with search, bookmark shortcuts and recently visited pages.
+The native prototype in `native/` creates a desktop window, embeds Servo, paints frames, handles resizing/DPI, and forwards mouse, wheel, keyboard, focus, and committed IME input. It has a first egui/Glow browser-chrome overlay with a visible tab strip, address/search field and navigation controls, plus multi-tab shortcuts, a SQLite profile, history/bookmarks pages and a Servo-rendered new-tab page.
 
-This is an **engine proof of concept, not yet a complete browser**. A visible address bar, browser toolbar and tab strip, settings UI, download integration, password autofill, ad blocking, session restore, installer and production hardening remain to be implemented and tested. No performance improvement is claimed until measured against Chrome on the same machine.
+This is an **early engine proof of concept, not yet a complete browser**. The chrome is currently an overlay and the page viewport has not yet been inset below it. Download integration, password autofill, ad blocking, settings, session restore, installer and production hardening remain to be implemented and tested. No performance improvement is claimed until measured against Chrome on the same machine.
 
 See:
 - [Servo migration plan](docs/SERVO_MIGRATION.md)
