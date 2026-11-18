@@ -96,7 +96,9 @@ impl BrowserState {
             active.show();
             active.set_focused(true);
             self.update_window_title(active);
-            *self.address_bar.borrow_mut() = active.url().map(|url| url.to_string()).unwrap_or_default();
+            *self.address_bar.borrow_mut() = active.url()
+                .filter(|url| matches!(url.scheme(), "http" | "https"))
+                .map(|url| url.to_string()).unwrap_or_default();
         }
         drop(tabs);
         self.window.request_redraw();
@@ -259,6 +261,11 @@ ${sections}</body></html>"#);
 
     fn draw_chrome(self: &Rc<Self>) {
         let active = self.active_webview();
+        let current_bookmarked = active.as_ref()
+            .and_then(|view| view.url())
+            .filter(|url| matches!(url.scheme(), "http" | "https"))
+            .and_then(|url| self.storage.is_bookmarked(url.as_str()).ok())
+            .unwrap_or(false);
         let tab_labels: Vec<(usize, String, bool)> = self.webviews.borrow().iter().enumerate()
             .map(|(index, view)| {
                 let title = view.page_title()
@@ -323,7 +330,12 @@ ${sections}</body></html>"#);
                         address.clear();
                         if let Some(view) = &active { view.load(self.new_tab_url()); }
                     }
-                    if ui.button("★").clicked() {
+                    if ui.add(egui::Button::new(if current_bookmarked { "★" } else { "☆" })
+                        .fill(if current_bookmarked {
+                            egui::Color32::from_rgb(80, 72, 38)
+                        } else {
+                            egui::Color32::from_rgb(35, 38, 48)
+                        })).clicked() {
                         if let Some(view) = &active {
                             if let Some(url) = view.url().filter(|url| matches!(url.scheme(), "http" | "https")) {
                                 let result = self.storage.is_bookmarked(url.as_str()).and_then(|saved| {
