@@ -1,0 +1,13 @@
+[package]
+name = "vortex-engine"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99.1"
+publish = false
+description = "Isolated Servo engine dependency boundary for Vortex"
+
+[dependencies]
+servo = { git = "https://github.com/servo/servo", rev = "32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17", default-features = false, features = ["bundled", "clipboard", "js_jit", "subtlecrypto", "brotli-compression-stream", "webgl", "webgpu", "media-gstreamer"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+servo = { git = "https://github.com/servo/servo", rev = "32fc710d5b0eb4bd27d4f3b5317a0f5f97b3bf17", features = ["no-wgl"] }
