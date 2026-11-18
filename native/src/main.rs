@@ -867,7 +867,7 @@ ${sections}</body></html>"#);
             }}
             const fields = form ? Array.from(form.querySelectorAll('input')) : Array.from(document.querySelectorAll('input'));
             const usernameField = fields.find(el => el !== passwordField &&
-                (el.autocomplete || '').toLowerCase().split(/\\s+/).includes('username')) ||
+                (el.autocomplete || '').toLowerCase().split(/\s+/).includes('username')) ||
                 fields.find(el => el !== passwordField &&
                     ['text', 'email', 'tel'].includes((el.type || '').toLowerCase()) &&
                     /user|login|email|account/i.test([el.name, el.id, el.placeholder].join(' ')));
