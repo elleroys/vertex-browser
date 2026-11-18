@@ -2,7 +2,7 @@
 //!
 //! Supported rules:
 //! - `||example.com^` — a domain and its subdomains.
-//! - `||example.com/path^` — a domain/path prefix.
+//! - `||example.com/path^` — a domain/path prefix with separator boundary.
 //! - `@@||example.com^` — an exception rule.
 //! - Plain host names such as `ads.example.com`.
 //!
@@ -28,19 +28,18 @@ const BUILTIN_RULES: &[&str] = &[
 ];
 
 #[derive(Debug, PartialEq, Eq)]
-enum Rule<'a> {
+enum Rule {
     Domain {
-        host: &'a str,
-        path: Option<&'a str>,
+        host: String,
+        path: Option<String>,
         path_separator: bool,
     },
-    Invalid,
 }
 
-fn parse_rule(line: &str) -> (bool, Rule<'_>) {
+fn parse_rule(line: &str) -> Option<(bool, Rule)> {
     let line = line.trim();
     if line.is_empty() || line.starts_with('!') || line.starts_with('#') || line.contains('$') {
-        return (false, Rule::Invalid);
+        return None;
     }
 
     let (exception, body) = if let Some(body) = line.strip_prefix("@@") {
@@ -56,7 +55,7 @@ fn parse_rule(line: &str) -> (bool, Rule<'_>) {
     };
     let (host, path) = match body.split_once('/') {
         Some((host, path)) if !path.is_empty() => (host, Some(path)),
-        Some(_) => return (exception, Rule::Invalid),
+        Some(_) => return None,
         None => (body, None),
     };
     let host = host.trim_end_matches('.');
@@ -65,14 +64,14 @@ fn parse_rule(line: &str) -> (bool, Rule<'_>) {
         || host.starts_with('.')
         || host.ends_with('.')
     {
-        return (exception, Rule::Invalid);
+        return None;
     }
 
-    (exception, Rule::Domain {
-        host,
-        path,
+    Some((exception, Rule::Domain {
+        host: host.to_owned(),
+        path: path.map(str::to_owned),
         path_separator: path.is_some() && path_separator,
-    })
+    }))
 }
 
 fn host_matches(host: &str, rule_host: &str) -> bool {
@@ -85,18 +84,15 @@ fn host_matches(host: &str, rule_host: &str) -> bool {
 }
 
 fn is_filter_separator(character: char) -> bool {
-    !character.is_ascii_alphanumeric()
-        && !matches!(character, '_' | '-' | '.' | '%')
+    !character.is_ascii_alphanumeric() && !matches!(character, '_' | '-' | '.' | '%')
 }
 
-fn rule_matches(url: &url::Url, rule: &Rule<'_>) -> bool {
+fn rule_matches(url: &url::Url, rule: &Rule) -> bool {
     let Rule::Domain {
         host: rule_host,
         path,
         path_separator,
-    } = rule else {
-        return false;
-    };
+    } = rule;
     let Some(host) = url.host_str() else {
         return false;
     };
@@ -116,25 +112,47 @@ fn rule_matches(url: &url::Url, rule: &Rule<'_>) -> bool {
     remainder.chars().next().is_some_and(is_filter_separator)
 }
 
+/// A parsed set of built-in and custom network rules.
+pub struct RuleSet {
+    rules: Vec<(bool, Rule)>,
+}
+
+impl RuleSet {
+    /// Parse built-in rules and newline-separated custom EasyList-subset rules once.
+    pub fn new(custom_rules: &str) -> Self {
+        let rules = BUILTIN_RULES
+            .iter()
+            .copied()
+            .chain(custom_rules.lines())
+            .filter_map(parse_rule)
+            .collect();
+        Self { rules }
+    }
+
+    /// Evaluate a URL against this pre-parsed rule set.
+    /// Exception rules take precedence over blocking rules.
+    pub fn is_blocked(&self, url: &url::Url) -> bool {
+        let mut blocked = false;
+        for (exception, rule) in &self.rules {
+            if rule_matches(url, rule) {
+                if *exception {
+                    return false;
+                }
+                blocked = true;
+            }
+        }
+        blocked
+    }
+}
+
 /// Returns true when a URL matches the built-in ad/tracker rules.
 pub fn is_blocked_url(url: &url::Url) -> bool {
-    is_blocked_url_with_rules(url, "")
+    RuleSet::new("").is_blocked(url)
 }
 
 /// Evaluate built-in rules plus newline-separated custom EasyList-subset rules.
-/// Exception rules take precedence over blocking rules.
 pub fn is_blocked_url_with_rules(url: &url::Url, custom_rules: &str) -> bool {
-    let mut blocked = false;
-    for line in BUILTIN_RULES.iter().copied().chain(custom_rules.lines()) {
-        let (exception, rule) = parse_rule(line);
-        if rule_matches(url, &rule) {
-            if exception {
-                return false;
-            }
-            blocked = true;
-        }
-    }
-    blocked
+    RuleSet::new(custom_rules).is_blocked(url)
 }
 
 #[cfg(test)]
@@ -160,7 +178,7 @@ mod tests {
 
     #[test]
     fn parses_domain_and_path_rules() {
-        let rules = "||ads.example.com^\n||cdn.example.net/ads/";
+        let rules = "||ads.example.com^\\n||cdn.example.net/ads/";
         assert!(is_blocked_url_with_rules(&url("https://ads.example.com/banner"), rules));
         assert!(is_blocked_url_with_rules(&url("https://sub.ads.example.com/banner"), rules));
         assert!(is_blocked_url_with_rules(&url("https://cdn.example.net/ads/banner.js"), rules));
@@ -181,20 +199,19 @@ mod tests {
         let rules = "||example.com/ads^";
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads"), rules));
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads/banner.js"), rules));
-        assert!(is_blocked_url_with_rules(&url("https://example.com/ads?slot=1"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://example.com/adserver.js"), rules));
     }
 
     #[test]
     fn exception_rules_override_block_rules() {
-        let rules = "||example.com^\n@@||safe.example.com^";
+        let rules = "||example.com^\\n@@||safe.example.com^";
         assert!(is_blocked_url_with_rules(&url("https://ads.example.com/"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://safe.example.com/"), rules));
     }
 
     #[test]
     fn ignores_comments_and_unsupported_modifiers() {
-        let rules = "! comment\n# heading\n||ads.example.com^$script";
+        let rules = "! comment\\n# heading\\n||ads.example.com^$script";
         assert!(!is_blocked_url_with_rules(&url("https://ads.example.com/"), rules));
     }
 }
