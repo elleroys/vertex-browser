@@ -1,3 +1,4 @@
+mod adblock;
 mod storage;
 
 use std::{
@@ -292,6 +293,19 @@ ${sections}</body></html>"#);
         self.open_internal_page(internal_page("Завантаження", &items));
     }
 
+    fn adblock_enabled(&self) -> bool {
+        !matches!(self.storage.get_setting("adblock_enabled"), Ok(Some(value)) if value == "false")
+    }
+
+    fn toggle_adblock(&self) {
+        let enabled = !self.adblock_enabled();
+        if let Err(error) = self.storage.set_setting("adblock_enabled", if enabled { "true" } else { "false" }) {
+            log::error!("could not save ad blocker setting: {error}");
+            return;
+        }
+        self.window.request_redraw();
+    }
+
     fn begin_address_edit(&self) {
         let current = self.active_webview().and_then(|view| view.url())
             .filter(|url| matches!(url.scheme(), "http" | "https"))
@@ -438,6 +452,10 @@ ${sections}</body></html>"#);
                     }
                     if ui.button("+").on_hover_text("Збільшити масштаб (Ctrl++)").clicked() {
                         if let Some(view) = &active { view.set_page_zoom((view.page_zoom() + 0.1).min(5.0)); }
+                    }
+                    let adblock_label = if self.adblock_enabled() { "AdBlock: ON" } else { "AdBlock: OFF" };
+                    if ui.button(adblock_label).on_hover_text("Увімкнути або вимкнути блокування реклами").clicked() {
+                        self.toggle_adblock();
                     }
                     if ui.button("Історія").clicked() {
                         address.clear();
@@ -647,6 +665,21 @@ ${sections}</body></html>"#);
 }
 
 impl servo::WebViewDelegate for BrowserState {
+    fn load_web_resource(&self, _webview: WebView, load: servo::WebResourceLoad) {
+        if !self.adblock_enabled() {
+            return;
+        }
+        let Ok(url) = Url::parse(&load.request().url.to_string()) else {
+            return;
+        };
+        if adblock::is_blocked_url(&url) {
+            log::debug!("AdBlock blocked resource: {url}");
+            // An empty successful response prevents the blocked resource from reaching the page.
+            // Dropping the interception sends FinishLoad to Servo.
+            let _ = load.intercept(servo::WebResourceResponse::new(url));
+        }
+    }
+
     fn notify_new_frame_ready(&self, _webview: WebView) {
         self.window.request_redraw();
     }
