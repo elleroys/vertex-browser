@@ -560,7 +560,7 @@ ${sections}</body></html>"#);
                 match self.storage.set_setting("adblock_remote_rules", &remote) {
                     Ok(()) => {
                         *self.adblock_remote_rules.borrow_mut() = remote.clone();
-                        let combined = format!("{}\n{}", current, remote);
+                        let combined = format!("{}\n{}", current, remote.as_str());
                         *self.adblock_rules.borrow_mut() = adblock::RuleSet::new(&combined);
                         *self.adblock_update_status.borrow_mut() = format!(
                             "Оновлено: {supported} підтримуваних правил; пропущено: {ignored}"
@@ -853,7 +853,7 @@ ${sections}</body></html>"#);
                     match self.storage.set_setting("adblock_custom_rules", &rules) {
                         Ok(()) => {
                             *self.adblock_custom_rules.borrow_mut() = rules.clone();
-                            let combined = format!("{}\n{}", rules, self.adblock_remote_rules.borrow());
+                            let combined = format!("{}\n{}", rules, self.adblock_remote_rules.borrow().as_str());
                             *self.adblock_rules.borrow_mut() = adblock::RuleSet::new(&combined);
                             self.adblock_rules_open.set(false);
                             if let Some(view) = self.active_webview() { view.reload(); }
@@ -2158,6 +2158,11 @@ impl VertexApp {
             vault_form_scan_result: RefCell::new(String::new()),
             vault_csv_preview: RefCell::new(None),
         });
+
+        let saved_filter_url = state.adblock_list_url.borrow().clone();
+        if !saved_filter_url.trim().is_empty() {
+            state.request_adblock_update(saved_filter_url);
+        }
 
         let explicit_start_url = std::env::args().nth(1);
         let (startup_urls, restore_active_index) = if let Some(start_url) = explicit_start_url {
