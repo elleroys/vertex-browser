@@ -790,7 +790,7 @@ ${sections}</body></html>"#);
                     .resizable(true)
                     .default_width(560.0)
                     .show(ui.ctx(), |ui| {
-                        ui.label("Власні правила та імпорт списків фільтрів. Підтримуються домени, шляхи й винятки @@||домен^. Косметичні правила та модифікатори EasyList поки ігноруються.");
+                        ui.label("Підтримуються домени, шляхи, винятки @@||домен^ та типи ресурсів $script, $image, $stylesheet, $font, $media, $subdocument, $object, $document, $xmlhttprequest (також ~тип). Невідомі модифікатори й косметичні правила ігноруються.");
                         ui.horizontal(|ui| {
                             ui.add(egui::TextEdit::singleline(&mut list_url)
                                 .desired_width(350.0)
@@ -1962,7 +1962,7 @@ impl servo::WebViewDelegate for BrowserState {
         let Ok(url) = Url::parse(&load.request().url.to_string()) else {
             return;
         };
-        if self.adblock_rules.borrow().is_blocked(&url) {
+        if self.adblock_rules.borrow().is_blocked_resource(&url, load.request().destination) {
             log::debug!("AdBlock blocked resource: {url}");
             // An empty successful response prevents the blocked resource from reaching the page.
             // Dropping the interception sends FinishLoad to Servo.

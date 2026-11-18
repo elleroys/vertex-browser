@@ -483,7 +483,7 @@ mod tests {
     fn resource_type_modifiers_match_servo_fetch_destinations() {
         use content_security_policy::Destination as D;
         let rules = RuleSet::new(
-            "||cdn.example.net^$script,image\\n||assets.example.net^$stylesheet\\n||api.example.net^$xmlhttprequest"
+            "||cdn.example.net^$script,image\n||assets.example.net^$stylesheet\n||api.example.net^$xmlhttprequest"
         );
         assert!(rules.is_blocked_resource(&url("https://cdn.example.net/ad.js"), D::Script));
         assert!(rules.is_blocked_resource(&url("https://cdn.example.net/ad.png"), D::Image));
