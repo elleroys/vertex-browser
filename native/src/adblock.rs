@@ -4,7 +4,7 @@
 //! - `||example.com^` — a domain and its subdomains.
 //! - `||example.com/path^` — a domain/path prefix with separator boundary.
 //! - `@@||example.com^` — an exception rule.
-//! - `||example.com^$third-party,image` — resource-type restrictions.
+//! - `||example.com^$script,image` — resource-type restrictions (only the listed destination types are supported; `$third-party` is not implemented).
 //! - Plain host names such as `ads.example.com`.
 //!
 //! Cosmetic rules, regular expressions, unsupported modifiers, scriptlets and
