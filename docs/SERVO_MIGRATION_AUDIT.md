@@ -8,7 +8,7 @@ The existing `main` branch and its Tauri/WebView2 implementation are intentional
 The repository already contains a real Servo embedding spike, not yet a usable browser.
 The native executable creates a `winit` window, builds Servo and one WebView, loads an initial URL, paints frames, handles DPI/resize, and forwards mouse movement, clicks and wheel events.
 
-The current native prototype does **not** yet provide keyboard input, an address bar, browser navigation controls, tabs, browser chrome, persistence, downloads, password autofill or ad blocking. Do not describe it as a completed browser or claim performance gains.
+The native prototype now forwards mouse, wheel, keyboard down/up, common logical keys, a useful set of physical key codes, modifier state, window focus and committed IME text. It implements Ctrl+R/F5 reload and Alt+Left/Right history navigation, plus URL/hostname/search parsing for the initial command-line URL. It still does **not** have an address bar, native browser chrome, tabs, persistence, downloads, password autofill or ad blocking. Do not describe it as a completed browser or claim performance gains.
 
 ## Existing implementation inventory
 
@@ -28,11 +28,11 @@ The current native prototype does **not** yet provide keyboard input, an address
 
 - `native/Cargo.toml` pins a specific Servo revision, which is appropriate while the embedder API is changing.
 - `native/src/main.rs` creates one native window and one Servo WebView.
-- The current event handler forwards mouse movement, mouse buttons and wheel input. Keyboard and IME input are absent.
+- The event handler forwards mouse movement, mouse buttons, wheel, keyboard and committed IME input. Physical key mapping covers common keys; IME composition/preedit is not yet handled.
 - There is no browser UI toolkit in the native crate yet.
 - The pinned Servo build is expected to be large. Windows native dependencies and the Rust toolchain must be validated on a Windows machine; a GitHub source audit cannot establish that it compiles.
 
-## Recommended implementation order
+## Current implementation status\n\nThe first input milestone has been committed on `servo-migration`: keyboard event delivery, common physical key codes, focus synchronization, committed IME text, initial URL/search parsing and basic navigation shortcuts. This code has been reviewed against the pinned Servo and winit source APIs, but it has not yet been compiled on Windows.\n\n## Recommended implementation order
 
 1. **Finish the engine shell:** keyboard/IME/focus input, back/forward/reload/stop, URL entry, title/loading state, safe URL-vs-search parsing, and clean shutdown.
 2. **Add native browser chrome:** choose egui for the first integrated prototype; implement dark theme, address bar, toolbar, tab strip and basic menus in the same native process.
