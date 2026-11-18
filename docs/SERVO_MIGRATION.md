@@ -39,7 +39,8 @@ Known limitations (not yet acceptance-tested):
 - Rules are parsed into an in-memory rule set when the browser starts and when custom rules are saved, rather than reparsed for every resource request. Path rules with the EasyList separator marker check the separator boundary, so `/ads^` does not accidentally match `/adserver`.
 - The downloads page currently displays persisted records only. Actual network transfers, progress reporting, cancellation and opening files are not yet integrated.
 - Servo's pinned `WebViewDelegate::load_web_resource` hook exposes the outgoing `WebResourceRequest` and lets the embedder replace a response; it does not expose the eventual server response headers to that callback. Therefore it cannot safely identify `Content-Disposition: attachment` downloads on its own. Do not intercept every URL or start a second unauthenticated HTTP request as a workaround. A proper download integration needs a verified response/download event or an engine-level API change.
-- Password storage/autofill, tab session restore, robust tab lifecycle and Windows packaging remain unfinished.
+- An encrypted password-vault backend has been added to the native branch: Argon2id derives the key, XChaCha20-Poly1305 encrypts credential fields, and the unlocked key is held in zeroizing memory. The native management UI, CSV import, form detection and autofill are not implemented yet.
+- Tab session restore, robust tab lifecycle and Windows packaging remain unfinished.
 - No successful native build or end-to-end browser test has been recorded yet. Do not treat source-level changes as proof of runtime correctness.
 
 ## Migration sequence
