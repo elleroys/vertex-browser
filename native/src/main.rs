@@ -61,6 +61,7 @@ struct BrowserState {
     profile_selection: RefCell<String>,
     event_loop_proxy: EventLoopProxy<ServoWakeup>,
     downloads_manager_open: Cell<bool>,
+    tab_manager_open: Cell<bool>,
     download_url: RefCell<String>,
     context_menu_link: RefCell<Option<Url>>,
     active_downloads: RefCell<HashMap<i64, Arc<AtomicBool>>>,
@@ -821,6 +822,9 @@ ${sections}</body></html>"#);
                         *self.adblock_rules_draft.borrow_mut() = self.adblock_custom_rules.borrow().clone();
                         self.adblock_rules_open.set(true);
                     }
+                    if ui.button("Вкладки").on_hover_text("Керування відкритими вкладками та звільнення пам’яті закриттям фонових сторінок").clicked() {
+                        self.tab_manager_open.set(true);
+                    }
                     if ui.button("Налаштування").clicked() {
                         self.settings_open.set(true);
                     }
@@ -955,6 +959,70 @@ ${sections}</body></html>"#);
                         }
                         Err(error) => log::error!("could not save custom AdBlock rules: {error}"),
                     }
+                }
+            }
+            if self.tab_manager_open.get() {
+                let mut open = true;
+                let tab_snapshots = self.webviews.borrow().iter().enumerate().map(|(index, view)| {
+                    let url = view.url().map(|value| value.to_string()).unwrap_or_else(|| "Нова вкладка".to_owned());
+                    let title = view.page_title().filter(|value| !value.trim().is_empty())
+                        .unwrap_or_else(|| view.url().and_then(|value| value.host_str().map(str::to_owned)).unwrap_or_else(|| "Нова вкладка".to_owned()));
+                    (index, title, url, index == self.active_tab.get())
+                }).collect::<Vec<_>>();
+                let background_count = tab_snapshots.iter().filter(|item| !item.3).count();
+                let mut activate_tab = None;
+                let mut close_tab = None;
+                let mut close_background_tabs = false;
+                egui::Window::new("Керування вкладками та пам’яттю")
+                    .open(&mut open)
+                    .resizable(true)
+                    .default_width(620.0)
+                    .show(ui.ctx(), |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("Відкрито вкладок: {}", tab_snapshots.len()));
+                            ui.separator();
+                            ui.label(format!("Фонових: {background_count}"));
+                        });
+                        ui.label("Закриття фонової вкладки звільняє ресурси її сторінки. URL додається до «Нещодавно закритих»; стан форми та JavaScript-пам’ять не зберігаються.");
+                        ui.label("Servo у поточній інтеграції не надає API для достовірного вимірювання RAM окремої вкладки або її повного призупинення, тому тут не показуються вигадані мегабайти.");
+                        ui.horizontal(|ui| {
+                            if ui.add_enabled(background_count > 0, egui::Button::new("Закрити всі фонові вкладки")).clicked() {
+                                close_background_tabs = true;
+                            }
+                        });
+                        ui.separator();
+                        egui::ScrollArea::vertical().max_height(420.0).show(ui, |ui| {
+                            for (index, title, url, is_active) in &tab_snapshots {
+                                ui.group(|ui| {
+                                    ui.horizontal(|ui| {
+                                        if *is_active {
+                                            ui.label(egui::RichText::new("АКТИВНА").strong().color(egui::Color32::LIGHT_GREEN));
+                                        } else {
+                                            ui.label("Фонова");
+                                        }
+                                        ui.label(egui::RichText::new(title).strong());
+                                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                            if !is_active && ui.small_button("Закрити").clicked() {
+                                                close_tab = Some(*index);
+                                            }
+                                            if !is_active && ui.small_button("Перейти").clicked() {
+                                                activate_tab = Some(*index);
+                                            }
+                                        });
+                                    });
+                                    ui.small(url);
+                                });
+                            }
+                        });
+                    });
+                if !open { self.tab_manager_open.set(false); }
+                if let Some(index) = activate_tab { self.activate_tab(index); }
+                if close_background_tabs {
+                    for index in (0..self.tab_count()).rev() {
+                        if index != self.active_tab.get() { self.close_tab_at(index); }
+                    }
+                } else if let Some(index) = close_tab {
+                    self.close_tab_at(index);
                 }
             }
             if self.downloads_manager_open.get() {
@@ -2558,6 +2626,7 @@ impl VertexApp {
             profile_selection: RefCell::new(storage::active_profile_name()),
             event_loop_proxy: waker.0.clone(),
             downloads_manager_open: Cell::new(false),
+            tab_manager_open: Cell::new(false),
             download_url: RefCell::new(String::new()),
             context_menu_link: RefCell::new(None),
             active_downloads: RefCell::new(HashMap::new()),
