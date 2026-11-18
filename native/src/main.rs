@@ -255,8 +255,8 @@ ${sections}</body></html>"#);
             *address = current_url;
         }
 
-        let mut egui = self.egui.borrow_mut();
-        egui.run(&self.window, |ui| {
+        let mut chrome = self.egui.borrow_mut();
+        chrome.run(&self.window, |ui| {
             ui.style_mut().visuals.dark_mode = true;
             ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
             ui.vertical(|ui| {
@@ -310,7 +310,7 @@ ${sections}</body></html>"#);
                 });
             });
         });
-        egui.paint(&self.window);
+        chrome.paint(&self.window);
     }
 
     fn cursor_point(&self) -> WebViewPoint {
@@ -517,6 +517,13 @@ impl VertexApp {
         let storage = BrowserStorage::open(&profile_dir.join("profile.sqlite3"))
             .expect("failed to open Vertex browser profile database");
 
+        let chrome = egui_glow::winit::EguiGlow::new(
+            event_loop,
+            rendering_context.glow_gl_api(),
+            None,
+            None,
+            true,
+        );
         let state = Rc::new(BrowserState {
             window,
             servo,
@@ -526,8 +533,8 @@ impl VertexApp {
             modifiers: Cell::new(Modifiers::empty()),
             active_tab: Cell::new(0),
             storage,
-            address_editing: Cell::new(false),
-            address_text: RefCell::new(String::new()),
+            egui: RefCell::new(chrome),
+            address_bar: RefCell::new(String::new()),
         });
 
         let url = match std::env::args().nth(1) {
