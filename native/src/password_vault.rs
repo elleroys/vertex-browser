@@ -15,7 +15,7 @@ use chacha20poly1305::{
     XChaCha20Poly1305, XNonce,
 };
 use rand::RngCore;
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::storage::{BrowserStorage, EncryptedVaultRow};
 
@@ -39,6 +39,16 @@ pub struct PasswordCredential {
     pub notes: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+impl Drop for PasswordCredential {
+    fn drop(&mut self) {
+        self.username.zeroize();
+        self.password.zeroize();
+        if let Some(notes) = &mut self.notes {
+            notes.zeroize();
+        }
+    }
 }
 
 pub struct PasswordVault {
@@ -188,7 +198,7 @@ impl PasswordVault {
         username: &str,
         password: &str,
         notes: Option<&str>,
-    ) -> Result<PasswordCredential, String> {
+    ) -> Result<String, String> {
         let key = self.require_key()?;
         if password.is_empty() {
             return Err("Пароль не може бути порожнім".to_owned());
@@ -222,16 +232,7 @@ impl PasswordVault {
             .upsert_password_row(&row)
             .map_err(|error| error.to_string())?;
 
-        Ok(PasswordCredential {
-            id,
-            origin: normalized_origin,
-            title,
-            username: username.to_owned(),
-            password: password.to_owned(),
-            notes: notes.map(str::to_owned),
-            created_at: now,
-            updated_at: now,
-        })
+        Ok(id)
     }
 
     pub fn list_credentials(
@@ -343,7 +344,7 @@ mod tests {
         let storage = BrowserStorage::open(Path::new(":memory:")).unwrap();
         let vault = PasswordVault::new();
         vault.setup_master_password(&storage, "correct horse battery").unwrap();
-        let saved = vault.save_credential(
+        let saved_id = vault.save_credential(
             &storage,
             "https://www.example.com/login?next=1",
             "Example",
@@ -355,7 +356,7 @@ mod tests {
         let found = vault.find_for_origin(&storage, "https://www.example.com/other").unwrap();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].password, "secret-value");
-        vault.delete_credential(&storage, &saved.id).unwrap();
+        vault.delete_credential(&storage, &saved_id).unwrap();
         assert!(vault.list_credentials(&storage, None).unwrap().is_empty());
     }
 
