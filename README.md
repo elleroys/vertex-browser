@@ -8,7 +8,7 @@ Vortex is a Windows desktop browser built around **Servo embedded directly in a 
 
 - Servo rendering in a native `winit` window, with egui/Glow browser chrome.
 - Compact two-row browser chrome: tab strip and recovery controls above navigation, address/search, bookmark and a grouped main menu.
-- Tabs, address/search bar, navigation controls, keyboard shortcuts (Ctrl+Tab / Ctrl+PageUp/Down, Ctrl+1…9, Ctrl+W), middle-click tab closing, new-tab page, session restore and recently closed tabs.
+- Tabs, address/search bar with selection-aware clipboard editing (Ctrl+L / Ctrl+K / F6), navigation controls, loading and HTTP/HTTPS status, keyboard shortcuts (Ctrl+Tab / Ctrl+PageUp/Down, Ctrl+1…9, Ctrl+W), middle-click tab closing, new-tab page, session restore and recently closed tabs.
 - SQLite profile, browsing history, bookmarks and configurable search/homepage.
 - Download manager for direct HTTP(S) URLs, with progress, cancellation and safe resume when server validators permit it.
 - Encrypted local password vault using Argon2id and XChaCha20-Poly1305, with explicit same-origin autofill.
@@ -18,7 +18,7 @@ Vortex is a Windows desktop browser built around **Servo embedded directly in a 
 - Navigation safety checks, IDN/Punycode and mixed-script warnings, plus optional local OpenPhish Community URL matching.
 - Configurable privacy settings and persistent profile data.
 
-The main menu groups everyday tools under **Library**, security controls under **Privacy & Security**, and tab management under **Tabs & Windows**. The browser remains under active usability work; keyboard clipboard shortcuts, tab interactions and real-site compatibility must be verified on Windows.
+The main menu groups everyday tools under **Library**, security controls under **Privacy & Security**, and tab management under **Tabs & Windows**. The browser remains under active usability work; clipboard behavior, tab interactions and real-site compatibility still require hands-on verification on Windows.
 
 See [native/README.md](native/README.md) for the detailed feature inventory and known limitations.
 
