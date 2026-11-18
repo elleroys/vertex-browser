@@ -696,7 +696,13 @@ impl VertexApp {
         let storage = BrowserStorage::open(&profile_dir.join("profile.sqlite3"))
             .expect("failed to open Vertex browser profile database");
 
-        let page_context = Rc::new(rendering_context.offscreen_context(PhysicalPosition::new(1, 1).into()));
+        let window_size = window.inner_size();
+        let toolbar_height = (82.0 * window.scale_factor()).round() as u32;
+        let page_context_size = winit::dpi::PhysicalSize::new(
+            window_size.width.max(1),
+            window_size.height.saturating_sub(toolbar_height).max(1),
+        );
+        let page_context = Rc::new(rendering_context.offscreen_context(page_context_size));
 
         let chrome = egui_glow::winit::EguiGlow::new(
             event_loop,
