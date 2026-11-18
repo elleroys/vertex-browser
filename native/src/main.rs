@@ -603,10 +603,9 @@ ${sections}</body></html>"#);
         let unlocked = status.as_ref().is_ok_and(|value| value.is_unlocked);
         let search = self.vault_search.borrow().clone();
         let entries = if unlocked {
-            self.password_vault.list_credentials(&self.storage, Some(&search))
-                .unwrap_or_default()
+            Some(self.password_vault.list_credentials(&self.storage, Some(&search)))
         } else {
-            Vec::new()
+            None
         };
 
         let mut open = true;
@@ -616,6 +615,7 @@ ${sections}</body></html>"#);
         let mut save = false;
         let mut show_passwords = self.vault_show_passwords.get();
         let mut delete_id: Option<String> = None;
+        let mut clipboard_text: Option<String> = None;
 
         egui::Window::new("Менеджер паролів")
             .open(&mut open)
@@ -683,28 +683,47 @@ ${sections}</body></html>"#);
                             ui.checkbox(&mut show_passwords, "Показувати паролі");
                         });
                         egui::ScrollArea::vertical().max_height(230.0).show(ui, |ui| {
-                            for entry in &entries {
-                                ui.group(|ui| {
-                                    ui.horizontal(|ui| {
-                                        ui.strong(&entry.title);
-                                        ui.label(&entry.origin);
-                                        if ui.small_button("Видалити").clicked() {
-                                            delete_id = Some(entry.id.clone());
-                                        }
-                                    });
-                                    ui.label(format!("Логін: {}", entry.username));
-                                    if show_passwords {
-                                        ui.label(format!("Пароль: {}", entry.password));
-                                    } else {
-                                        ui.label("Пароль: ••••••••");
+                            match entries.as_ref() {
+                                Some(Ok(records)) => {
+                                    for entry in records {
+                                        ui.group(|ui| {
+                                            ui.horizontal(|ui| {
+                                                ui.strong(&entry.title);
+                                                ui.label(&entry.origin);
+                                                if ui.small_button("Видалити").clicked() {
+                                                    delete_id = Some(entry.id.clone());
+                                                }
+                                            });
+                                            ui.horizontal(|ui| {
+                                                ui.label(format!("Логін: {}", entry.username));
+                                                if ui.small_button("Копіювати логін").clicked() {
+                                                    clipboard_text = Some(entry.username.clone());
+                                                }
+                                            });
+                                            ui.horizontal(|ui| {
+                                                if show_passwords {
+                                                    ui.label(format!("Пароль: {}", entry.password));
+                                                } else {
+                                                    ui.label("Пароль: ••••••••");
+                                                }
+                                                if ui.small_button("Копіювати пароль").clicked() {
+                                                    clipboard_text = Some(entry.password.clone());
+                                                }
+                                            });
+                                            if let Some(notes) = &entry.notes {
+                                                ui.label(format!("Нотатки: {notes}"));
+                                            }
+                                        });
                                     }
-                                    if let Some(notes) = &entry.notes {
-                                        ui.label(format!("Нотатки: {notes}"));
+                                    if records.is_empty() {
+                                        ui.label("Записів не знайдено.");
                                     }
-                                });
-                            }
-                            if entries.is_empty() {
-                                ui.label("Записів не знайдено.");
+                                }
+                                Some(Err(error)) => {
+                                    ui.colored_label(egui::Color32::LIGHT_RED,
+                                        format!("Не вдалося розшифрувати записи: {error}"));
+                                }
+                                None => {}
                             }
                         });
                     }
@@ -720,6 +739,10 @@ ${sections}</body></html>"#);
             });
 
         self.vault_show_passwords.set(show_passwords);
+        if let Some(value) = clipboard_text {
+            ctx.copy_text(value);
+            *self.vault_message.borrow_mut() = "Скопійовано в буфер обміну.".to_owned();
+        }
         if !open {
             self.password_vault_open.set(false);
         }
