@@ -1315,6 +1315,38 @@ ${sections}</body></html>"#);
 }
 
 impl servo::WebViewDelegate for BrowserState {
+    fn request_create_new(
+        &self,
+        parent_webview: WebView,
+        request: servo::CreateNewWebViewRequest,
+    ) {
+        let webview = request
+            .builder(self.page_context.clone())
+            .delegate(parent_webview.delegate())
+            .build();
+
+        let mut tabs = self.webviews.borrow_mut();
+        if let Some(active) = tabs.get(self.active_tab.get()) {
+            active.set_focused(false);
+            active.hide();
+        }
+        tabs.push(webview);
+        let index = tabs.len() - 1;
+        self.active_tab.set(index);
+        if let Some(active) = tabs.get(index) {
+            active.show();
+            active.set_focused(true);
+            self.update_window_title(active);
+            *self.address_bar.borrow_mut() = active.url()
+                .filter(|url| matches!(url.scheme(), "http" | "https"))
+                .map(|url| url.to_string())
+                .unwrap_or_default();
+        }
+        drop(tabs);
+        self.persist_session();
+        self.window.request_redraw();
+    }
+
     fn load_web_resource(&self, webview: WebView, load: servo::WebResourceLoad) {
         if !self.site_adblock_enabled(&webview) {
             return;
