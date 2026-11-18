@@ -1241,7 +1241,7 @@ ${sections}</body></html>"#);
                         ui.label("Збіг із базою зупиняє перехід і показує попередження. Це не гарантує виявлення всіх фішингових сайтів.");
                         ui.separator();
                         ui.heading("Профілі браузера");
-                        ui.label("Кожен профіль має окрему базу SQLite, історію, закладки, паролі, налаштування та завантаження. Перемикання застосовується після перезапуску.");
+                        ui.label("Кожен профіль має окрему базу SQLite: історію, закладки, паролі, налаштування та записи завантажень. Cookies і Web Storage Servo поки спільні між профілями. Перемикання застосовується після перезапуску.");
                         egui::ComboBox::from_id_salt("vertex-profile-selector")
                             .selected_text(format!("Поточний: {}", selected_profile))
                             .show_ui(ui, |ui| {
@@ -1269,7 +1269,7 @@ ${sections}</body></html>"#);
                         }
                         if !profile_message.is_empty() { ui.colored_label(egui::Color32::LIGHT_BLUE, profile_message); }
                         ui.separator();
-                        ui.label("Дозволені лише адреси HTTP та HTTPS. Дані кожного профілю зберігаються окремо локально в SQLite.");
+                        ui.label("Дозволені лише адреси HTTP та HTTPS. Дані SQLite кожного профілю зберігаються окремо локально; дані сайтів Servo поки не ізольовані.");
                     });
                 *self.profile_selection.borrow_mut() = selected_profile.clone();
                 if changed_engine {
