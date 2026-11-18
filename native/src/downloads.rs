@@ -115,10 +115,13 @@ where
         resume = ResumeInfo { etag: None, last_modified: None };
     }
     if append {
-        let range = response.headers().get(reqwest::header::CONTENT_RANGE)
-            .and_then(|v| v.to_str().ok())
-            .ok_or("Server returned 206 without Content-Range")?;
+        let Some(range) = response.headers().get(reqwest::header::CONTENT_RANGE)
+            .and_then(|v| v.to_str().ok()) else {
+                let _ = progress(0, None, &ResumeInfo { etag: None, last_modified: None });
+                return Err("Server returned 206 without Content-Range".into());
+            };
         if !content_range_is_complete(range, existing) {
+            let _ = progress(0, None, &ResumeInfo { etag: None, last_modified: None });
             return Err("Server returned an unexpected Content-Range; partial file preserved".into());
         }
     } else if status == reqwest::StatusCode::PARTIAL_CONTENT {
@@ -131,10 +134,16 @@ where
         .and_then(|v| v.to_str().ok()).map(str::to_owned);
     if append {
         if let (Some(old), Some(new)) = (resume.etag.as_deref(), response_etag.as_deref()) {
-            if old != new { return Err("ETag changed during resume; partial file preserved".into()); }
+            if old != new {
+                let _ = progress(0, None, &ResumeInfo { etag: None, last_modified: None });
+                return Err("ETag changed during resume; partial file preserved".into());
+            }
         }
         if let (Some(old), Some(new)) = (resume.last_modified.as_deref(), response_modified.as_deref()) {
-            if old != new { return Err("Last-Modified changed during resume; partial file preserved".into()); }
+            if old != new {
+                let _ = progress(0, None, &ResumeInfo { etag: None, last_modified: None });
+                return Err("Last-Modified changed during resume; partial file preserved".into());
+            }
         }
     }
     let response_info = ResumeInfo {
