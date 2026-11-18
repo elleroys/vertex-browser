@@ -28,7 +28,7 @@ Implemented in the native branch:
 - Native window, Servo rendering/event-loop integration, address bar, native egui/Glow toolbar and multi-tab UI.
 - Navigation, page title/loading state, zoom controls, keyboard/mouse/wheel/focus input and common keyboard shortcuts.
 - SQLite-backed history, bookmarks, settings, download records and persistent session restore (up to 50 HTTP(S) tab URLs plus active-tab index).
-- Persistent recently-closed-tab recovery (up to ten HTTP(S) URLs) and basic search-provider settings (Google, DuckDuckGo, Bing).
+- Persistent recently-closed-tab recovery (up to ten HTTP(S) URLs) and basic settings for search provider (Google, DuckDuckGo, Bing) and validated HTTP(S) homepage.
 - Internal pages for new tab, history, bookmarks and download records.
 - Basic request blocking through Servo's `WebViewDelegate::load_web_resource`.
 - Global AdBlock toggle, per-site exceptions and a custom-rule editor persisted in SQLite. The supported EasyList subset includes domain rules (`||host^`), domain/path rules and exception rules (`@@||host^`); comments are ignored. Cosmetic filters, regular expressions, resource modifiers, scriptlets and full uBlock syntax are not supported.
@@ -44,7 +44,7 @@ Known limitations (not yet acceptance-tested):
 - Servo's pinned `WebViewDelegate::load_web_resource` hook exposes the outgoing `WebResourceRequest` and lets the embedder replace a response; it does not expose the eventual server response headers to that callback. Therefore it cannot safely identify `Content-Disposition: attachment` downloads on its own. Do not intercept every URL or start a second unauthenticated HTTP request as a workaround. A proper download integration needs a verified response/download event or an engine-level API change.
 - The password vault supports manual credential management, safe same-origin autofill and CSV import/export. Autofill is explicit and never submits the form. CSV import currently targets the Vertex schema (`origin,title,username,password,notes`), not every browser/vendor export format. Clipboard contents are not automatically cleared by the browser.
 - Session restore currently stores only HTTP(S) tab URLs and the active-tab index. Recently closed URLs are persisted separately; per-tab back/forward history and scroll positions are not persisted.
-- The settings UI currently covers the search provider only. Homepage, download directory, broader privacy controls, Windows packaging and production hardening remain unfinished.
+- The settings UI currently covers the search provider and homepage only. Download directory, broader privacy controls, Windows packaging and production hardening remain unfinished.
 - No successful native build or end-to-end browser test has been recorded yet. Do not treat source-level changes as proof of runtime correctness.
 
 ## Migration sequence
