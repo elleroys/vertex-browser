@@ -41,7 +41,7 @@ jobs:
         run: cargo check
         shell: pwsh
 
-      - name: Run navigation parser tests
+      - name: Run native unit tests
         working-directory: native
-        run: cargo test parse_navigation_input
+        run: cargo test
         shell: pwsh
