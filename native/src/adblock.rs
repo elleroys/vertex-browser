@@ -444,6 +444,21 @@ mod tests {
     #[test]
     fn path_separator_does_not_match_longer_words() {
         let rules = "||example.com/ads^";
+        let parsed = parse_rule(rules).expect("path rule must parse");
+        assert_eq!(
+            parsed,
+            (false, Rule::Domain {
+                host: "example.com".to_owned(),
+                path: Some("ads".to_owned()),
+                path_separator: true,
+                resource_types: None,
+            })
+        );
+        assert!(rule_matches(
+            &url("https://example.com/ads"),
+            content_security_policy::Destination::None,
+            &parsed.1,
+        ), "parsed rule did not match the exact path: {:?}", parsed.1);
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads"), rules));
         assert!(is_blocked_url_with_rules(&url("https://example.com/ads/banner.js"), rules));
         assert!(!is_blocked_url_with_rules(&url("https://example.com/adserver.js"), rules));
@@ -518,8 +533,10 @@ mod tests {
         assert!(!is_blocked_url_with_rules(
             &url("https://cdn.example.net/ads/safe/banner.js"), rules
         ));
+        // The blocking rule targets */banner; use another matching path
+        // outside the safe exception to verify that the exception is scoped.
         assert!(is_blocked_url_with_rules(
-            &url("https://cdn.example.net/ads/safe/other.js"), rules
+            &url("https://cdn.example.net/ads/mobile/banner/other.js"), rules
         ));
     }
 
