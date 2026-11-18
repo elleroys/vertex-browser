@@ -660,8 +660,16 @@ ${sections}</body></html>"#);
                                 ui.label("Логін");
                                 ui.text_edit_singleline(&mut *self.vault_username.borrow_mut());
                                 ui.label("Пароль");
-                                ui.add(egui::TextEdit::singleline(&mut *self.vault_password.borrow_mut())
-                                    .password(true));
+                                ui.horizontal(|ui| {
+                                    ui.add(egui::TextEdit::singleline(&mut *self.vault_password.borrow_mut())
+                                        .password(true));
+                                    if ui.button("Згенерувати").on_hover_text("Створити випадковий пароль на 24 символи").clicked() {
+                                        match password_vault::generate_password(24) {
+                                            Ok(password) => *self.vault_password.borrow_mut() = password,
+                                            Err(error) => *self.vault_message.borrow_mut() = error,
+                                        }
+                                    }
+                                });
                                 ui.label("Нотатки (необов'язково)");
                                 ui.text_edit_singleline(&mut *self.vault_notes.borrow_mut());
                                 if ui.button("Зберегти пароль").clicked() {
