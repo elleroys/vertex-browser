@@ -2096,6 +2096,8 @@ impl VertexApp {
             storage.get_setting("clear_history_on_exit"),
             Ok(Some(value)) if value == "true"
         );
+        let adblock_list_url = storage.get_setting("adblock_list_url")
+            .ok().flatten().unwrap_or_default();
         let closed_tabs = storage.load_closed_tabs().unwrap_or_default()
             .into_iter()
             .rev()
@@ -2123,8 +2125,7 @@ impl VertexApp {
             adblock_custom_rules: RefCell::new(custom_adblock_rules),
             adblock_rules_draft: RefCell::new(String::new()),
             adblock_rules_open: Cell::new(false),
-            adblock_list_url: RefCell::new(storage.get_setting("adblock_list_url")
-                .ok().flatten().unwrap_or_default()),
+            adblock_list_url: RefCell::new(adblock_list_url),
             adblock_update_status: RefCell::new(String::new()),
             adblock_update_in_progress: Cell::new(false),
             settings_open: Cell::new(false),
@@ -2609,7 +2610,7 @@ impl EventLoopWaker for ServoWaker {
     }
 
     fn wake(&self) {
-        if let Err(error) = self.0.send_event(ServoWakeup) {
+        if let Err(error) = self.0.send_event(ServoWakeup::Wake) {
             log::warn!("could not wake winit event loop: {error}");
         }
     }
